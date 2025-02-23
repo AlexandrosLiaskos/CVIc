@@ -1,9 +1,0 @@
-cvic/
-├── .venv/                  # Virtual environment
-├── src/
-│   ├── main.py            # Main application entry point
-│   └── modules/
-│       └── shoreline/     # Shoreline detection module
-├── requirements.txt        # Main requirements file
-├── setup.sh               # Main setup script
-└── .gitignore            # Git ignore file

@@ -1,5 +1,0 @@
-PyQt6>=6.4.0
-folium>=0.14.0
-earthengine-api>=0.1.350
-geemap>=0.20.0  # For GEE map integration
-qtawesome>=1.2.0  # For icons
