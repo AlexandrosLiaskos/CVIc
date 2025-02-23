@@ -1,0 +1,106 @@
+{
+  "project": {
+    "name": "CVIc",
+    "title": "Coastal Vulnerability Index Compiler",
+    "definition": "A streamlined application for computing coastal vulnerability indices from user-provided parameters",
+    "vision": {
+      "primary": "Provide an intuitive, standalone application that streamlines the process of calculating coastal vulnerability indices from various input parameters",
+      "development": "Plans for a dedicated application to serve as a central hub for Coastal Vulnerability Assessments automation"
+    },
+    "highlights": [
+      "Streamlined CVI computation workflow",
+      "User-friendly GUI",
+      "Flexible input methods (manual entry, file import, selection lists)",
+      "Free and open-source"
+    ]
+  },
+  "modules": {
+    "parameter_input": {
+      "name": "Parameter Input",
+      "status": "Planned",
+      "version": "0.1.0",
+      "implementation": "src/parameter_input.py",
+      "capabilities": [
+        "Multiple input methods per parameter:",
+        "- Direct value entry",
+        "- File import (CSV, GeoJSON, Shapefiles, GeoTIF)",
+        "Parameter validation",
+        "Input data visualization",
+        "Data persistence and session management"
+      ]
+    },
+    "geomorphology": {
+      "name": "Geomorphology",
+      "status": "Planned",
+      "version": "0.1.0",
+      "implementation": "src/geomorphology.py",
+      "capabilities": [
+      ]
+    },
+    "slope": {
+      "name": "Slope",
+      "status": "Planned",
+      "version": "0.1.0",
+      "implementation": "src/slope.py",
+      "capabilities": [
+      ]
+    },
+    "mean_wave_height": {
+      "name": "Mean Wave Height",
+      "status": "Planned",
+      "version": "0.1.0",
+      "implementation": "src/mean_wave_height.py",
+      "capabilities": [
+      ]
+    },
+    "mean_tidal_range": {
+      "name": "Mean Tidal Range",
+      "status": "Planned",
+      "version": "0.1.0",
+      "implementation": "src/mean_tidal_range.py",
+      "capabilities": [
+      ]
+    },
+    "relative_sea_level": {
+      "name": "Relative Sea Level",
+      "status": "Planned",
+      "version": "0.1.0",
+      "implementation": "src/relative_sea_level.py",
+      "capabilities": [
+      ]
+    },
+    "coastal_erosion_accretion": {
+      "name": "Coastal Erosion/Accretion",
+      "status": "Planned",
+      "version": "0.1.0",
+      "implementation": "src/coastal_erosion_accretion.py",
+      "capabilities": [
+      ]
+    },
+    "coastal_vulnerability_index": {
+      "name": "Coastal Vulnerability Index",
+      "status": "Planned",
+      "version": "0.1.0",
+      "implementation": "src/coastal_vulnerability_index.py",
+      "capabilities": [
+        "Multiple CVI formula implementations",
+        "Weighted parameter support",
+        "Result visualization",
+        "Export capabilities (CSV, GeoJSON, PDF reports)"
+      ]
+    }
+  },
+  "benefits": {
+    "scientific": {
+      "rapidAssessment": "Streamlines CVI computation",
+      "flexibility": "Supports multiple input methods and CVI computation approaches",
+      "transparency": "Open-source code ensures computation transparency",
+      "customizability": "Researchers can modify parameters and computation methods"
+    }
+  },
+  "_metadata": {
+    "lastUpdated": "2024-02-19T14:24:13Z",
+    "version": "1.0.0",
+    "schema": "project/v1"
+  }
+}
