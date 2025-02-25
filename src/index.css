@@ -1246,3 +1246,70 @@ body {
   font-size: 0.9rem;
   opacity: 0.8;
 }
+
+/* Add after existing .file-size class */
+.file-details {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-top: 1px solid #333;
+  padding-top: 0.5rem;
+}
+
+.processing-level {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.processing-level label {
+  font-size: 0.85rem;
+  color: #aaa;
+  min-width: 110px;
+}
+
+.processing-level select {
+  background: #333;
+  border: 1px solid #444;
+  color: #fff;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.85rem;
+}
+
+.band-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.band-selection label:first-child {
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+.band-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.band-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: #333;
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.band-checkbox input {
+  margin: 0;
+}
+
+.band-checkbox:hover {
+  background: #444;
+}

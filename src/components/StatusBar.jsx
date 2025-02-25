@@ -12,8 +12,12 @@ export default function StatusBar() {
           next: 'sensor',
           nextLabel: 'Confirm AOI',
           customHandler: () => {
-            const event = new CustomEvent('showAOIConfirmation');
-            window.dispatchEvent(event);
+            const features = window.getCurrentAOIFeatures?.();
+            if (!features || features.length === 0) {
+              alert("Please draw an area on the map first");
+              return;
+            }
+            window.showAOIConfirmation?.();
           }
         };
       case 'sensor':
