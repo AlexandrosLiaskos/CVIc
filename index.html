@@ -9,5 +9,13 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      function onOpenCvReady() {
+        if (window.onCvReady) {
+          window.onCvReady();
+        }
+      }
+    </script>
+    <script async src="https://docs.opencv.org/master/opencv.js" onload="onOpenCvReady()"></script>
   </body>
 </html>

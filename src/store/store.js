@@ -7,10 +7,11 @@ const initialWorkflowState = {
     sourceType: 'local',
     sensorType: 'Sentinel2',
     temporalRange: {
-      start: new Date().toISOString().split('T')[0],
+      start: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
       end: new Date().toISOString().split('T')[0]
     },
-    files: [],
+    fileInfo: [],
+    waterIndex: 'Band8',
     parameters: {
       processing: {
         level: 'L2A'
@@ -42,11 +43,17 @@ const workflowReducer = (state = initialWorkflowState, action) => {
                 }
               }
             : {}),
-          ...(action.payload.files
-            ? { files: action.payload.files }
+          ...(action.payload.fileInfo
+            ? { fileInfo: action.payload.fileInfo }
             : {}),
           ...(action.payload.sensorType
             ? { sensorType: action.payload.sensorType }
+            : {}),
+          ...(action.payload.useAoI !== undefined
+            ? { useAoI: action.payload.useAoI }
+            : {}),
+          ...(action.payload.aoiBounds
+            ? { aoiBounds: action.payload.aoiBounds }
             : {}),
           ...(action.payload.parameters
             ? {

@@ -345,7 +345,7 @@ export default function AOISelection() {
   const handleConfirmAOI = (geoJSON) => {
     // Handle the confirmed AOI (e.g., save to state, move to next step)
     dispatch({
-      type: 'SET_AOI_DATA',
+      type: 'SET_AREA_OF_INTEREST',
       payload: geoJSON
     });
 
@@ -981,7 +981,7 @@ export default function AOISelection() {
         }
 
         .compact-mode .button-text {
-          display: none !important;
+          display: none;
         }
 
         .compact-toggle {

@@ -10,7 +10,15 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [react()],
     server: {
-      port: 3002
-    }
+      port: 3002,
+      hmr: {
+        overlay: true
+      }
+    },
+    build: {
+      sourcemap: true
+    },
+    logLevel: 'info',
+    clearScreen: false
   }
 })
