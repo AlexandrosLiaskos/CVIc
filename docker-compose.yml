@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Add Supabase service if needed
+  # supabase:
+  #   image: supabase/postgres:15.1.0.117
+  #   environment:
+  #     - POSTGRES_PASSWORD=your-password
+  #     - POSTGRES_USER=postgres
+  #     - POSTGRES_DB=postgres
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - supabase_data:/var/lib/postgresql/data
+  #   restart: unless-stopped
+
+# volumes:
+#   supabase_data: 
