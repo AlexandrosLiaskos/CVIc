@@ -2,7 +2,7 @@
   "name": "cvic",
   "private": true,
   "version": "0.1.0",
-  "homepage": "https://alexlukens82991.github.io/cvic/",
+  "homepage": "https://alexandrosliaskos.github.io/CVIc/",
   "type": "module",
   "scripts": {
     "dev": "vite",
