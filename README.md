@@ -1,100 +1,72 @@
-# CVIc - Coastal Vulnerability Index Compiler
+# CVIC - Coastal Vulnerability Index Calculator
 
-CVIc is a web application designed to help coastal managers, researchers, and policy makers assess shoreline vulnerability to coastal hazards such as erosion, flooding, and sea-level rise.
+A web application for calculating coastal vulnerability indices based on various parameters and shoreline segments.
 
-## Features
+## Live Demo
 
-- User authentication and authorization
-- Shoreline data management
-- Coastal Vulnerability Index (CVI) calculation
-- Analysis results management and export
-- Modern, responsive user interface
+Visit the live application at [https://alexlukens82991.github.io/cvic/](https://alexlukens82991.github.io/cvic/)
 
-## Tech Stack
-
-- React + TypeScript
-- Vite
-- Tailwind CSS
-- Firebase Authentication
-- Supabase Database
-- React Router
-
-## Prerequisites
-
-- Node.js (v16 or higher)
-- npm or yarn
-- Firebase project
-- Supabase project
-
-## Setup
+## Development
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/alexlukens82991/cvic.git
 cd cvic
 ```
 
 2. Install dependencies:
 ```bash
 npm install
-# or
-yarn install
 ```
 
-3. Create a `.env` file in the root directory based on `.env.example`:
-```bash
-cp .env.example .env
-```
-
-4. Update the environment variables in `.env` with your Firebase and Supabase credentials.
-
-5. Start the development server:
+3. Start the development server:
 ```bash
 npm run dev
-# or
-yarn dev
 ```
 
-## Project Structure
+## Deployment
 
-```
-cvic/
-├── src/
-│   ├── components/     # Reusable UI components
-│   ├── pages/         # Page components
-│   ├── hooks/         # Custom React hooks
-│   ├── services/      # API and business logic services
-│   ├── utils/         # Utility functions
-│   ├── constants/     # Application constants
-│   ├── types/         # TypeScript type definitions
-│   ├── lib/           # Third-party library configurations
-│   ├── App.tsx        # Main application component
-│   └── main.tsx       # Application entry point
-├── public/            # Static assets
-├── index.html         # HTML template
-├── package.json       # Project dependencies and scripts
-├── tsconfig.json      # TypeScript configuration
-├── vite.config.ts     # Vite configuration
-├── tailwind.config.js # Tailwind CSS configuration
-└── README.md          # Project documentation
+The application is automatically deployed to GitHub Pages when changes are pushed to the main branch.
+
+### Manual Deployment
+
+To deploy manually:
+
+1. Build the application:
+```bash
+npm run build
 ```
 
-## Development
+2. Deploy to GitHub Pages:
+```bash
+npm run deploy
+```
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run lint` - Run ESLint
-- `npm run type-check` - Run TypeScript type checking
+## Features
+
+- Interactive map for shoreline segmentation
+- Parameter selection and weighting
+- Vulnerability index calculation
+- Data persistence using IndexedDB
+- Responsive design for desktop and mobile use
+
+## Technology Stack
+
+- React with TypeScript
+- Vite for build tooling
+- Leaflet for mapping
+- TailwindCSS for styling
+- IndexedDB for data storage
+- GitHub Pages for hosting
 
 ## Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+[MIT License](LICENSE)
