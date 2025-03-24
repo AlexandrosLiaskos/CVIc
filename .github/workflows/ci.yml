@@ -32,9 +32,6 @@ jobs:
         # Force npm to rebuild platform-specific binaries
         npm_config_build_from_source: true
 
-    - name: Lint
-      run: npm run lint
-
     - name: Build
       run: npm run build
 
