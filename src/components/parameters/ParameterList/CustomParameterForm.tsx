@@ -33,7 +33,8 @@ export const CustomParameterForm: React.FC<CustomParameterFormProps> = ({
       name: name.trim(),
       description: description.trim(),
       weight: 0,
-      isCustom: true
+      isCustom: true,
+      type: 'numerical'
     }
 
     onParameterAdd(newParameter)

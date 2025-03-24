@@ -36,11 +36,12 @@ class IndexedDBService {
     }
 
     try {
-      await this.db!.put(STORE_NAME, {
+      const storeData: ShorelineStore = {
         id,
         data,
         timestamp: Date.now(),
-      });
+      };
+      await this.db!.put(STORE_NAME, storeData);
     } catch (error) {
       console.error('Failed to store shoreline data:', error);
       if (error instanceof Error && error.name === 'QuotaExceededError') {
@@ -56,7 +57,7 @@ class IndexedDBService {
     }
 
     try {
-      const result = await this.db!.get(STORE_NAME, id);
+      const result: ShorelineStore | undefined = await this.db!.get(STORE_NAME, id);
       return result ? result.data : null;
     } catch (error) {
       console.error('Failed to retrieve shoreline data:', error);

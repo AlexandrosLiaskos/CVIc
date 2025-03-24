@@ -3,6 +3,8 @@ import type { PathOptions } from 'leaflet'
 import MapVisualization from '../maps/MapVisualization'
 import { getCVILevelColor } from '../../utils'
 import type { AnalysisResult, MapFeature } from '../../types'
+import { Feature, GeoJSON } from 'react-leaflet'
+import { GeoJsonProperties } from 'geojson'
 
 interface ResultsVisualizationProps {
   result: AnalysisResult
@@ -23,7 +25,7 @@ export default function ResultsVisualization({
     }
   }
 
-  const getFeatureStyle = (feature: GeoJSON.Feature): PathOptions => {
+  const getFeatureStyle = (feature: Feature<any, GeoJsonProperties>): PathOptions => {
     const mapFeature = feature as MapFeature
     const segmentId = mapFeature.properties.id
     const isSelected = segmentId === selectedSegment

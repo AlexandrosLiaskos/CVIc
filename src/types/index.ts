@@ -48,11 +48,11 @@ export interface Parameter {
   name: string
   description: string
   type: 'numerical' | 'categorical'
+  weight: number
   unit?: string
   vulnerabilityRanges?: VulnerabilityRange[]
   options?: ParameterOption[]
   enabled?: boolean
-  weight?: number
   range?: {
     min: number
     max: number
@@ -60,6 +60,7 @@ export interface Parameter {
   isCustom?: boolean
   isComplete?: boolean
   categories?: Category[]
+  vulnerability?: number
 }
 
 export interface ParameterSegment {

@@ -8,37 +8,43 @@ const DEFAULT_PARAMETERS: Parameter[] = [
     id: 'geomorphology',
     name: 'Geomorphology',
     description: 'Coastal landform type and characteristics',
-    weight: 0
+    weight: 0,
+    type: 'categorical'
   },
   {
     id: 'coastal_slope',
     name: 'Coastal Slope',
     description: 'Regional coastal slope percentage',
-    weight: 0
+    weight: 0,
+    type: 'numerical'
   },
   {
     id: 'relative_sea_level_change',
     name: 'Relative Sea-Level Change',
     description: 'Rate of sea-level rise or fall',
-    weight: 0
+    weight: 0,
+    type: 'numerical'
   },
   {
     id: 'shoreline_erosion',
     name: 'Shoreline Erosion/Accretion',
     description: 'Rate of shoreline position change',
-    weight: 0
+    weight: 0,
+    type: 'numerical'
   },
   {
     id: 'mean_tide_range',
     name: 'Mean Tide Range',
     description: 'Mean tidal range',
-    weight: 0
+    weight: 0,
+    type: 'numerical'
   },
   {
     id: 'mean_wave_height',
     name: 'Mean Wave Height',
     description: 'Mean significant wave height',
-    weight: 0
+    weight: 0,
+    type: 'numerical'
   }
 ]
 

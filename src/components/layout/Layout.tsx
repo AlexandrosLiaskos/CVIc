@@ -2,7 +2,7 @@ import { ReactNode } from 'react'
 import { Link, useLocation, Outlet } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 
-interface LayoutProps {
+interface Props {
   children: ReactNode
 }
 
@@ -15,7 +15,7 @@ const navigation = [
   { name: 'Results Manager', href: '/results-manager' },
 ]
 
-export default function Layout() {
+export const Layout = ({ children }: Props) => {
   const location = useLocation()
   const { user, loading, signOut } = useAuth()
 
