@@ -1,5 +1,6 @@
+import React from 'react'
 import { useState, useEffect, useMemo } from 'react'
-import { Map } from 'react-map-gl'
+import Map from 'react-map-gl'
 import type { FeatureCollection, LineString, MultiLineString, GeoJsonProperties } from 'geojson'
 import type { Parameter } from '../../types'
 import { ShorelineSegment } from '../../types'

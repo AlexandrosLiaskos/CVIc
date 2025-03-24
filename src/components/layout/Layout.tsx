@@ -1,10 +1,5 @@
-import { ReactNode } from 'react'
 import { Link, useLocation, Outlet } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-
-interface Props {
-  children: ReactNode
-}
 
 const navigation = [
   { name: 'Home', href: '/' },
@@ -15,7 +10,7 @@ const navigation = [
   { name: 'Results Manager', href: '/results-manager' },
 ]
 
-export const Layout = ({ children }: Props) => {
+export const Layout = () => {
   const location = useLocation()
   const { user, loading, signOut } = useAuth()
 

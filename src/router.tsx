@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
-import Layout from './components/layout/Layout'
+import { Layout } from './components/layout/Layout'
+import { ErrorBoundary } from './components/common/ErrorBoundary'
 import RootPage from './pages/RootPage'
 import LoginPage from './pages/LoginPage'
 import ShorelinePage from './pages/ShorelinePage'
@@ -12,7 +13,6 @@ import FormulaSelectionPage from './pages/FormulaSelectionPage'
 import CalculationPage from './pages/CalculationPage'
 import ResultsManagerPage from './pages/ResultsManagerPage'
 import { useAuth } from './hooks/useAuth'
-import ErrorBoundary from './components/common/ErrorBoundary'
 
 // Protected route wrapper component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {

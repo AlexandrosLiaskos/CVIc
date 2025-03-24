@@ -36,6 +36,7 @@ const DEFAULT_PARAMETERS: Parameter[] = [
     name: 'Geomorphology',
     description: 'Coastal landform type and characteristics',
     type: 'categorical',
+    weight: 0,
     options: [
       { type: 'categorical', value: 'rocky_cliffs', label: 'Rocky Cliffs', color: '#1a9850', vulnerability: 1 },
       { type: 'categorical', value: 'medium_cliffs', label: 'Medium Cliffs', color: '#91cf60', vulnerability: 2 },
@@ -51,6 +52,7 @@ const DEFAULT_PARAMETERS: Parameter[] = [
     name: 'Coastal Slope',
     description: 'Average slope of the coastal zone',
     type: 'numerical',
+    weight: 0,
     unit: 'degrees',
     vulnerabilityRanges: [
       { value: 1, min: 0.2, max: null, label: 'Very Low', color: '#1a9850' },
@@ -61,28 +63,6 @@ const DEFAULT_PARAMETERS: Parameter[] = [
     ],
     enabled: true,
     isComplete: false
-  },
-  {
-    id: 'elevation',
-    name: 'Elevation',
-    description: 'Beach elevation above sea level',
-    type: 'numerical',
-    unit: 'meters',
-    range: { min: 0, max: 100 },
-    enabled: true
-  },
-  {
-    id: 'geology',
-    name: 'Geology',
-    description: 'Coastal geology type',
-    type: 'categorical',
-    options: [
-      { type: 'categorical', value: 'rock', label: 'Rock', color: '#1a9850', vulnerability: 1 },
-      { type: 'categorical', value: 'sand', label: 'Sand', color: '#91cf60', vulnerability: 2 },
-      { type: 'categorical', value: 'mud', label: 'Mud', color: '#d9ef8b', vulnerability: 3 },
-      { type: 'categorical', value: 'mixed', label: 'Mixed', color: '#fee08b', vulnerability: 4 }
-    ],
-    enabled: true
   },
   {
     id: 'waveHeight',
@@ -460,6 +440,17 @@ export default function ParametersPage() {
       }
     }
   })
+
+  const createSegment = (geometry: LineString): ShorelineSegment => ({
+    type: 'Feature',
+    id: crypto.randomUUID(),
+    geometry,
+    properties: {
+      id: crypto.randomUUID(),
+      values: {}
+    },
+    parameters: {}
+  });
 
   return (
     <div className="max-w-7xl mx-auto mt-8 px-4">
