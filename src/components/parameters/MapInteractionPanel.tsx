@@ -36,18 +36,17 @@ interface MapInteractionPanelProps {
   mapContainerRef?: React.RefObject<HTMLDivElement>;
 }
 
-/**
+/* *
  * Component managing the map display and its primary interaction controls
- * (selection buttons, drawing information) within the parameter assignment page.
+ * (selection buttons, drawing information) within the parameter assignment page. It occupies its allocated space and ensures the map fills it.
  */
-export const MapInteractionPanel: React.FC<MapInteractionPanelProps> = ({
+export const MapInteractionPanel: React.FC<Omit<MapInteractionPanelProps, 'onSelectionCreate'>> = ({
   segments,
   parameters,
   selectedSegmentIds,
   selectedParameterId,
   selectionPolygons,
   onSegmentSelect,
-  onSelectionCreate,
   onSelectionDelete,
   onAreaSelect,
   initialBounds,
@@ -57,9 +56,9 @@ export const MapInteractionPanel: React.FC<MapInteractionPanelProps> = ({
   mapContainerRef
 }) => {
   return (
-    <div className="bg-white p-4 rounded-lg shadow">
+    <div className="bg-white p-4 rounded-lg shadow h-full flex flex-col"> {/* Ensure it fills height and uses flex column */}
       {/* Map Controls */}
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-4 flex-shrink-0"> {/* Prevent controls from growing/shrinking */}
         <div>
           <button
             onClick={onSelectAll}
@@ -84,7 +83,7 @@ export const MapInteractionPanel: React.FC<MapInteractionPanelProps> = ({
       </div>
 
       {/* Map Container */}
-      <div className="h-full border rounded" ref={mapContainerRef}> {/* Removed fixed height h-[500px], added h-full */}
+      <div className="flex-grow border rounded overflow-hidden" ref={mapContainerRef}> {/* Allow map container to grow and hide overflow */}
         {/* Conditionally render map or loading state */}
         {segments.length > 0 && geoJSON ? (
           <Map
@@ -100,7 +99,6 @@ export const MapInteractionPanel: React.FC<MapInteractionPanelProps> = ({
 
             // Interaction handlers
             onSegmentSelect={onSegmentSelect} // Passed through, signature matches expectation
-            onSelectionCreate={onSelectionCreate} // Passed through
             onSelectionDelete={onSelectionDelete} // Passed through
             onAreaSelect={onAreaSelect} // Passed through
 
@@ -113,7 +111,7 @@ export const MapInteractionPanel: React.FC<MapInteractionPanelProps> = ({
           />
         ) : (
           // Loading or empty state
-          <div className="h-full flex items-center justify-center bg-gray-100">
+          <div className="h-full flex items-center justify-center bg-gray-50 text-gray-500"> {/* Consistent background */}
             <p className="text-gray-500">
               {segments.length === 0 ? "No shoreline segments loaded." : "Loading shoreline data..."}
             </p>

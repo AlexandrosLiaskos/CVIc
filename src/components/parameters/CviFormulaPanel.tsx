@@ -11,9 +11,11 @@ interface CviStatistics {
   avg: string;
   count: number;
   categories: {
+    veryLow: number;
     low: number;
-    medium: number;
+    moderate: number;
     high: number;
+    veryHigh: number;
   };
 }
 
@@ -64,14 +66,18 @@ export const CviFormulaPanel: React.FC<CviFormulaPanelProps> = ({
 
     // Count segments in each vulnerability category based on CVI score
     // using the utility function getCviCategory
+    let veryLowCount = 0;
     let lowCount = 0;
-    let mediumCount = 0;
+    let moderateCount = 0;
     let highCount = 0;
+    let veryHighCount = 0;
     scores.forEach(score => {
         const category = getCviCategory(score);
-        if (category === 'Low') lowCount++;
-        else if (category === 'Medium') mediumCount++;
+        if (category === 'Very Low') veryLowCount++;
+        else if (category === 'Low') lowCount++;
+        else if (category === 'Moderate') moderateCount++;
         else if (category === 'High') highCount++;
+        else if (category === 'Very High') veryHighCount++;
     });
 
     // Return the formatted statistics object
@@ -81,9 +87,11 @@ export const CviFormulaPanel: React.FC<CviFormulaPanelProps> = ({
       avg: avg.toFixed(2),
       count: scores.length,
       categories: {
+        veryLow: veryLowCount,
         low: lowCount,
-        medium: mediumCount,
-        high: highCount
+        moderate: moderateCount,
+        high: highCount,
+        veryHigh: veryHighCount
       }
     };
   }, [cviScores]); // Dependency: recalculate only when cviScores changes
@@ -200,20 +208,30 @@ export const CviFormulaPanel: React.FC<CviFormulaPanelProps> = ({
           <h4 className="text-sm font-medium text-gray-700 mb-2">CVI Score Categories & Stats</h4>
           {/* Legend for vulnerability categories */}
           <div className="flex flex-wrap space-x-4 mb-3"> {/* Added flex-wrap for smaller screens */}
+            {/* Very Low Vulnerability */}
+            <div className="flex items-center text-xs whitespace-nowrap"> {/* Added whitespace-nowrap */}
+              <span className="w-3 h-3 bg-green-600 rounded-full mr-1.5 border border-green-700 flex-shrink-0"></span>
+              Very Low {`(1)`} [{cviStatistics.categories.veryLow}]
+            </div>
             {/* Low Vulnerability */}
             <div className="flex items-center text-xs whitespace-nowrap"> {/* Added whitespace-nowrap */}
-              <span className="w-3 h-3 bg-green-500 rounded-full mr-1.5 border border-green-600 flex-shrink-0"></span>
-              Low {'(<2.5)'} [{cviStatistics.categories.low}]
+              <span className="w-3 h-3 bg-lime-500 rounded-full mr-1.5 border border-lime-600 flex-shrink-0"></span>
+              Low {`(2)`} [{cviStatistics.categories.low}]
             </div>
-            {/* Medium Vulnerability */}
+            {/* Moderate Vulnerability */}
             <div className="flex items-center text-xs whitespace-nowrap"> {/* Added whitespace-nowrap */}
-              <span className="w-3 h-3 bg-yellow-500 rounded-full mr-1.5 border border-yellow-600 flex-shrink-0"></span>
-              Medium {'(2.5-3.5)'} [{cviStatistics.categories.medium}]
+              <span className="w-3 h-3 bg-yellow-400 rounded-full mr-1.5 border border-yellow-500 flex-shrink-0"></span>
+              Moderate {`(3)`} [{cviStatistics.categories.moderate}]
             </div>
             {/* High Vulnerability */}
             <div className="flex items-center text-xs whitespace-nowrap"> {/* Added whitespace-nowrap */}
-              <span className="w-3 h-3 bg-red-500 rounded-full mr-1.5 border border-red-600 flex-shrink-0"></span>
-              High {'(>3.5)'} [{cviStatistics.categories.high}]
+              <span className="w-3 h-3 bg-orange-500 rounded-full mr-1.5 border border-orange-600 flex-shrink-0"></span>
+              High {`(4)`} [{cviStatistics.categories.high}]
+            </div>
+            {/* Very High Vulnerability */}
+            <div className="flex items-center text-xs whitespace-nowrap"> {/* Added whitespace-nowrap */}
+              <span className="w-3 h-3 bg-red-600 rounded-full mr-1.5 border border-red-700 flex-shrink-0"></span>
+              Very High {`(5)`} [{cviStatistics.categories.veryHigh}]
             </div>
           </div>
 

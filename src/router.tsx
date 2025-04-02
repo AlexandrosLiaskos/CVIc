@@ -1,3 +1,4 @@
+// ---- File: src/router.tsx ----
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { Layout } from './components/layout/Layout'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
@@ -8,6 +9,7 @@ import SegmentationPage from './pages/SegmentationPage'
 import SegmentTablePage from './pages/SegmentTablePage'
 import ParameterSelectionPage from './pages/ParameterSelectionPage'
 import ParameterAssignmentPage from './pages/ParameterAssignmentPage'
+import ResultsPage from './pages/ResultsPage'; // Import the new page
 import { useAuth } from './hooks/useAuth'
 
 // Protected route wrapper component
@@ -86,7 +88,15 @@ export const router = createBrowserRouter([
             <ParameterAssignmentPage />
           </ProtectedRoute>
         )
+      },
+      { // Add the results route
+        path: 'results',
+        element: (
+          <ProtectedRoute>
+            <ResultsPage />
+          </ProtectedRoute>
+        )
       }
     ]
   }
-]) 
+])

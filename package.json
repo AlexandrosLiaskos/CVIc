@@ -14,9 +14,9 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@turf/turf": "^6.5.0",
     "@types/leaflet-draw": "^1.0.11",
-    "@types/react-router-dom": "^5.3.3",
     "@types/shpjs": "^3.4.7",
     "firebase": "^10.8.0",
     "geojson": "^0.5.0",
@@ -30,7 +30,7 @@
     "shpjs": "^6.1.0",
     "typescript": "^5.3.3"
   },
-   "devDependencies": {
+  "devDependencies": {
     "@testing-library/jest-dom": "^6.4.2",
     "@testing-library/react": "^14.2.1",
     "@testing-library/user-event": "^14.5.2",
@@ -40,7 +40,6 @@
     "@types/node": "^20.11.19",
     "@types/react": "^18.2.57",
     "@types/react-dom": "^18.3.5",
-    "@types/turf": "^3.5.32",
     "@types/unzipper": "^0.10.9",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",

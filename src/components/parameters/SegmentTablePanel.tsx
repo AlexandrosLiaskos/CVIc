@@ -23,9 +23,11 @@ interface SegmentTablePanelProps {
     avg: string;
     count: number;
     categories: {
+      veryLow: number;
       low: number;
-      medium: number;
+      moderate: number;
       high: number;
+      veryHigh: number;
     };
   } | null;
 }
@@ -38,7 +40,7 @@ const SEGMENTS_PER_PAGE = 10;
  */
 export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
   segments,
-  parameters,
+  parameters: enabledParameters, // Rename prop for clarity
   selectedSegmentIds,
   onSegmentSelect,
   cviScores,
@@ -87,31 +89,36 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
   }
 
   // Function to get vulnerability color class
-  const getVulnerabilityColor = (vulnerability: number | null | undefined): string => {
+  const getVulnerabilityClass = (vulnerability: number | null | undefined): string => {
     if (vulnerability === null || vulnerability === undefined) return 'bg-gray-300';
     switch (Math.round(vulnerability)) { // Round to nearest integer for color mapping
-      case 1: return 'bg-green-500';
-      case 2: return 'bg-lime-500';
-      case 3: return 'bg-yellow-500';
+      case 1: return 'bg-green-600'; // Darker Green
+      case 2: return 'bg-lime-500';  // Lime
+      case 3: return 'bg-yellow-400';// Yellow
       case 4: return 'bg-orange-500';
-      case 5: return 'bg-red-500';
-      default: return 'bg-gray-300';
+      case 5: return 'bg-red-600';   // Darker Red
+      default: return 'bg-gray-400';
     }
   };
 
-  // Function to get CVI color class based on score ranges
-   const getCviColor = (score: number): string => {
-    if (score < 2.5) return 'bg-green-500';
-    if (score < 3.5) return 'bg-yellow-500';
-    return 'bg-red-500';
-  };
+  // Function to get CVI color class based on 5 ranks (using rounded score)
+   const getCviClass = (score: number | null | undefined): string => {
+     if (score === null || score === undefined || isNaN(score)) return 'bg-gray-400';
+     const rank = Math.round(score);
+     if (rank <= 1) return 'bg-green-600'; // Rank 1
+     if (rank === 2) return 'bg-lime-500';  // Rank 2
+     if (rank === 3) return 'bg-yellow-400';// Rank 3
+     if (rank === 4) return 'bg-orange-500';// Rank 4
+     if (rank >= 5) return 'bg-red-600';   // Rank 5
+     return 'bg-gray-400'; // Fallback
+   };
 
 
   return (
     <div className="flex flex-col flex-grow h-full overflow-hidden"> {/* Added flex structure to allow internal scrolling */}
       <h3 className="text-lg font-medium mb-4">Segment Values</h3>
 
-      {/* CVI Statistics Display */}
+      {/* CVI Statistics Display - Make it less tall */}
       {selectedFormula && cviStatistics && Object.keys(cviScores).length > 0 && (
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
           <div className="flex items-center mb-2">
@@ -119,32 +126,18 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
             <span className="text-blue-700">{selectedFormula.name}</span>
           </div>
           <p className="text-sm text-blue-600">{selectedFormula.description}</p>
-          <div className="mt-2 grid grid-cols-3 gap-4">
+          <div className="mt-2 grid grid-cols-3 gap-x-4 gap-y-1 text-sm"> {/* Reduced gap and text size */}
             <div>
-              <span className="text-xs text-blue-500">Segments w/ CVI</span>
-              <p className="font-medium text-blue-800">{cviStatistics.count} of {segments.length}</p>
+              <span className="text-blue-500">Segments:</span> <span className="font-medium text-blue-800">{cviStatistics.count} of {segments.length}</span>
             </div>
             <div>
-              <span className="text-xs text-blue-500">CVI Range</span>
-              <p className="font-medium text-blue-800">{cviStatistics.min} - {cviStatistics.max}</p>
+              <span className="text-blue-500">Range:</span> <span className="font-medium text-blue-800">{cviStatistics.min} - {cviStatistics.max}</span>
             </div>
             <div>
-              <span className="text-xs text-blue-500">Average CVI</span>
-              <p className="font-medium text-blue-800">{cviStatistics.avg}</p>
+              <span className="text-blue-500">Average:</span> <span className="font-medium text-blue-800">{cviStatistics.avg}</span>
             </div>
-          </div>
-          <div className="mt-3 grid grid-cols-3 gap-4 pt-2 border-t border-blue-200">
-            <div>
-              <span className="text-xs text-blue-500">Low Vuln.</span>
-              <p className="font-medium text-blue-800">{cviStatistics.categories.low} seg.</p>
-            </div>
-            <div>
-              <span className="text-xs text-blue-500">Medium Vuln.</span>
-              <p className="font-medium text-blue-800">{cviStatistics.categories.medium} seg.</p>
-            </div>
-            <div>
-              <span className="text-xs text-blue-500">High Vuln.</span>
-              <p className="font-medium text-blue-800">{cviStatistics.categories.high} seg.</p>
+             <div className="col-span-3 pt-1 border-t border-blue-100 mt-1 text-xs"> {/* Consolidated category counts */}
+              <span className="text-blue-500">Counts:</span> Very Low: <span className="font-medium text-blue-800">{cviStatistics.categories.veryLow}</span>, Low: <span className="font-medium text-blue-800">{cviStatistics.categories.low}</span>, Moderate: <span className="font-medium text-blue-800">{cviStatistics.categories.moderate}</span>, High: <span className="font-medium text-blue-800">{cviStatistics.categories.high}</span>, Very High: <span className="font-medium text-blue-800">{cviStatistics.categories.veryHigh}</span>
             </div>
           </div>
         </div>
@@ -162,7 +155,7 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
                 Length (m)
               </th>
               {/* Parameter Columns */}
-              {parameters.map(param => (
+              {enabledParameters.map(param => (
                 <th key={param.id} scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title={param.name}>
                    {/* Truncate long names */}
                   {param.name.length > 15 ? param.name.substring(0, 12) + '...' : param.name} (Vuln)
@@ -206,14 +199,14 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
                     {typeof segment.properties?.length === 'number' ? segment.properties.length.toFixed(2) : 'N/A'}
                   </td>
                   {/* Parameter Vulnerability Cells */}
-                  {parameters.map(param => {
+                  {enabledParameters.map(param => {
                     const paramValue = segment.parameters?.[param.id];
                     const vulnerability = paramValue?.vulnerability ?? null;
                     return (
                       <td key={param.id} className="px-6 py-4 whitespace-nowrap text-sm text-center">
                         {vulnerability !== null ? (
-                          <div className="flex justify-center">
-                             <span title={`Vulnerability: ${vulnerability}`} className={`inline-block w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium ${getVulnerabilityColor(vulnerability)}`}>
+                          <div className="flex justify-center" title={`Value: ${paramValue?.value ?? 'N/A'}, Vulnerability: ${vulnerability}`}>
+                             <span title={`Vulnerability: ${vulnerability}`} className={`inline-block w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium ${getVulnerabilityClass(vulnerability)}`}>
                               {vulnerability}
                             </span>
                           </div>
@@ -226,7 +219,7 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
                     {cviScores[segment.id] !== undefined ? (
                        <div className="flex flex-col items-center">
                          <span title={`CVI Score: ${cviScores[segment.id].toFixed(2)} (${getCviCategory(cviScores[segment.id])})`}
-                               className={`inline-block w-6 h-6 rounded-full text-white flex items-center justify-center text-xs font-medium ${getCviColor(cviScores[segment.id])}`}>
+                               className={`inline-block w-6 h-6 rounded-full text-white flex items-center justify-center text-xs font-medium ${getCviClass(cviScores[segment.id])}`}>
                            {Math.round(cviScores[segment.id])} {/* Show rounded value */}
                          </span>
                          <span className="text-xs mt-1">{cviScores[segment.id].toFixed(2)}</span>
@@ -238,7 +231,7 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
             })}
              {paginatedSegments.length === 0 && (
                  <tr>
-                    <td colSpan={parameters.length + 3} className="px-6 py-4 text-center text-sm text-gray-500">
+                    <td colSpan={enabledParameters.length + 3} className="px-6 py-4 text-center text-sm text-gray-500">
                         No segments to display for the current page.
                     </td>
                  </tr>
@@ -249,7 +242,7 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between flex-shrink-0"> {/* Added flex-shrink-0 */}
+        <div className="mt-4 flex items-center justify-between flex-shrink-0 border-t pt-3"> {/* Added flex-shrink-0 and border */}
           <div className="text-gray-500 text-sm">
             Showing {((currentPage - 1) * SEGMENTS_PER_PAGE) + 1} to {Math.min(currentPage * SEGMENTS_PER_PAGE, sortedSegments.length)} of {sortedSegments.length} segments
           </div>
@@ -257,19 +250,19 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="px-3 py-1 border border-gray-300 rounded-md text-xs disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50" // Smaller text/padding
               aria-label="Previous page"
             >
               Previous
             </button>
             {/* Simplified Pagination Numbers */}
-            <span className="text-sm p-1 text-gray-700">
+            <span className="text-xs p-1 text-gray-700"> {/* Smaller text */}
               Page {currentPage} of {totalPages}
             </span>
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="px-3 py-1 border border-gray-300 rounded-md text-xs disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50" // Smaller text/padding
               aria-label="Next page"
             >
               Next

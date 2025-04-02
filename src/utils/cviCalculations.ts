@@ -12,19 +12,18 @@ import { indexedDBService } from '../services/indexedDBService';
  */
 export const calculateGeometricMean = (values: number[], weights: number[]): number => {
   const sumWeights = weights.reduce((a, b) => a + b, 0);
-  // Ensure sumWeights is not zero to avoid division by zero
-  if (sumWeights === 0) {
-    console.warn("Sum of weights is zero in calculateGeometricMean. Returning 0.");
-    return 0;
-  }
-  let product = 1;
+  if (sumWeights === 0) return 0; // Avoid division by zero
+  let product = 1.0; // Use floating point
   for (let i = 0; i < values.length; i++) {
-    // Ensure value is positive for geometric mean calculation
-    const value = values[i] > 0 ? values[i] : 1e-9; // Use a small positive number if value is 0 or less
-    product *= Math.pow(value, weights[i] / sumWeights);
+    // Ensure value is positive
+    const value = Math.max(1e-9, values[i]); // Use small positive number instead of 0 or negative
+    const exponent = weights[i] / sumWeights; // Normalize weight exponent
+    product *= Math.pow(value, exponent);
   }
+  // console.log(`GeoMean Inputs: values=${values}, weights=${weights}, sumWeights=${sumWeights}, product=${product}`);
   return product;
 };
+
 
 /**
  * Calculates the Coastal Vulnerability Index (CVI) using the normalized weighted geometric mean formula.
@@ -36,13 +35,13 @@ export const calculateGeometricMean = (values: number[], weights: number[]): num
  */
 export const calculateGeometricMeanNormalized = (values: number[], weights: number[]): number => {
   const n = values.length;
-  if (n === 0) {
-    console.warn("No values provided for calculateGeometricMeanNormalized. Returning 0.");
-    return 0;
-  }
-  const geometricMean = calculateGeometricMean(values, weights);
-  return Math.pow(geometricMean, 1 / n);
+  if (n === 0) return 0;
+  const geometricMean = calculateGeometricMean(values, weights); // This is already normalized by weight sum
+  const normalizedResult = Math.pow(geometricMean, 1.0 / n); // Apply 1/n normalization
+  // console.log(`GeoMeanNormalized: geoMean=${geometricMean}, n=${n}, result=${normalizedResult}`);
+  return normalizedResult;
 };
+
 
 /**
  * Calculates the Coastal Vulnerability Index (CVI) using the weighted arithmetic mean formula.
@@ -54,17 +53,16 @@ export const calculateGeometricMeanNormalized = (values: number[], weights: numb
  */
 export const calculateArithmeticMean = (values: number[], weights: number[]): number => {
   const sumWeights = weights.reduce((a, b) => a + b, 0);
-  // Ensure sumWeights is not zero to avoid division by zero
-  if (sumWeights === 0) {
-    console.warn("Sum of weights is zero in calculateArithmeticMean. Returning 0.");
-    return 0;
-  }
-  let sum = 0;
+  if (sumWeights === 0) return 0; // Avoid division by zero
+  let weightedSum = 0.0; // Use floating point
   for (let i = 0; i < values.length; i++) {
-    sum += values[i] * weights[i];
+    weightedSum += values[i] * weights[i];
   }
-  return sum / sumWeights;
+  const result = weightedSum / sumWeights;
+  // console.log(`ArithMean Inputs: values=${values}, weights=${weights}, sumWeights=${sumWeights}, weightedSum=${weightedSum}, result=${result}`);
+  return result;
 };
+
 
 /**
  * Calculates the Coastal Vulnerability Index (CVI) using the nonlinear power formula.
@@ -75,15 +73,15 @@ export const calculateArithmeticMean = (values: number[], weights: number[]): nu
  * @returns The calculated CVI score.
  */
 export const calculateNonlinearPower = (values: number[], weights: number[]): number => {
-  const sumWeights = weights.reduce((a, b) => a + b, 0);
-  // Ensure sumWeights is not zero to avoid division by zero
-  if (sumWeights === 0) {
-    console.warn("Sum of weights is zero in calculateNonlinearPower. Returning 0.");
-    return 0;
-  }
-  const weightedSum = values.reduce((acc, val, i) => acc + Math.pow(val, 2) * weights[i], 0);
-  return Math.sqrt(weightedSum / sumWeights);
+    const sumWeights = weights.reduce((a, b) => a + b, 0);
+    if (sumWeights === 0) return 0; // Avoid division by zero
+    const weightedSumOfSquares = values.reduce((acc, val, i) => acc + Math.pow(val, 2) * weights[i], 0);
+    const normalizedValue = weightedSumOfSquares / sumWeights;
+    const result = Math.sqrt(normalizedValue); // Take the square root
+    // console.log(`NonlinearPower Inputs: values=${values}, weights=${weights}, sumWeights=${sumWeights}, weightedSumSq=${weightedSumOfSquares}, normalized=${normalizedValue}, result=${result}`);
+    return result;
 };
+
 
 /**
  * Calculates CVI scores for all segments based on the selected formula.
@@ -99,7 +97,7 @@ export const calculateNonlinearPower = (values: number[], weights: number[]): nu
  */
 export const calculateAndSaveCVI = async (
   segments: ShorelineSegment[],
-  parameters: Parameter[],
+  parameters: Parameter[], // This contains ALL enabled parameters from the selection page
   formula: Formula,
   setSegments: React.Dispatch<React.SetStateAction<ShorelineSegment[]>>,
   setCviScores: React.Dispatch<React.SetStateAction<Record<string, number>>>,
@@ -113,16 +111,31 @@ export const calculateAndSaveCVI = async (
     const updatedSegments = [...segments]; // Create a mutable copy
     let segmentsUpdated = false;
 
+    // Filter parameters to only include those with actual weight > 0
+    // This prevents parameters with weight 0 from influencing the calculation inappropriately
+    const relevantParameters = parameters.filter(p => p.weight > 0);
+    const sumOfRelevantWeights = relevantParameters.reduce((sum, p) => sum + p.weight, 0);
+
+    // Validate if relevant weights sum approximately to 1 (important for weighted formulas)
+    if (Math.abs(sumOfRelevantWeights - 1) > 0.01) {
+        const errorMsg = `Weights of parameters used in calculation do not sum to 1 (Sum: ${sumOfRelevantWeights.toFixed(2)}). Please adjust weights in Parameter Selection.`;
+        console.error(errorMsg);
+        setError(errorMsg);
+        // Optionally stop calculation if weights are significantly off
+        // return;
+    }
+
+
     // Reason: Iterate through each segment to calculate its CVI score.
     segments.forEach((segment, index) => {
-      // Reason: Check if the segment has assigned values for all enabled parameters.
-      const hasAllParameters = parameters.every(param =>
+      // Reason: Check if the segment has assigned values for all relevant parameters.
+      const hasAllParameters = relevantParameters.every(param =>
         segment.parameters && segment.parameters[param.id] !== undefined
       );
 
       // Reason: Skip segments that don't have all necessary parameter values.
       if (!hasAllParameters) {
-        // console.log(`Segment ${segment.id} missing parameters, skipping CVI calculation.`);
+        // console.log(`Segment ${segment.id} missing relevant parameters, skipping CVI calculation.`);
         return;
       }
 
@@ -130,37 +143,47 @@ export const calculateAndSaveCVI = async (
       const paramValues: number[] = [];
       const weights: number[] = [];
 
-      parameters.forEach(param => {
+      // Loop through ONLY relevant parameters
+      relevantParameters.forEach(param => {
         const paramValue = segment.parameters[param.id];
-        if (!paramValue) {
-          console.warn(`Missing parameter value for segment ${segment.id}, parameter ${param.name}`);
-          // Handle missing value - default to lowest vulnerability or skip? Defaulting to 1.
-          paramValues.push(1);
-        } else {
-          // Ensure vulnerability is within the expected 1-5 range.
-          const vulnerability = Math.max(1, Math.min(5, paramValue.vulnerability));
-          if (paramValue.vulnerability !== vulnerability) {
-            console.warn(`Parameter ${param.name} for segment ${segment.id} has vulnerability ${paramValue.vulnerability} outside 1-5 range. Clamped to ${vulnerability}.`);
-          }
-          paramValues.push(vulnerability);
+        // We already know paramValue exists due to the hasAllParameters check above
+        // Ensure vulnerability is within the expected 1-5 range.
+        const vulnerability = Math.max(1, Math.min(5, paramValue!.vulnerability));
+        if (paramValue!.vulnerability !== vulnerability) {
+          console.warn(`Parameter ${param.name} for segment ${segment.id} has vulnerability ${paramValue!.vulnerability} outside 1-5 range. Clamped to ${vulnerability}.`);
         }
-        weights.push(param.weight || 1); // Default weight to 1 if not specified
+        paramValues.push(vulnerability);
+        // Use the guaranteed positive weight
+        weights.push(param.weight); // No need for || 0 here anymore
       });
 
 
       // Reason: Calculate CVI score based on the selected formula.
       let cviScore: number;
+      // Pass the SUM of relevant weights if the formula needs it for normalization
+      // Note: calculateGeometricMean and calculateArithmeticMean already handle normalization internally using the passed weights.
+      // calculateNonlinearPower also normalizes internally.
+      // calculateGeometricMeanNormalized needs the count (n).
+      const n = relevantParameters.length;
+
       switch (formula.type) {
         case 'geometric-mean':
+          // This function normalizes internally using sum of weights passed
           cviScore = calculateGeometricMean(paramValues, weights);
           break;
         case 'geometric-mean-normalized':
+          // This function applies an additional 1/n normalization AFTER internal weight normalization
+          // Let's adjust the base function or this call if needed.
+          // Rereading the function: calculateGeometricMeanNormalized calls calculateGeometricMean (which normalizes by weight sum)
+          // and then applies Math.pow(..., 1/n). This seems correct as per its description.
           cviScore = calculateGeometricMeanNormalized(paramValues, weights);
           break;
         case 'arithmetic-mean':
+           // This function normalizes internally using sum of weights passed
           cviScore = calculateArithmeticMean(paramValues, weights);
           break;
         case 'nonlinear-power':
+           // This function normalizes internally using sum of weights passed
           cviScore = calculateNonlinearPower(paramValues, weights);
           break;
         default:

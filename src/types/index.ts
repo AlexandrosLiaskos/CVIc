@@ -1,3 +1,32 @@
+// ---- File: src/types/index.ts ----
+// Add 'stylingMode' to MapProps if it's defined here, otherwise ensure it's correctly in Map.tsx's interface
+// (No changes needed based on current file content, assuming MapProps is correctly defined in Map.tsx)
+
+// Make sure ShorelineSegmentProperties includes vulnerabilityIndex and vulnerabilityFormula
+export interface ShorelineSegmentProperties {
+  id: string;
+  FID?: string; // Optional legacy field
+  length?: number;
+  index?: number; // Index within the original LineString feature
+  lineIndex?: number; // Index of the original LineString in a MultiLineString
+  // 'values' seems deprecated/unused in favor of 'parameters' below
+  // values?: Record<string, number>;
+  parameters?: Record<string, ParameterValue>; // Store assigned parameter values/vulnerability here
+  vulnerabilityIndex?: number; // Calculated CVI score
+  vulnerabilityFormula?: Formula['type']; // Formula used for calculation
+  [key: string]: any; // Allow other properties that might come from shapefile
+}
+
+// Make sure ShorelineSegment includes the 'parameters' property for direct access
+export interface ShorelineSegment {
+  type: 'Feature';
+  id: string;
+  geometry: LineString | MultiLineString;
+  properties: ShorelineSegmentProperties;
+  parameters: Record<string, ParameterValue>; // Direct access mirror of properties.parameters
+}
+
+// Rest of the file remains the same...
 import type { Feature, FeatureCollection, Geometry, LineString, MultiLineString } from 'geojson'
 
 export interface User {
@@ -28,12 +57,12 @@ export interface BaseParameterOption {
 
 export interface NumericalParameterOption extends BaseParameterOption {
   type: 'numerical'
-  value: number
+  value: number // May not be strictly necessary if range defines vulnerability
 }
 
 export interface CategoricalParameterOption extends BaseParameterOption {
   type: 'categorical'
-  value: string
+  value: string // The specific category value (e.g., 'sandy_beach')
 }
 
 export type ParameterOption = NumericalParameterOption | CategoricalParameterOption
@@ -50,25 +79,28 @@ export interface Parameter {
   type: 'numerical' | 'categorical'
   weight: number
   unit?: string
-  vulnerabilityRanges?: VulnerabilityRange[]
-  options?: ParameterOption[]
+  vulnerabilityRanges?: VulnerabilityRange[] // Used for numerical type
+  options?: ParameterOption[] // Used for categorical type
   enabled?: boolean
-  range?: {
-    min: number
-    max: number
-  }
-  isCustom?: boolean
-  isComplete?: boolean
-  categories?: Category[]
-  vulnerability?: number
+  // 'range' might be redundant if using vulnerabilityRanges
+  // range?: {
+  //   min: number
+  //   max: number
+  // }
+  isCustom?: boolean // Flag for user-defined parameters (future)
+  // Redundant fields removed as they belong to segment-specific values
+  // isComplete?: boolean
+  // categories?: Category[]
+  // vulnerability?: number
 }
 
-export interface ParameterSegment {
-  id: string
-  parameterId: string
-  geometry: LineString | MultiLineString
-  value: number
-}
+// Deprecated? ParameterSegment seems unused
+// export interface ParameterSegment {
+//   id: string
+//   parameterId: string
+//   geometry: LineString | MultiLineString
+//   value: number
+// }
 
 export interface SelectionPolygon {
   id: string
@@ -78,37 +110,21 @@ export interface SelectionPolygon {
   }
 }
 
-export interface SegmentValue {
-  segmentId: string
-  parameterId: string
-  value: number | string
-}
+// Deprecated? SegmentValue seems unused - values stored in ShorelineSegment.parameters
+// export interface SegmentValue {
+//   segmentId: string
+//   parameterId: string
+//   value: number | string
+// }
 
-export interface ShorelineSegmentProperties {
-  id: string
-  FID?: string
-  length?: number
-  index?: number
-  lineIndex?: number
-  values?: Record<string, number>
-  vulnerabilityIndex?: number
-  [key: string]: any
-}
 
-export interface ShorelineSegment {
-  type: 'Feature'
-  id: string
-  geometry: LineString | MultiLineString
-  properties: ShorelineSegmentProperties
-  parameters: Record<string, ParameterValue>
-}
-
+// Keep this - used for storing original uploaded data
 export interface ShorelineData {
-  name: string
-  location: string
-  length: number
-  description: string
-  userId: string
+  name: string // Maybe file name?
+  location: string // Could be derived later or user input
+  length: number // Total length
+  description: string // User input?
+  userId: string // If using auth
   geoJSON?: FeatureCollection<LineString | MultiLineString>
 }
 
@@ -118,104 +134,63 @@ export interface AuthState {
   error: string | null
 }
 
+// Used by Map component potentially for generic features
 export interface MapFeatureProperties {
-  id: string
-  cviScore: number
-  name?: string
-  [key: string]: any
+  id: string;
+  cviScore?: number; // Optional CVI score
+  name?: string;
+  [key: string]: any; // Allow other properties
 }
 
 export interface MapFeature extends Feature {
-  type: 'Feature'
-  geometry: Geometry
-  properties: MapFeatureProperties
+  type: 'Feature';
+  geometry: Geometry;
+  properties: MapFeatureProperties;
 }
 
 export interface MapFeatureCollection extends FeatureCollection {
-  type: 'FeatureCollection'
-  features: MapFeature[]
+  type: 'FeatureCollection';
+  features: MapFeature[];
 }
 
-export type WorkflowStep = 'resolution' | 'parameters' | 'values'
+// Deprecated? WorkflowStep seems unused
+// export type WorkflowStep = 'resolution' | 'parameters' | 'values'
 
-export interface ParameterPageProps {
-  shoreline: FeatureCollection<LineString | MultiLineString>
-  onComplete: (segments: ShorelineSegment[], parameters: Parameter[]) => void
-}
-
-// Utility function to get vulnerability value based on parameter and value
-export function getVulnerabilityValue(parameter: Parameter, value: number): number {
-  if (parameter.type === 'categorical') {
-    return parameter.options?.find(o => o.value === value)?.vulnerability || 1
-  }
-
-  if (!parameter.vulnerabilityRanges) return 1
-
-  const range = parameter.vulnerabilityRanges.find(r => 
-    (r.min === null || value >= r.min) && (r.max === null || value <= r.max)
-  )
-  return range?.value || 1
-}
-
-// Default vulnerability ranges based on the image
-export const DEFAULT_VULNERABILITY_RANGES: Record<string, VulnerabilityRange[]> = {
-  slope: [
-    { min: 0.2, max: null, label: 'Very low', value: 1, color: '#1a9850' },
-    { min: 0.07, max: 0.2, label: 'Low', value: 2, color: '#91cf60' },
-    { min: 0.04, max: 0.07, label: 'Moderate', value: 3, color: '#d9ef8b' },
-    { min: 0.025, max: 0.04, label: 'High', value: 4, color: '#fee08b' },
-    { min: 0, max: 0.025, label: 'Very high', value: 5, color: '#fc8d59' }
-  ],
-  seaLevel: [
-    { min: 0, max: 1.8, label: 'Very low', value: 1, color: '#1a9850' },
-    { min: 1.8, max: 2.5, label: 'Low', value: 2, color: '#91cf60' },
-    { min: 2.5, max: 2.95, label: 'Moderate', value: 3, color: '#d9ef8b' },
-    { min: 2.95, max: 3.16, label: 'High', value: 4, color: '#fee08b' },
-    { min: 3.16, max: null, label: 'Very high', value: 5, color: '#fc8d59' }
-  ],
-  erosionRate: [
-    { min: 2.0, max: null, label: 'Very low', value: 1, color: '#1a9850' },
-    { min: 1.0, max: 2.0, label: 'Low', value: 2, color: '#91cf60' },
-    { min: -1.0, max: 1.0, label: 'Moderate', value: 3, color: '#d9ef8b' },
-    { min: -2.0, max: -1.1, label: 'High', value: 4, color: '#fee08b' },
-    { min: null, max: -2.0, label: 'Very high', value: 5, color: '#fc8d59' }
-  ],
-  tideRange: [
-    { min: 6.0, max: null, label: 'Very low', value: 1, color: '#1a9850' },
-    { min: 4.1, max: 6.0, label: 'Low', value: 2, color: '#91cf60' },
-    { min: 2.0, max: 4.0, label: 'Moderate', value: 3, color: '#d9ef8b' },
-    { min: 1.0, max: 1.9, label: 'High', value: 4, color: '#fee08b' },
-    { min: 0, max: 1.0, label: 'Very high', value: 5, color: '#fc8d59' }
-  ],
-  waveHeight: [
-    { min: 0, max: 0.55, label: 'Very low', value: 1, color: '#1a9850' },
-    { min: 0.55, max: 0.85, label: 'Low', value: 2, color: '#91cf60' },
-    { min: 0.85, max: 1.05, label: 'Moderate', value: 3, color: '#d9ef8b' },
-    { min: 1.05, max: 1.25, label: 'High', value: 4, color: '#fee08b' },
-    { min: 1.25, max: null, label: 'Very high', value: 5, color: '#fc8d59' }
-  ]
-}
+// Deprecated? ParameterPageProps seems unused
+// export interface ParameterPageProps {
+//   shoreline: FeatureCollection<LineString | MultiLineString>
+//   onComplete: (segments: ShorelineSegment[], parameters: Parameter[]) => void
+// }
 
 export interface Formula {
-  type: 'geometric-mean' | 'geometric-mean-normalized' | 'arithmetic-mean' | 'nonlinear-power'
-  name: string
-  description: string
+  type: 'geometric-mean' | 'geometric-mean-normalized' | 'arithmetic-mean' | 'nonlinear-power';
+  name: string;
+  description: string;
 }
 
-export type VulnerabilityLevel = 'very-low' | 'low' | 'moderate' | 'high' | 'very-high'
+// Deprecated? VulnerabilityLevel seems unused in favor of numerical scores 1-5
+// export type VulnerabilityLevel = 'very-low' | 'low' | 'moderate' | 'high' | 'very-high'
 
+// Represents the value assigned to a parameter for a specific segment
 export interface BaseParameterValue {
-  vulnerability: number
+  vulnerability: number; // The calculated or assigned vulnerability score (1-5)
 }
 
 export interface NumericalParameterValue extends BaseParameterValue {
-  type: 'numerical'
-  value: number
+  type: 'numerical';
+  value: number; // The actual numerical measurement (optional, could rely purely on vulnerability)
 }
 
 export interface CategoricalParameterValue extends BaseParameterValue {
-  type: 'categorical'
-  value: string
+  type: 'categorical';
+  value: string; // The specific category selected (e.g., 'sandy_beach')
 }
 
-export type ParameterValue = NumericalParameterValue | CategoricalParameterValue
+export type ParameterValue = NumericalParameterValue | CategoricalParameterValue;
+
+// Add MapProps interface definition (if not defined inline in Map.tsx)
+// Example:
+// export interface MapProps {
+//    // ... properties defined in Map.tsx ...
+//    stylingMode?: 'parameter' | 'cvi';
+// }

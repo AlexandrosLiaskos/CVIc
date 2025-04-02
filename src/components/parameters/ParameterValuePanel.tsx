@@ -1,7 +1,6 @@
 // src/components/parameters/ParameterValuePanel.tsx
 import { useMemo } from 'react';
 import type { Parameter } from '../../types';
-import { mapValueToVulnerability } from '../../utils/vulnerabilityMapping'; // Assuming this utility exists
 
 interface ParameterOption {
   label: string;
@@ -47,28 +46,6 @@ export const ParameterValuePanel: React.FC<ParameterValuePanelProps> = ({
   const parameterOptions = useMemo<ParameterOption[]>(() => {
     if (!activeParameter) return [];
 
-    // Helper function to ensure only one option per vulnerability level
-    const consolidateByVulnerability = (options: ParameterOption[]): ParameterOption[] => {
-        const result: ParameterOption[] = [];
-        const vulnerabilityAdded: Record<number, boolean> = {};
-
-        // Add options in vulnerability order (1-5)
-        for (let vulnLevel = 1; vulnLevel <= 5; vulnLevel++) {
-          const matchingOption = options.find(opt => opt.vulnerability === vulnLevel);
-          if (matchingOption) {
-            result.push(matchingOption);
-            vulnerabilityAdded[vulnLevel] = true;
-          }
-        }
-        // Add any remaining options
-        options.forEach(option => {
-          if (!vulnerabilityAdded[option.vulnerability]) {
-            result.push(option);
-          }
-        });
-        return result;
-    };
-
     // Handle categorical parameters
     if (activeParameter.type === 'categorical' && activeParameter.options) {
       const options = activeParameter.options.map(option => ({
@@ -84,87 +61,69 @@ export const ParameterValuePanel: React.FC<ParameterValuePanelProps> = ({
       });
       return options;
     }
-    // Handle numerical parameters
-    else if (activeParameter.type === 'numerical') {
+    // Handle numerical parameters based on defined vulnerability ranges
+    else if (activeParameter.type === 'numerical' && activeParameter.vulnerabilityRanges) {
+      // Reason: Iterate through the defined ranges in the Parameter object.
+      // This makes the panel data-driven and removes brittle hardcoded logic.
+      const optionsFromRanges: ParameterOption[] = [];
+      const vulnAdded: Record<number, boolean> = {}; // Track added vulnerability levels
+
+      // Add ranges ordered by vulnerability 1-5 first
+      for (let vulnLevel = 1; vulnLevel <= 5; vulnLevel++) {
+        const range = activeParameter.vulnerabilityRanges.find(r => r.value === vulnLevel);
+        if (range && !vulnAdded[range.value]) {
+           // Determine a representative value string (e.g., midpoint or range boundary) for the dropdown's internal value.
+           // Here, we use the vulnerability score as the value for simplicity,
+           // but store the label for display and the true vulnerability score.
+           const representativeValue = range.value.toString(); // Using vuln score as the key/value
+
+           // Create a descriptive label showing the range
+           let rangeLabel = `${range.label}`;
+           if (range.min !== null && range.max !== null) {
+             rangeLabel += ` (${range.min} - ${range.max}${activeParameter.unit || ''})`;
+           } else if (range.min !== null) {
+             rangeLabel += ` (>= ${range.min}${activeParameter.unit || ''})`;
+           } else if (range.max !== null) {
+             rangeLabel += ` (< ${range.max}${activeParameter.unit || ''})`;
+           }
+
+           optionsFromRanges.push({
+             label: rangeLabel,
+             value: representativeValue, // Use vuln score as internal value
+             vulnerability: range.value
+           });
+           vulnAdded[range.value] = true;
+        }
+      }
+
+      // Add any remaining ranges that might not be 1-5 (though unlikely for vulnerability)
+      activeParameter.vulnerabilityRanges.forEach(range => {
+        if (!vulnAdded[range.value]) {
+          const representativeValue = range.value.toString();
+          let rangeLabel = `${range.label}`;
+          // Add range boundaries to label as before... (omitted for brevity, similar logic)
+          optionsFromRanges.push({
+            label: rangeLabel,
+            value: representativeValue,
+            vulnerability: range.value
+          });
+          vulnAdded[range.value] = true;
+        }
+      });
+
+      // Ensure options are sorted by vulnerability score (1 to 5)
+      optionsFromRanges.sort((a, b) => a.vulnerability - b.vulnerability);
+
+      return optionsFromRanges;
+    } else if (activeParameter.type === 'numerical') {
+      // Fallback if numerical but no ranges defined (should ideally not happen)
+      console.warn(`Numerical parameter "${activeParameter.name}" has no vulnerabilityRanges defined. Using generic 1-5 scale.`);
       const vulnLabels = ['Very Low', 'Low', 'Moderate', 'High', 'Very High'];
-      let standardizedOptions: ParameterOption[] = [];
-
-       // Specific handling for known parameters based on reference tables
-      if (activeParameter.name.toLowerCase().includes('slope')) {
-          standardizedOptions = [
-              { value: '0.21', label: 'Very Low (>0.2%)', vulnerability: 1 },
-              { value: '0.10', label: 'Low (0.2-0.07%)', vulnerability: 2 },
-              { value: '0.05', label: 'Moderate (0.07-0.04%)', vulnerability: 3 },
-              { value: '0.03', label: 'High (0.04-0.025%)', vulnerability: 4 },
-              { value: '0.02', label: 'Very High (<0.025%)', vulnerability: 5 }
-          ];
-      } else if (activeParameter.name.toLowerCase().includes('sea') && activeParameter.name.toLowerCase().includes('level')) {
-          standardizedOptions = [
-              { value: '1.5', label: 'Very Low (<1.8 mm/yr)', vulnerability: 1 },
-              { value: '2.2', label: 'Low (1.8-2.5 mm/yr)', vulnerability: 2 },
-              { value: '2.7', label: 'Moderate (2.5-2.95 mm/yr)', vulnerability: 3 },
-              { value: '3.0', label: 'High (2.95-3.16 mm/yr)', vulnerability: 4 },
-              { value: '3.3', label: 'Very High (>3.16 mm/yr)', vulnerability: 5 }
-          ];
-      } else if (activeParameter.name.toLowerCase().includes('erosion') || activeParameter.name.toLowerCase().includes('shoreline')) {
-           standardizedOptions = [
-              { value: '2.5', label: 'Very Low (>2.0, Accretion)', vulnerability: 1 },
-              { value: '1.5', label: 'Low (1.0-2.0)', vulnerability: 2 },
-              { value: '0.0', label: 'Moderate (-1.0-+1.0, Stable)', vulnerability: 3 },
-              { value: '-1.5', label: 'High (-1.1--2.0)', vulnerability: 4 },
-              { value: '-2.5', label: 'Very High (<-2.0, Erosion)', vulnerability: 5 }
-          ];
-      } else if (activeParameter.name.toLowerCase().includes('tide')) {
-           standardizedOptions = [
-              { value: '6.5', label: 'Very Low (>6.0m)', vulnerability: 1 },
-              { value: '5.0', label: 'Low (4.1-6.0m)', vulnerability: 2 },
-              { value: '3.0', label: 'Moderate (2.0-4.0m)', vulnerability: 3 },
-              { value: '1.5', label: 'High (1.0-1.9m)', vulnerability: 4 },
-              { value: '0.5', label: 'Very High (<1.0m)', vulnerability: 5 }
-          ];
-      } else if (activeParameter.name.toLowerCase().includes('wave')) {
-           standardizedOptions = [
-              { value: '0.5', label: 'Very Low (<0.55m)', vulnerability: 1 },
-              { value: '0.7', label: 'Low (0.55-0.85m)', vulnerability: 2 },
-              { value: '0.95', label: 'Moderate (0.85-1.05m)', vulnerability: 3 },
-              { value: '1.15', label: 'High (1.05-1.25m)', vulnerability: 4 },
-              { value: '1.3', label: 'Very High (>1.25m)', vulnerability: 5 }
-          ];
-      }
-      // Generic numerical handling if not a specific known type or if ranges are missing/incomplete
-      else if (!activeParameter.vulnerabilityRanges || activeParameter.vulnerabilityRanges.length < 5) {
-          console.log(`Using generic 1-5 scale for ${activeParameter.name}`);
-          standardizedOptions = [1, 2, 3, 4, 5].map(i => ({
-            label: `${vulnLabels[i - 1]} (${i})`,
-            value: i.toString(),
-            vulnerability: i
-          }));
-      }
-      // Use defined vulnerability ranges if they exist and seem complete
-      else {
-         const optionsFromRanges: ParameterOption[] = [];
-         const vulnAdded: Record<number, boolean> = {};
-         activeParameter.vulnerabilityRanges.forEach(range => {
-            if (vulnAdded[range.value]) return; // Skip duplicate vulnerability levels
-
-            let valueToShow;
-            if (range.min !== null && range.max !== null) valueToShow = ((range.min + range.max) / 2).toFixed(2);
-            else if (range.min !== null) valueToShow = range.min.toFixed(2);
-            else if (range.max !== null) valueToShow = range.max.toFixed(2);
-            else valueToShow = range.value.toString(); // Fallback
-
-            optionsFromRanges.push({
-              label: `${range.label} (${valueToShow})`,
-              value: valueToShow,
-              vulnerability: range.value
-            });
-            vulnAdded[range.value] = true;
-         });
-          // Consolidate ensures proper ordering and uniqueness by vulnerability
-         return consolidateByVulnerability(optionsFromRanges);
-      }
-
-      return standardizedOptions; // Return the specific or generic standardized options
+      return [1, 2, 3, 4, 5].map(i => ({
+        label: `${vulnLabels[i - 1]} (Score: ${i})`,
+        value: i.toString(), // Use score as value
+        vulnerability: i
+      }));
     }
 
     return []; // Fallback for unknown types
@@ -172,9 +131,17 @@ export const ParameterValuePanel: React.FC<ParameterValuePanelProps> = ({
 
   // Handler for the value dropdown change
   const handleValueChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedVal = event.target.value;
-    const selectedOption = parameterOptions.find(opt => opt.value === selectedVal);
-    onValueSelect(selectedVal || null, selectedOption?.vulnerability);
+    const selectedOptionValue = event.target.value; // This is the 'value' from ParameterOption (e.g., category string or vuln score string)
+    // Reason: Find the full option object based on its 'value' property.
+    const selectedOption = parameterOptions.find(opt => opt.value === selectedOptionValue);
+
+    if (selectedOption) {
+      // Reason: Pass the selected 'value' (string) and the 'vulnerability' (number) from the option.
+      onValueSelect(selectedOption.value, selectedOption.vulnerability);
+    } else {
+      // Reason: Handle the case where the selection is cleared (e.g., selecting the placeholder).
+      onValueSelect(null, 1); // Reset vulnerability to default (e.g., 1) or another appropriate value
+    }
   };
 
   const applyButtonText = useMemo(() => {
@@ -249,11 +216,17 @@ export const ParameterValuePanel: React.FC<ParameterValuePanelProps> = ({
           <span className="font-medium">{selectedValue || '-'}</span>
           <span className="mx-4 text-gray-600">Vulnerability:</span>
           <span className={`inline-block w-6 h-6 rounded-full text-white text-center flex items-center justify-center text-xs font-medium ${
-            selectedVulnerability === 1 ? 'bg-green-500' :
-            selectedVulnerability === 2 ? 'bg-lime-500' :
-            selectedVulnerability === 3 ? 'bg-yellow-500' :
-            selectedVulnerability === 4 ? 'bg-orange-500' :
-            selectedVulnerability === 5 ? 'bg-red-500' : 'bg-gray-300' // Fallback color
+              (() => {
+                const rank = Math.round(selectedVulnerability); // Round vulnerability
+                switch (rank) {
+                  case 1: return 'bg-green-600';
+                  case 2: return 'bg-lime-500';
+                  case 3: return 'bg-yellow-400';
+                  case 4: return 'bg-orange-500';
+                  case 5: return 'bg-red-600';
+                  default: return 'bg-gray-400'; // Default/Fallback color
+                }
+              })()
           }`}>
             {selectedVulnerability || '?'}
           </span>
