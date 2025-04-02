@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import Map from '../components/maps/Map'
 import { indexedDBService } from '../services/indexedDBService'
 import type { ShorelineSegment } from '../types'
-import type { LineString, MultiLineString } from 'geojson'
+import type { LineString, MultiLineString, Feature, FeatureCollection } from 'geojson'
+import * as turf from '@turf/turf'
+import L from 'leaflet'
 
 const ITEMS_PER_PAGE = 10
 
@@ -17,9 +19,12 @@ export default function SegmentTablePage() {
   const [sortField, setSortField] = useState<string>('properties.index')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [searchTerm, setSearchTerm] = useState('')
+  const [mapInitialBounds, setMapInitialBounds] = useState<L.LatLngBoundsExpression | null>(null)
 
   useEffect(() => {
     const loadSegments = async () => {
+      setLoading(true)
+      setError(null)
       try {
         const data = await indexedDBService.getShorelineData('current-segments')
         if (!data) {
@@ -31,11 +36,13 @@ export default function SegmentTablePage() {
         // Convert FeatureCollection to ShorelineSegment array with type checking
         const loadedSegments = data.features
           .filter(feature => 
-            feature.geometry.type === 'LineString' || 
-            feature.geometry.type === 'MultiLineString'
+            feature && feature.geometry && (
+              feature.geometry.type === 'LineString' || 
+              feature.geometry.type === 'MultiLineString'
+            )
           )
           .map((feature, index) => {
-            const segmentId = `segment-${index + 1}`
+            const segmentId = feature.properties?.id || `segment-${index + 1}`
             return {
               id: segmentId,
               type: 'Feature' as const,
@@ -54,11 +61,36 @@ export default function SegmentTablePage() {
           throw new Error('No valid line segments found in the data')
         }
 
-        setSegments(loadedSegments as ShorelineSegment[])
+        // Calculate initial bounds for the map
+        if (loadedSegments.length > 0) {
+          // Create proper features with geometry and properties
+          const featuresForBounds = loadedSegments.map(s => ({
+            type: 'Feature' as const,
+            geometry: s.geometry,
+            properties: {}
+          }))
+          const fc = turf.featureCollection(featuresForBounds)
+          try {
+            const bbox = turf.bbox(fc) // [minLon, minLat, maxLon, maxLat]
+            if (bbox && bbox.length === 4 && bbox.every(b => isFinite(b)) && bbox[0] <= bbox[2] && bbox[1] <= bbox[3]) {
+              const bounds: L.LatLngBoundsExpression = [
+                [bbox[1], bbox[0]], // Southwest corner
+                [bbox[3], bbox[2]]  // Northeast corner
+              ]
+              setMapInitialBounds(bounds)
+              console.log("SegmentTablePage: Calculated initial bounds:", bounds)
+            } else {
+              console.warn("SegmentTablePage: Could not calculate valid initial bounds from segments.")
+            }
+          } catch(e) {
+            console.error("SegmentTablePage: Error calculating initial bounds:", e)
+          }
+        }
+
+        setSegments(loadedSegments)
       } catch (err) {
         console.error('Error loading segments:', err)
-        setError('Failed to load segment data. Please try again.')
-        navigate('/segmentation')
+        setError(`Failed to load segment data: ${err instanceof Error ? err.message : String(err)}`)
       } finally {
         setLoading(false)
       }
@@ -122,18 +154,10 @@ export default function SegmentTablePage() {
 
   // Handle segment selection
   const handleSegmentSelect = (segmentId: string) => {
-    setSelectedSegmentId(segmentId === selectedSegmentId ? null : segmentId)
-    
-    // If selecting a segment that's not on the current page, find its page and navigate there
-    if (segmentId !== selectedSegmentId) {
-      const segmentIndex = filteredSegments.findIndex(s => s.id === segmentId)
-      if (segmentIndex !== -1) {
-        const segmentPage = Math.floor(segmentIndex / ITEMS_PER_PAGE) + 1
-        if (segmentPage !== currentPage) {
-          setCurrentPage(segmentPage)
-        }
-      }
-    }
+    console.log("SegmentTablePage: handleSegmentSelect called with ID:", segmentId)
+    const newSelectedId = segmentId === selectedSegmentId ? null : segmentId
+    setSelectedSegmentId(newSelectedId)
+    console.log("SegmentTablePage: selectedSegmentId set to:", newSelectedId)
   }
 
   const handleRowClick = (segmentId: string) => {
@@ -183,10 +207,25 @@ export default function SegmentTablePage() {
     }
   }
 
-  // Get selected segments for map highlighting
+  // GeoJSON for the map
+  const geoJSONForMap = useMemo(() => {
+    if (!segments || segments.length === 0) return null
+    return {
+      type: 'FeatureCollection' as const,
+      features: segments.map(segment => ({
+        type: 'Feature' as const,
+        geometry: segment.geometry,
+        properties: {
+          ...segment.properties,
+          id: segment.id // Ensure ID is in properties for the map component
+        }
+      }))
+    }
+  }, [segments])
+
+  // Use selectedSegmentId directly for selectedSegments prop
   const selectedSegmentIds = useMemo(() => {
-    if (!selectedSegmentId) return []
-    return [selectedSegmentId]
+    return selectedSegmentId ? [selectedSegmentId] : []
   }, [selectedSegmentId])
 
   if (loading) {
@@ -412,36 +451,28 @@ export default function SegmentTablePage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden h-[600px]">
-          <div className="p-4 border-b">
+        <div className="bg-white rounded-lg shadow-md overflow-hidden h-[600px] lg:h-auto lg:min-h-[700px] flex flex-col">
+          <div className="p-4 border-b flex-shrink-0">
             <h3 className="text-lg font-medium text-gray-900">Segments Map</h3>
             <p className="text-sm text-gray-500">
-              {selectedSegmentId 
-                ? `Showing selected segment: ${selectedSegmentId.includes('segment-') 
-                    ? selectedSegmentId.split('segment-')[1] || ''
-                    : selectedSegmentId.substring(0, 12)}`
-                : 'Click on a segment in the table or on the map to select it'}
+              {selectedSegmentId
+                ? `Highlighting segment: ${selectedSegmentId.split('-')[1] || selectedSegmentId}`
+                : `${segments.length} segments loaded. Click table row or map feature to select.`}
             </p>
             {selectedSegmentId && (
-              <div className="mt-2 text-xs text-blue-600 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <div className="mt-1 text-xs text-blue-600 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <span>Map has automatically zoomed to the selected segment</span>
+                <span>Map zoomed to selected segment</span>
               </div>
             )}
           </div>
-          <div className="h-full">
-            {segments.length > 0 ? (
-              <Map 
-                geoJSON={{
-                  type: 'FeatureCollection',
-                  features: segments.map(segment => ({
-                    type: 'Feature',
-                    geometry: segment.geometry,
-                    properties: segment.properties
-                  }))
-                }}
+          <div className="flex-grow h-full">
+            {geoJSONForMap ? (
+              <Map
+                geoJSON={geoJSONForMap}
                 segments={segments}
                 parameters={[]}
                 selectedParameter={null}
@@ -450,11 +481,14 @@ export default function SegmentTablePage() {
                 onSegmentSelect={handleSegmentSelect}
                 onSelectionCreate={() => {}}
                 onSelectionDelete={() => {}}
+                onAreaSelect={() => {}}
                 isEditing={false}
+                initialBounds={mapInitialBounds}
+                zoomToFeatureId={selectedSegmentId}
               />
             ) : (
               <div className="flex items-center justify-center h-full text-gray-500">
-                No shoreline data available
+                {loading ? 'Loading map data...' : 'No shoreline data available'}
               </div>
             )}
           </div>

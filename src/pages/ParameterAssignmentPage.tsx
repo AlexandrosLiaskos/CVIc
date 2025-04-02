@@ -1,398 +1,458 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { indexedDBService } from '../services/indexedDBService'
-import Map from '../components/maps/Map'
-import type { Parameter, ShorelineSegment, ParameterValue, SelectionPolygon, ShorelineSegmentProperties } from '../types'
-import type { FeatureCollection, LineString, MultiLineString } from 'geojson'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import type { Parameter, ShorelineSegment, ParameterValue, SelectionPolygon, Formula, ParameterOption } from '../types';
+import type { FeatureCollection, LineString, MultiLineString, Polygon as GeoJSONPolygon } from 'geojson';
+import L from 'leaflet';
+import { MapInteractionPanel } from '../components/parameters/MapInteractionPanel';
+import { ParameterValuePanel } from '../components/parameters/ParameterValuePanel';
+import { CviFormulaPanel } from '../components/parameters/CviFormulaPanel';
+import { SegmentTablePanel } from '../components/parameters/SegmentTablePanel';
+import * as turf from '@turf/turf';
+import { useParameterAssignmentData } from '../hooks/useParameterAssignmentData';
+import { applyParameterValueToSegments } from '../logic/valueAssignmentLogic';
+import { calculateAndSaveCVI } from '../utils/cviCalculations';
+import { availableFormulas } from '../config/formulas';
+import { ParameterAssignmentHeader } from '../components/parameters/ParameterAssignmentHeader';
+import { ErrorAlert } from '../components/common/ErrorAlert';
 
-interface SelectedSegment {
-  id: string
-  values: Record<string, ParameterValue>
-}
 
 export default function ParameterAssignmentPage() {
-  const navigate = useNavigate()
-  const [segments, setSegments] = useState<ShorelineSegment[]>([])
-  const [parameters, setParameters] = useState<Parameter[]>([])
-  const [selectedSegments, setSelectedSegments] = useState<string[]>([])
-  const [activeParameter, setActiveParameter] = useState<string | null>(null)
-  const [parameterValue, setParameterValue] = useState<number | string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [selectionPolygons, setSelectionPolygons] = useState<SelectionPolygon[]>([])
-  const [isEditing, setIsEditing] = useState<boolean>(false)
+  const navigate = useNavigate();
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
-  // Load segments and parameters from IndexedDB
+  // Use the custom hook to manage data loading and state
+  const {
+    segments,
+    setSegments,
+    parameters,
+    mapBounds,
+    initialCviScores,
+    initialFormula,
+    loading: dataLoading,
+    error: dataError,
+    setError: setDataError
+  } = useParameterAssignmentData();
+
+  // Local UI State
+  const [selectedSegments, setSelectedSegments] = useState<string[]>([]);
+  const [activeParameter, setActiveParameter] = useState<Parameter | null>(null);
+  const [selectionPolygons, setSelectionPolygons] = useState<SelectionPolygon[]>([]);
+  // State related to value assignment (managed primarily via handlers)
+  const [currentValueToApply, setCurrentValueToApply] = useState<string | null>(null);
+  const [currentVulnerabilityToApply, setCurrentVulnerabilityToApply] = useState<number>(1);
+  // State for CVI formula selection and calculation
+  const [selectedFormula, setSelectedFormula] = useState<Formula | null>(null);
+  const [cviScores, setCviScores] = useState<Record<string, number>>({});
+  const [calculatingCvi, setCalculatingCvi] = useState<boolean>(false);
+  const [pageError, setPageError] = useState<string | null>(null);
+
+
+  // Effect to set initial parameter, formula, and CVI scores once data loads
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Load segments
-        const segmentData = await indexedDBService.getShorelineData('current-segments')
-        if (!segmentData) {
-          setError('No segments found. Please complete the segmentation step first.')
-          navigate('/segment-table')
-          return
+    if (!dataLoading && parameters.length > 0 && !activeParameter) {
+      setActiveParameter(parameters[0]);
+    }
+    // Reason: Ensure initial formula from hook is set only once
+    if (!dataLoading && initialFormula && !selectedFormula) {
+      setSelectedFormula(initialFormula);
+    }
+    // Reason: Ensure initial CVI scores from hook are set only once
+    if (!dataLoading && Object.keys(initialCviScores).length > 0 && Object.keys(cviScores).length === 0) {
+      setCviScores(initialCviScores);
+    }
+  // Dependencies ensure this effect runs when data finishes loading or initial values change
+  }, [dataLoading, parameters, initialFormula, initialCviScores, activeParameter, selectedFormula, cviScores]);
+
+
+  // Calculate completion percentage
+  const completionPercentage = useMemo(() => {
+    // Reason: Avoid calculation if data isn't loaded
+    if (segments.length === 0 || parameters.length === 0) return 0;
+    const totalPossibleValues = segments.length * parameters.length;
+    let filledValues = 0;
+    // Reason: Iterate through segments and parameters to count assigned values
+    segments.forEach(segment => {
+      parameters.forEach(param => {
+        // Read from the direct parameters property, assumed synced
+        if (segment.parameters && segment.parameters[param.id] !== undefined) filledValues++;
+      });
+    });
+    return Math.round((filledValues / totalPossibleValues) * 100);
+  // Dependencies ensure recalculation when segments or parameters change
+  }, [segments, parameters]);
+
+
+  // Memoize the geoJSON for the map
+  const geoJSONForMap = useMemo(() => {
+    // Reason: Prevent re-rendering of the map if only selection changes without segment data changing
+    if (!segments || segments.length === 0) return null; // Handle empty segments
+    return {
+      type: 'FeatureCollection' as const,
+      features: segments.map(segment => ({
+        type: 'Feature' as const,
+        geometry: segment.geometry,
+        // Ensure properties passed to map include necessary fields like id and isSelected
+        properties: {
+            ...segment.properties, // Spread original properties
+            id: segment.id,
+            isSelected: selectedSegments.includes(segment.id)
         }
+      }))
+    };
+  // Dependencies ensure regeneration when segment data or selection changes
+  }, [segments, selectedSegments]);
 
-        // Load parameters
-        const parameterData = await indexedDBService.getShorelineData('current-parameters')
-        if (!parameterData || !parameterData.features) {
-          setError('No parameters found. Please complete the parameter selection step first.')
-          navigate('/parameter-selection')
-          return
-        }
 
-        // Convert FeatureCollection to segments array with type checking
-        const loadedSegments = segmentData.features
-          .filter(feature => 
-            feature.geometry.type === 'LineString' || 
-            feature.geometry.type === 'MultiLineString'
-          )
-          .map((feature, index) => {
-            const segmentId = `segment-${index + 1}`
-            return {
-              id: segmentId,
-              type: 'Feature' as const,
-              geometry: feature.geometry as LineString | MultiLineString,
-              properties: {
-                id: segmentId,
-                length: feature.properties?.length || 0,
-                values: feature.properties?.values || {},
-                parameters: feature.properties?.parameters || {},
-                FID: feature.properties?.FID,
-                index: index + 1, // Ensure index is 1-based and overrides any existing index
-                lineIndex: feature.properties?.lineIndex,
-                vulnerabilityIndex: feature.properties?.vulnerabilityIndex
-              } as ShorelineSegmentProperties
-            }
-          })
+  // --- Handlers ---
 
-        if (loadedSegments.length === 0) {
-          throw new Error('No valid line segments found in the data')
-        }
+  // Generic error handler for UI feedback
+  const handleError = (message: string | null) => {
+    setPageError(message);
+    if (message) console.error("Error:", message);
+  };
 
-        // Convert FeatureCollection to parameters array
-        const loadedParameters = parameterData.features
-          .map(feature => feature.properties as Parameter)
-          .filter((p): p is Parameter => p !== null && p.enabled)
+  // Toggle segment selection state
+  const handleSegmentSelect = useCallback((segmentId: string) => {
+    // Reason: Update selected segments array immutably
+    setSelectedSegments(prev => prev.includes(segmentId) ? prev.filter(id => id !== segmentId) : [...prev, segmentId]);
+  // No dependencies needed as it only relies on its argument and previous state
+  }, []);
 
-        setSegments(loadedSegments as ShorelineSegment[])
-        setParameters(loadedParameters)
-      } catch (err) {
-        console.error('Error loading data:', err)
-        setError('Failed to load data. Please try again.')
-      }
+  // Select all segments currently loaded
+  const handleSelectAll = useCallback(() => {
+    // Reason: Set selection to all segment IDs
+    setSelectedSegments(segments.map(s => s.id));
+  // Dependency on segments ensures it uses the current segment list
+  }, [segments]);
+
+  // Clear all selected segments
+  const handleClearSelection = useCallback(() => {
+    // Reason: Reset selection to an empty array
+    setSelectedSegments([]);
+    console.log("Selection cleared."); // Add console log for debugging
+  // No dependencies needed
+  }, []);
+
+  // Set the active parameter for value assignment
+  const handleParameterSelect = useCallback((parameterId: string) => {
+    const parameter = parameters.find(p => p.id === parameterId);
+    if (parameter) {
+      setActiveParameter(parameter);
+      setCurrentValueToApply(null); // Reset staged value
+      setCurrentVulnerabilityToApply(1); // Reset staged vulnerability
+      console.log("Parameter selected:", parameter.name);
+      handleError(null); // Clear potential errors from previous selections
+    } else {
+      console.error("Parameter not found:", parameterId);
+      handleError("Selected parameter could not be found.");
+    }
+  // Dependency on parameters ensures the correct parameter object is found
+  }, [parameters]);
+
+  // Stage the value and vulnerability selected in the ParameterValuePanel
+  const handleValueSelect = useCallback((value: string | null, vulnerability?: number) => {
+    // Reason: Update state with the value/vulnerability to be applied
+    setCurrentValueToApply(value);
+    setCurrentVulnerabilityToApply(vulnerability ?? 1);
+    console.log(`Value staged for application: ${value}, Vulnerability: ${vulnerability ?? 1}`);
+    handleError(null); // Clear potential errors from previous selections
+  // No dependencies needed as it only relies on its arguments
+  }, []);
+
+  // Apply the staged value/vulnerability to the selected segments
+  const handleApplyValue = useCallback(async () => {
+    // Reason: Validate prerequisites before attempting to apply
+    if (!activeParameter || currentValueToApply === null || selectedSegments.length === 0) {
+      const errorMsg = !activeParameter ? "Select a parameter first."
+                     : currentValueToApply === null ? "Select a value first."
+                     : "Select at least one segment on the map.";
+      handleError(`Cannot apply value: ${errorMsg}`);
+      return;
+    }
+    handleError(null); // Clear error on successful attempt start
+
+    // Reason: Delegate the core logic and DB update to the utility function
+    try {
+      const updatedSegments = await applyParameterValueToSegments(
+        segments,
+        selectedSegments,
+        activeParameter,
+        currentValueToApply,
+        currentVulnerabilityToApply
+      );
+      // Update local state with the result (which includes DB persistence)
+      setSegments(updatedSegments);
+      console.log("Successfully applied value and updated segments state.");
+      // Optionally clear selection after applying
+      // handleClearSelection();
+    } catch (err) {
+      console.error('Error applying parameter value:', err);
+      handleError(err instanceof Error ? err.message : 'Failed to apply value.');
+    }
+  // Dependencies ensure the handler uses the latest state for application
+  }, [activeParameter, currentValueToApply, currentVulnerabilityToApply, segments, selectedSegments, setSegments]);
+
+  // Update the selected CVI calculation formula
+  const handleFormulaSelect = useCallback((formulaType: Formula['type'] | null) => {
+    // Reason: Find the full Formula object based on the selected type
+    const formula = formulaType ? availableFormulas.find(f => f.type === formulaType) : null;
+    setSelectedFormula(formula || null); // Ensure it's null if not found or type is null
+    console.log("Selected formula:", formula?.name ?? 'None');
+    handleError(null);
+  // No dependencies needed as it uses the constant availableFormulas
+  }, []);
+
+  // Trigger the CVI calculation process
+  const handleCalculateCvi = useCallback(async () => {
+    // Reason: Central place for all pre-calculation checks.
+    if (!selectedFormula) { handleError('Please select a CVI formula before calculating.'); return; }
+    const allValuesAssigned = segments.every(segment =>
+      parameters.every(param => segment.parameters && segment.parameters[param.id] !== undefined)
+    );
+    // Reason: Check both logical completeness and the derived percentage state.
+    if (!allValuesAssigned || completionPercentage < 100) {
+       handleError(`Cannot calculate CVI: Assign values for all parameters to all segments first. (Completion: ${completionPercentage}%)`);
+       return;
     }
 
-    loadData()
-  }, [navigate])
+    handleError(null);
+    setCalculatingCvi(true);
+    console.log(`Calculating CVI using: ${selectedFormula.name}`);
 
-  const handleSegmentSelect = (segmentId: string) => {
-    setSelectedSegments(prev => {
-      if (prev.includes(segmentId)) {
-        return prev.filter(id => id !== segmentId)
-      }
-      return [...prev, segmentId]
-    })
-  }
+    // Reason: Delegate the calculation and saving logic to the utility function
+    try {
+      // Call the utility, passing state setters and the error handler
+      await calculateAndSaveCVI(
+        segments,
+        parameters,
+        selectedFormula,
+        setSegments, // Pass setter for segment updates (stores CVI in properties)
+        setCviScores, // Pass setter for CVI scores map
+        handleError // Pass error handler
+      );
+      console.log("CVI calculation process finished successfully via utility.");
+    } catch (err) {
+      // This catch block might be redundant if calculateAndSaveCVI handles its own errors via setError
+      console.error("Error during CVI calculation process:", err);
+      handleError(err instanceof Error ? err.message : 'CVI calculation failed.');
+      setCviScores({}); // Reset scores on failure
+    } finally {
+      setCalculatingCvi(false); // Ensure this runs regardless of success/failure
+    }
+  // Dependencies ensure the handler uses the latest data and selections
+  }, [segments, parameters, selectedFormula, setSegments, setCviScores, completionPercentage]);
 
-  const handleSelectAll = () => {
-    setSelectedSegments(segments.map(s => s.id))
-  }
+  // Handle area selection completion (polygon drawn on map)
+  const handleSelectionCreate = useCallback((geometry: GeoJSONPolygon) => {
+    // Reason: Validate input geometry immediately.
+    if (!geometry || !geometry.coordinates || geometry.coordinates.length === 0) {
+      console.error("Invalid polygon geometry received for area selection");
+      return;
+    }
 
-  const handleClearSelection = () => {
-    setSelectedSegments([])
-  }
+    console.log("Area selection polygon created, finding intersecting segments...");
+    const selectionPolygonTurf = turf.polygon(geometry.coordinates);
+    // Reason: Identify segments within the drawn polygon using robust point-in-polygon check.
+    const newlySelectedIds: string[] = [];
 
-  const handleParameterSelect = (parameterId: string) => {
-    setActiveParameter(parameterId)
-    setParameterValue(null)
-  }
+    segments.forEach(segment => {
+        try {
+            const segmentFeature = turf.feature(segment.geometry);
+            // Check intersection: Use midpoint check for efficiency and robustness against minor overlaps.
+            const center = turf.centerOfMass(segmentFeature);
+            if (turf.booleanPointInPolygon(center, selectionPolygonTurf)) {
+                newlySelectedIds.push(segment.id);
+            }
+        } catch (e) {
+            // Reason: Log errors during intersection checks without stopping the process.
+            console.warn(`Error checking intersection for segment ${segment.id}:`, e);
+        }
+    });
 
-  const handleValueChange = (value: number | string) => {
-    setParameterValue(value)
-  }
+    console.log(`Found ${newlySelectedIds.length} segments within the selected area.`);
+    // Reason: Update the selection state immutably, removing duplicates using Set.
+    setSelectedSegments(prev => [...new Set([...prev, ...newlySelectedIds])]);
 
-  const handleApplyValue = async () => {
-    if (!activeParameter || parameterValue === null || selectedSegments.length === 0) return
+    // Note: Storing the drawn polygon is commented out as it's often cleared visually immediately.
+    // const newPolygon: SelectionPolygon = { id: `polygon-${Date.now()}`, geometry };
+    // setSelectionPolygons(prev => [...prev, newPolygon]);
+
+    // TODO: Confirm Map component clears the drawn layer after calling onAreaSelect.
+    // Responsibility for clearing the visual polygon usually lies with the map component after event emission.
+  // Dependency on segments ensures it checks against the current segment list
+  }, [segments]);
+
+  const handleSelectionDelete = useCallback((polygonId: string) => {
+    // This might be less relevant if polygons are cleared immediately after selection
+    setSelectionPolygons(prev => prev.filter(p => p.id !== polygonId));
+  // No dependencies needed
+  }, []);
+
+  const handleContinue = useCallback(async () => {
+    // Reason: Central place for all pre-navigation checks.
+    const missingValues = segments.some(segment =>
+      parameters.some(parameter => !segment.parameters || segment.parameters[parameter.id] === undefined)
+    );
+    // Reason: Ensure data integrity and CVI calculation before proceeding.
+    if (missingValues || completionPercentage < 100) {
+       handleError(`Assign values for all parameters to all segments first. (${completionPercentage}% complete)`);
+       return;
+    }
+    if (Object.keys(cviScores).length !== segments.length) {
+       handleError('Calculate CVI scores for all segments first.');
+       return;
+    }
+
+    handleError(null);
 
     try {
-      const updatedSegments = segments.map(segment => {
-        if (selectedSegments.includes(segment.id)) {
-          return {
-            ...segment,
-            properties: {
-              ...segment.properties,
-              values: {
-                ...segment.properties.values,
-                [activeParameter]: parameterValue
-              }
-            }
-          }
-        }
-        return segment
-      }) as ShorelineSegment[]
-
-      // Store updated segments in IndexedDB
-      await indexedDBService.storeShorelineData('current-segments', {
-        type: 'FeatureCollection',
-        features: updatedSegments
-      })
-
-      setSegments(updatedSegments)
-      setSelectedSegments([])
-      setParameterValue(null)
+      console.log("All checks passed. Navigating to results page...");
+      // Note: calculateAndSaveCVI should handle saving segments with CVI. Final save here is redundant.
+      navigate('/results'); // Navigate to the results display page
     } catch (err) {
-      console.error('Error updating segments:', err)
-      setError('Failed to update segments. Please try again.')
+      console.error('Error preparing to navigate or navigating:', err);
+      handleError('Failed to proceed to results.');
     }
+  // Dependencies ensure checks are based on the latest state before navigation
+  }, [segments, parameters, cviScores, completionPercentage, navigate]);
+
+  // Calculate CVI statistics for SegmentTablePanel
+  const cviStatistics = useMemo(() => {
+    const scores = Object.values(cviScores);
+    // Reason: Avoid calculation if no scores are available
+    if (scores.length === 0) return null;
+
+    const min = Math.min(...scores);
+    const max = Math.max(...scores);
+    const sum = scores.reduce((a, b) => a + b, 0);
+    const avg = sum / scores.length;
+
+    // Reason: Define vulnerability categories clearly for statistics.
+    const lowCount = scores.filter(v => v < 2.5).length; // Example range
+    const mediumCount = scores.filter(v => v >= 2.5 && v < 3.5).length; // Example range
+    const highCount = scores.filter(v => v >= 3.5).length; // Example range
+
+    return {
+      min: min.toFixed(2),
+      max: max.toFixed(2),
+      avg: avg.toFixed(2),
+      count: scores.length,
+      categories: { low: lowCount, medium: mediumCount, high: highCount }
+    };
+  // Dependency ensures recalculation when scores change
+  }, [cviScores]);
+
+  // --- Render ---
+
+  // Loading state from the hook
+  if (dataLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <p className="ml-4 text-gray-600">Loading data...</p>
+      </div>
+    );
   }
 
-  const handleContinue = async () => {
-    // Check if all segments have values for all parameters
-    const missingValues = segments.some(segment => 
-      parameters.some(parameter => 
-        !segment.properties.values || segment.properties.values[parameter.id] === undefined
-      )
-    )
-
-    if (missingValues) {
-      setError('Please assign values for all parameters to all segments before continuing.')
-      return
-    }
-
-    try {
-      // Store final segments in IndexedDB
-      await indexedDBService.storeShorelineData('current-segments', {
-        type: 'FeatureCollection',
-        features: segments
-      })
-
-      navigate('/calculation')
-    } catch (err) {
-      console.error('Error saving final data:', err)
-      setError('Failed to save data. Please try again.')
-    }
-  }
-
-  const handleSelectionCreate = (geometry: any) => {
-    const newPolygon: SelectionPolygon = {
-      id: `polygon-${Date.now()}`,
-      geometry: {
-        type: 'Polygon',
-        coordinates: geometry.coordinates
-      }
-    }
-    setSelectionPolygons(prev => [...prev, newPolygon])
-  }
-
-  const handleSelectionDelete = (polygonId: string) => {
-    setSelectionPolygons(prev => prev.filter(p => p.id !== polygonId))
-  }
+  // Display data loading error prominently and block further rendering
+  if (dataError) {
+     return (
+       <div className="p-4">
+         <ErrorAlert message={dataError} onClose={() => setDataError(null)} />
+         <button onClick={() => navigate('/')} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+             Go Home
+         </button>
+       </div>
+     );
+   }
 
   return (
-    <div className="max-w-7xl mx-auto mt-8 px-4">
-      <h2 className="text-2xl font-bold text-center mb-8">Parameter Assignment</h2>
+    <div className="flex flex-col h-screen p-4 space-y-4 bg-gray-50">
+      {/* Use the extracted header component */}
+      <ParameterAssignmentHeader
+        title="Parameter Assignment & CVI Calculation"
+        completionPercentage={completionPercentage}
+      />
 
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
+      {/* Error Display */}
+      <ErrorAlert message={pageError} onClose={() => handleError(null)} />
 
-      <div className="grid grid-cols-3 gap-6">
-        {/* Map and Table Section */}
-        <div className="col-span-2 space-y-6">
-          {/* Map */}
-          <div className="bg-white rounded-lg shadow-md overflow-hidden h-[400px]">
-            <Map 
-              segments={segments}
-              parameters={parameters}
-              selectedSegments={selectedSegments}
-              selectedParameter={activeParameter}
-              selectionPolygons={selectionPolygons}
-              onSegmentSelect={handleSegmentSelect}
-              onSelectionCreate={handleSelectionCreate}
-              onSelectionDelete={handleSelectionDelete}
-              isEditing={false}
-              geoJSON={{
-                type: 'FeatureCollection' as const,
-                features: segments.map(segment => ({
-                  type: 'Feature' as const,
-                  geometry: segment.geometry,
-                  properties: {
-                    ...segment.properties,
-                    isSelected: selectedSegments.includes(segment.id)
-                  }
-                }))
-              }}
-            />
-          </div>
-
-          {/* Table */}
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Segment ID
-                    </th>
-                    {parameters.map(param => (
-                      <th key={param.id} scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {param.name}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {selectedSegments.length === 0 ? (
-                    <tr>
-                      <td colSpan={parameters.length + 1} className="px-6 py-4 text-center text-sm text-gray-500">
-                        No segments selected. Select segments on the map to view their values.
-                      </td>
-                    </tr>
-                  ) : (
-                    segments
-                      .filter(segment => selectedSegments.includes(segment.id))
-                      .map(segment => (
-                        <tr key={segment.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {segment.id}
-                          </td>
-                          {parameters.map(param => {
-                            const value = segment.properties.values?.[param.id]
-                            let displayValue = '-'
-                            let colorClass = ''
-
-                            if (value !== undefined) {
-                              if (param.type === 'categorical') {
-                                const option = param.options?.find(o => o.value === value)
-                                displayValue = option?.label || String(value)
-                                colorClass = option?.color || ''
-                              } else {
-                                displayValue = typeof value === 'number' ? value.toFixed(2) : String(value)
-                                const range = param.vulnerabilityRanges?.find(r => 
-                                  (r.min === null || value >= r.min) && 
-                                  (r.max === null || value <= r.max)
-                                )
-                                colorClass = range?.color || ''
-                              }
-                            }
-
-                            return (
-                              <td 
-                                key={param.id} 
-                                className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
-                                style={colorClass ? { backgroundColor: `${colorClass}33` } : undefined}
-                              >
-                                {displayValue}
-                              </td>
-                            )
-                          })}
-                        </tr>
-                      ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+      {/* Main Content Area */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-grow overflow-hidden">
+        
+        {/* Left Column: Map */}
+        <div className="lg:col-span-2 flex flex-col space-y-4 overflow-y-auto">
+          <MapInteractionPanel
+            segments={segments}
+            parameters={parameters}
+            geoJSON={geoJSONForMap}
+            initialBounds={mapBounds}
+            selectionPolygons={selectionPolygons}
+            selectedSegmentIds={selectedSegments}
+            selectedParameterId={activeParameter?.id ?? null}
+            onSegmentSelect={handleSegmentSelect}
+            onSelectAll={handleSelectAll}
+            onClearSelection={handleClearSelection} // Pass the clear selection handler
+            // onSelectionCreate prop removed as onAreaSelect is used
+            onSelectionDelete={handleSelectionDelete}
+            onAreaSelect={handleSelectionCreate} // Correct prop for polygon completion
+            mapContainerRef={mapContainerRef}
+          />
         </div>
 
-        {/* Control Panel */}
-        <div className="space-y-6">
-          {/* Selection Controls */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Selection Tools</h3>
-            <div className="space-y-4">
-              <button
-                onClick={() => setIsEditing(prev => !prev)}
-                className={`w-full px-4 py-2 text-sm font-medium ${
-                  isEditing 
-                    ? 'text-white bg-blue-600 hover:bg-blue-700'
-                    : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
-                } rounded-md`}
-              >
-                {isEditing ? 'Finish Drawing' : 'Start Drawing'}
-              </button>
-              <button
-                onClick={handleSelectAll}
-                className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-              >
-                Select All Segments
-              </button>
-              <button
-                onClick={handleClearSelection}
-                className="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Clear Selection
-              </button>
-            </div>
-          </div>
-
-          {/* Parameter Assignment */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Parameter Assignment</h3>
-            <div className="space-y-4">
-              {/* Parameter selector */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Select Parameter
-                </label>
-                <select
-                  value={activeParameter || ''}
-                  onChange={(e) => handleParameterSelect(e.target.value)}
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Choose a parameter...</option>
-                  {parameters.map(param => (
-                    <option key={param.id} value={param.id}>{param.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Value input */}
-              {activeParameter && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Value
-                  </label>
-                  <input
-                    type="number"
-                    value={parameterValue || ''}
-                    onChange={(e) => handleValueChange(e.target.value)}
-                    className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter value..."
-                  />
-                </div>
-              )}
-
-              <button
-                onClick={handleApplyValue}
-                disabled={!activeParameter || parameterValue === null || selectedSegments.length === 0}
-                className="w-full px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-              >
-                Apply Value to Selected Segments
-              </button>
-            </div>
+        {/* Right Column: Controls */}
+        <div className="lg:col-span-1 flex flex-col space-y-4 overflow-y-auto pr-2">
+          <ParameterValuePanel
+            parameters={parameters}
+            activeParameter={activeParameter}
+            selectedValue={currentValueToApply}
+            selectedVulnerability={currentVulnerabilityToApply}
+            onParameterSelect={handleParameterSelect}
+            onValueSelect={handleValueSelect}
+            onApplyValue={handleApplyValue}
+            selectedSegmentIds={selectedSegments}
+          />
+          <CviFormulaPanel
+            selectedFormula={selectedFormula}
+            onFormulaSelect={handleFormulaSelect} // Pass handler directly
+            onCalculateCvi={handleCalculateCvi} // Pass handler
+            completionPercentage={completionPercentage}
+            calculatingCvi={calculatingCvi}
+            cviScores={cviScores} // Pass scores for potential display/checks
+            segments={segments} // Pass segments for potential checks
+          />
+          {/* Action Buttons */}
+          <div className="bg-white p-4 rounded-lg shadow sticky bottom-0">
+            <button
+              onClick={handleContinue}
+              className="w-full px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              // Reason: Disable button based on completion, CVI calculation status, and whether scores exist for all segments.
+              disabled={completionPercentage < 100 || Object.keys(cviScores).length !== segments.length || calculatingCvi}
+              title={
+                 completionPercentage < 100 ? `Complete parameter assignment (${completionPercentage}%) first`
+                 : Object.keys(cviScores).length !== segments.length ? `Calculate CVI for all ${segments.length} segments first`
+                 : calculatingCvi ? 'Calculation in progress...'
+                 : 'Proceed to results visualization'
+              }
+            >
+              {calculatingCvi ? 'Calculating...' : 'Continue to Results'}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Navigation */}
-      <div className="mt-8 pt-6 border-t border-gray-200 flex justify-between">
-        <button
-          onClick={() => navigate('/parameter-selection')}
-          className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-        >
-          Back to Parameter Selection
-        </button>
-        <button
-          onClick={handleContinue}
-          className="px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          Continue to Calculation
-        </button>
+      {/* Bottom Section: Table */}
+      <div className="bg-white p-4 rounded-lg shadow flex flex-col h-1/3 min-h-[250px] overflow-y-auto flex-shrink-0"> {/* Adjusted height: removed max-h, added h-1/3, min-h, overflow-y-auto, flex-shrink-0 */}
+        <SegmentTablePanel
+          segments={segments}
+          parameters={parameters}
+          selectedSegmentIds={selectedSegments}
+          onSegmentSelect={handleSegmentSelect}
+          cviScores={cviScores}
+          selectedFormula={selectedFormula}
+          cviStatistics={cviStatistics}
+        />
       </div>
     </div>
-  )
-} 
+  );
+}

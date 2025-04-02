@@ -112,26 +112,6 @@ export interface ShorelineData {
   geoJSON?: FeatureCollection<LineString | MultiLineString>
 }
 
-export interface AnalysisResult {
-  id: string
-  userId: string
-  name: string
-  description?: string
-  uploadDate: string
-  shorelineId: string
-  parameters: Record<string, ParameterValue>
-  formula: Formula
-  result: CVIResult
-  geoJSON: any
-  statistics: {
-    mean: number
-    median: number
-    min: number
-    max: number
-    standardDeviation: number
-  }
-}
-
 export interface AuthState {
   user: User | null
   loading: boolean
@@ -220,24 +200,6 @@ export interface Formula {
   type: 'geometric-mean' | 'geometric-mean-normalized' | 'arithmetic-mean' | 'nonlinear-power'
   name: string
   description: string
-}
-
-export interface CVIResult {
-  cviScore: number
-  level: 'low' | 'medium' | 'high'
-  description: string
-}
-
-export interface CVIInputs {
-  geomorphology: number
-  coastalSlope: number
-  relativeSeaLevelRise: number
-  meanWaveHeight: number
-  meanTideRange: number
-  shorelineErosionRate: number
-  populationDensity: number
-  landUse: number
-  infrastructure: number
 }
 
 export type VulnerabilityLevel = 'very-low' | 'low' | 'moderate' | 'high' | 'very-high'

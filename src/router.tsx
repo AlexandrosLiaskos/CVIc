@@ -8,10 +8,6 @@ import SegmentationPage from './pages/SegmentationPage'
 import SegmentTablePage from './pages/SegmentTablePage'
 import ParameterSelectionPage from './pages/ParameterSelectionPage'
 import ParameterAssignmentPage from './pages/ParameterAssignmentPage'
-import ParametersPage from './pages/ParametersPage'
-import FormulaSelectionPage from './pages/FormulaSelectionPage'
-import CalculationPage from './pages/CalculationPage'
-import ResultsManagerPage from './pages/ResultsManagerPage'
 import { useAuth } from './hooks/useAuth'
 
 // Protected route wrapper component
@@ -88,38 +84,6 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <ParameterAssignmentPage />
-          </ProtectedRoute>
-        )
-      },
-      {
-        path: 'parameters',
-        element: (
-          <ProtectedRoute>
-            <ParametersPage />
-          </ProtectedRoute>
-        )
-      },
-      {
-        path: 'formula',
-        element: (
-          <ProtectedRoute>
-            <FormulaSelectionPage />
-          </ProtectedRoute>
-        )
-      },
-      {
-        path: 'calculation',
-        element: (
-          <ProtectedRoute>
-            <CalculationPage />
-          </ProtectedRoute>
-        )
-      },
-      {
-        path: 'results-manager',
-        element: (
-          <ProtectedRoute>
-            <ResultsManagerPage />
           </ProtectedRoute>
         )
       }

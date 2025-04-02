@@ -1,5 +1,4 @@
 import shp from 'shpjs'
-import { v4 as uuidv4 } from 'uuid'
 import * as turf from '@turf/turf'
 import type { Feature, FeatureCollection, Geometry, LineString, MultiLineString, GeoJsonProperties, Position } from 'geojson'
 
@@ -13,30 +12,6 @@ interface ShapefileFeature extends Feature<LineString | MultiLineString> {
   properties: {
     [key: string]: any
   }
-}
-
-interface SegmentFeature extends Feature<LineString> {
-  properties: {
-    segmentId: string
-    segmentIndex: number
-    startKm: number
-    endKm: number
-    length: number
-    [key: string]: any
-  }
-}
-
-interface ShapefileProcessingResult {
-  geoJSON: FeatureCollection
-  attributes: string[]
-  attributeValues: Record<string, number[]>
-}
-
-interface AttributeStatistics {
-  min: number
-  max: number
-  mean: number
-  median: number
 }
 
 function validateFile(file: File): void {
@@ -61,44 +36,45 @@ function validateCoordinate(coord: number[]): boolean {
 }
 
 function validateGeoJSON(geoJSON: FeatureCollection): void {
-  if (!geoJSON || !geoJSON.type || !geoJSON.features) {
-    throw new Error('Invalid GeoJSON structure')
+  if (!geoJSON || typeof geoJSON !== 'object') {
+    throw new Error('Invalid GeoJSON: not an object')
+  }
+
+  if (geoJSON.type !== 'FeatureCollection') {
+    throw new Error('Invalid GeoJSON: not a FeatureCollection')
   }
 
   if (!Array.isArray(geoJSON.features)) {
-    throw new Error('GeoJSON features must be an array')
+    throw new Error('Invalid GeoJSON: features is not an array')
   }
 
   if (geoJSON.features.length === 0) {
-    throw new Error('GeoJSON must contain at least one feature')
+    throw new Error('Invalid GeoJSON: no features found')
   }
 
-  // Validate each feature
   geoJSON.features.forEach((feature, index) => {
-    if (!feature.type || !feature.geometry) {
-      throw new Error(`Invalid feature at index ${index}`)
+    if (!feature.geometry) {
+      throw new Error(`Invalid feature at index ${index}: no geometry`)
     }
 
-    // Validate coordinates
-    if (feature.geometry.type === 'LineString' || feature.geometry.type === 'MultiLineString') {
-      const coordinates = feature.geometry.coordinates
-      if (!Array.isArray(coordinates)) {
-        throw new Error(`Invalid coordinates in feature at index ${index}`)
-      }
+    if (feature.geometry.type !== 'LineString' && feature.geometry.type !== 'MultiLineString') {
+      throw new Error(`Invalid feature at index ${index}: geometry must be LineString or MultiLineString`)
+    }
 
-      if (feature.geometry.type === 'LineString') {
-        const coords = coordinates as number[][]
-        if (!coords.every(validateCoordinate)) {
-          throw new Error(`Invalid coordinates in LineString at index ${index}`)
+    if (feature.geometry.type === 'LineString') {
+      feature.geometry.coordinates.forEach((coord, i) => {
+        if (!validateCoordinate(coord)) {
+          throw new Error(`Invalid coordinate at index ${i} in feature ${index}`)
         }
-      } else {
-        const coords = coordinates as number[][][]
-        if (!coords.every(line => Array.isArray(line) && line.every(validateCoordinate))) {
-          throw new Error(`Invalid coordinates in MultiLineString at index ${index}`)
-        }
-      }
+      })
     } else {
-      throw new Error(`Unsupported geometry type: ${feature.geometry.type}`)
+      feature.geometry.coordinates.forEach((line, lineIndex) => {
+        line.forEach((coord, i) => {
+          if (!validateCoordinate(coord)) {
+            throw new Error(`Invalid coordinate at index ${i} in line ${lineIndex} of feature ${index}`)
+          }
+        })
+      })
     }
   })
 }
@@ -152,227 +128,8 @@ function cleanGeoJSON(geoJSON: FeatureCollection): FeatureCollection {
   }
 }
 
-export function segmentShoreline(geoJSON: FeatureCollection, segmentLength: number): FeatureCollection<LineString> {
-  try {
-    // Convert all features to LineString if they aren't already
-    const lineStrings: Feature<LineString>[] = []
-    
-    geoJSON.features.forEach((feature, index) => {
-      if (feature.geometry.type === 'LineString') {
-        lineStrings.push(feature as Feature<LineString>)
-      } else if (feature.geometry.type === 'MultiLineString') {
-        const coords = feature.geometry.coordinates as number[][][]
-        coords.forEach(line => {
-          lineStrings.push({
-            type: 'Feature',
-            geometry: {
-              type: 'LineString',
-              coordinates: line
-            } as LineString,
-            properties: { ...feature.properties }
-          })
-        })
-      }
-    })
-
-    // Sort lineStrings by length
-    lineStrings.sort((a, b) => {
-      const lengthA = turf.length(a)
-      const lengthB = turf.length(b)
-      return lengthB - lengthA
-    })
-
-    // Create segments
-    const segments: Feature<LineString>[] = []
-    let currentSegment: number[][] = []
-    let currentLength = 0
-
-    lineStrings.forEach(lineString => {
-      const coords = lineString.geometry.coordinates as number[][]
-      coords.forEach((coord, i) => {
-        if (i === 0 && currentSegment.length > 0) {
-          // Start of new line, finish current segment
-          const segmentFeature: Feature<LineString> = {
-            type: 'Feature',
-            geometry: {
-              type: 'LineString',
-              coordinates: currentSegment
-            } as LineString,
-            properties: {
-              segmentId: uuidv4(),
-              segmentIndex: segments.length,
-              startKm: currentLength - turf.length({ type: 'Feature', geometry: { type: 'LineString', coordinates: currentSegment } as LineString, properties: {} }),
-              endKm: currentLength,
-              length: turf.length({ type: 'Feature', geometry: { type: 'LineString', coordinates: currentSegment } as LineString, properties: {} })
-            }
-          }
-          segments.push(segmentFeature)
-          currentSegment = []
-        }
-
-        currentSegment.push(coord)
-        currentLength += i > 0 ? turf.length({ type: 'Feature', geometry: { type: 'LineString', coordinates: [coords[i - 1], coord] } as LineString, properties: {} }) : 0
-
-        if (currentLength >= segmentLength) {
-          const segmentFeature: Feature<LineString> = {
-            type: 'Feature',
-            geometry: {
-              type: 'LineString',
-              coordinates: currentSegment
-            } as LineString,
-            properties: {
-              segmentId: uuidv4(),
-              segmentIndex: segments.length,
-              startKm: currentLength - turf.length({ type: 'Feature', geometry: { type: 'LineString', coordinates: currentSegment } as LineString, properties: {} }),
-              endKm: currentLength,
-              length: turf.length({ type: 'Feature', geometry: { type: 'LineString', coordinates: currentSegment } as LineString, properties: {} })
-            }
-          }
-          segments.push(segmentFeature)
-          currentSegment = []
-          currentLength = 0
-        }
-      })
-    })
-
-    // Add any remaining coordinates as the final segment
-    if (currentSegment.length > 0) {
-      const segmentFeature: Feature<LineString> = {
-        type: 'Feature',
-        geometry: {
-          type: 'LineString',
-          coordinates: currentSegment
-        } as LineString,
-        properties: {
-          segmentId: uuidv4(),
-          segmentIndex: segments.length,
-          startKm: currentLength - turf.length({ type: 'Feature', geometry: { type: 'LineString', coordinates: currentSegment } as LineString, properties: {} }),
-          endKm: currentLength,
-          length: turf.length({ type: 'Feature', geometry: { type: 'LineString', coordinates: currentSegment } as LineString, properties: {} })
-        }
-      }
-      segments.push(segmentFeature)
-    }
-
-    return {
-      type: 'FeatureCollection',
-      features: segments
-    }
-  } catch (error) {
-    console.error('Error segmenting shoreline:', error)
-    throw new Error('Failed to segment shoreline')
-  }
-}
-
-export function validateAttributes(geoJSON: FeatureCollection, requiredAttributes: string[]) {
-  const features = geoJSON.features || []
-  const missingAttributes = []
-
-  for (const feature of features) {
-    const properties = feature.properties || {}
-    for (const attr of requiredAttributes) {
-      if (!(attr in properties)) {
-        missingAttributes.push(attr)
-      }
-    }
-  }
-
-  return {
-    isValid: missingAttributes.length === 0,
-    missingAttributes: [...new Set(missingAttributes)]
-  }
-}
-
-export function extractAttributeValues(geoJSON: FeatureCollection, attribute: string) {
-  const features = geoJSON.features || []
-  const values = features
-    .map((f: Feature) => f.properties?.[attribute])
-    .filter((v): v is number | string => v !== undefined && v !== null)
-
-  return [...new Set(values)]
-}
-
-export function calculateStatistics(values: number[]) {
-  if (values.length === 0) return null
-
-  const sorted = [...values].sort((a, b) => a - b)
-  const sum = sorted.reduce((a, b) => a + b, 0)
-
-  return {
-    min: sorted[0],
-    max: sorted[sorted.length - 1],
-    mean: sum / sorted.length,
-    median: sorted[Math.floor(sorted.length / 2)],
-    count: sorted.length
-  }
-}
-
-export function normalizeValues(values: number[], method: 'minmax' | 'zscore' = 'minmax') {
-  if (values.length === 0) return []
-
-  if (method === 'minmax') {
-    const min = Math.min(...values)
-    const max = Math.max(...values)
-    const range = max - min
-    return values.map(v => range === 0 ? 0.5 : (v - min) / range)
-  } else {
-    const mean = values.reduce((a, b) => a + b, 0) / values.length
-    const std = Math.sqrt(
-      values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length
-    )
-    return values.map(v => std === 0 ? 0 : (v - mean) / std)
-  }
-}
-
-export function calculateAttributeStatistics(values: number[]): AttributeStatistics {
-  if (values.length === 0) {
-    return {
-      min: 0,
-      max: 0,
-      mean: 0,
-      median: 0
-    }
-  }
-
-  const sortedValues = [...values].sort((a, b) => a - b)
-  const sum = sortedValues.reduce((acc, val) => acc + val, 0)
-
-  return {
-    min: sortedValues[0],
-    max: sortedValues[sortedValues.length - 1],
-    mean: sum / sortedValues.length,
-    median: sortedValues.length % 2 === 0
-      ? (sortedValues[sortedValues.length / 2 - 1] + sortedValues[sortedValues.length / 2]) / 2
-      : sortedValues[Math.floor(sortedValues.length / 2)]
-  }
-}
-
-export function normalizeAttributeValues(
-  values: Record<string, number>,
-  targetRange: [number, number] = [1, 5]
-): Record<string, number> {
-  const numberValues = Object.values(values)
-  if (numberValues.length === 0) return {}
-
-  const stats = calculateAttributeStatistics(numberValues)
-  const [targetMin, targetMax] = targetRange
-  const sourceRange = stats.max - stats.min
-
-  return Object.entries(values).reduce((acc, [id, value]) => {
-    // Normalize to 0-1 range, then scale to target range
-    const normalized = sourceRange === 0
-      ? targetMin
-      : targetMin + ((value - stats.min) / sourceRange) * (targetMax - targetMin)
-    
-    return {
-      ...acc,
-      [id]: Math.round(normalized * 100) / 100 // Round to 2 decimal places
-    }
-  }, {})
-}
-
 export function validateShapefileAttributes(
-  geoJSON: MapFeatureCollection,
+  geoJSON: FeatureCollection,
   requiredAttributes: string[]
 ): boolean {
   if (!geoJSON.features.length) return false

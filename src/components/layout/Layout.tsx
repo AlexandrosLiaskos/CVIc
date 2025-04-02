@@ -2,17 +2,14 @@ import { Link, useLocation, Outlet } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 
 const navigation = [
-  { name: 'Home', href: '/' },
-  { name: 'Shoreline', href: '/shoreline' },
-  { name: 'Parameters', href: '/parameters' },
-  { name: 'Formula', href: '/formula' },
-  { name: 'Calculation', href: '/calculation' },
-  { name: 'Results Manager', href: '/results-manager' },
 ]
 
 export const Layout = () => {
   const location = useLocation()
   const { user, loading, signOut } = useAuth()
+
+  // Remove the base path from the location pathname for comparison
+  const currentPath = location.pathname.replace('/CVIc', '')
 
   if (loading) {
     return (
@@ -40,7 +37,7 @@ export const Layout = () => {
                       key={item.name}
                       to={item.href}
                       className={`${
-                        location.pathname === item.href
+                        currentPath === item.href
                           ? 'border-primary-500 text-gray-900'
                           : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                       } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
