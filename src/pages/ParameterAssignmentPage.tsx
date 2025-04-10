@@ -357,7 +357,7 @@ export default function ParameterAssignmentPage() {
     <div className="flex flex-col h-[calc(100vh-64px)] p-4 space-y-4 bg-gray-50"> {/* Adjust height based on nav height */}
       {/* Header - Takes its own space */}
       <ParameterAssignmentHeader
-        title="Parameter Assignment & CVI Calculation"
+        title="5. Parameter Assignment & CVI Calculation"
         completionPercentage={completionPercentage}
       />
 

@@ -14,12 +14,12 @@ export default function RootPage() {
   // Reason: Define the core workflow steps implemented in the application.
   const workflowSteps = [
     // Icons adjusted slightly for consistency if needed, ensuring they are 24/outline
-    { text: "Upload zipped shoreline Shapefile (.zip).", icon: <CpuChipIcon className="h-6 w-6 text-primary-600" /> },
-    { text: "Segment shoreline by specified resolution (meters).", icon: <CubeTransparentIcon className="h-6 w-6 text-primary-600" /> },
-    { text: "Select vulnerability parameters & assign weights (must sum to 100%).", icon: <BeakerIcon className="h-6 w-6 text-primary-600" /> },
-    { text: "Assign standardized values to segments via interactive map & table.", icon: <MapIcon className="h-6 w-6 text-primary-600" /> },
-    { text: "Select CVI calculation formula (e.g., Geometric Mean).", icon: <CommandLineIcon className="h-6 w-6 text-primary-600" /> },
-    { text: "Visualize results (map, stats) & export as GeoJSON.", icon: <CircleStackIcon className="h-6 w-6 text-primary-600" /> },
+    { text: "Upload shoreline Shapefile.", icon: <CpuChipIcon className="h-6 w-6 text-primary-600" /> },
+    { text: "Segment shoreline by specified resolution.", icon: <CubeTransparentIcon className="h-6 w-6 text-primary-600" /> },
+    { text: "Select vulnerability parameters & assign weights.", icon: <BeakerIcon className="h-6 w-6 text-primary-600" /> },
+    { text: "Assign values to segments via interactive map & table.", icon: <MapIcon className="h-6 w-6 text-primary-600" /> },
+    { text: "Select CVI calculation formula.", icon: <CommandLineIcon className="h-6 w-6 text-primary-600" /> },
+    { text: "Visualize results & export as GeoJSON.", icon: <CircleStackIcon className="h-6 w-6 text-primary-600" /> },
   ];
 
   // Reason: List the key technologies used and their purpose in the application.

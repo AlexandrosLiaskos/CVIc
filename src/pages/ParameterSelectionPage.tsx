@@ -188,7 +188,7 @@ export default function ParameterSelectionPage() {
 
   return (
     <div className="max-w-4xl mx-auto mt-8 px-4">
-      <h2 className="text-2xl font-bold text-center mb-8">Parameter Selection</h2>
+      <h2 className="text-2xl font-bold text-center mb-8">4.  Parameter Selection</h2>
 
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
