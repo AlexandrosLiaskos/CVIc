@@ -8,11 +8,17 @@ CVIc is a web-based tool designed to streamline the process of calculating a Coa
 
 ---
 
-**Live Demo:** (https://cvic-456409.web.app/)[https://cvic-456409.web.app/]
+**Live Demo:** [/https://cvic-456409.web.app/)
 
 *(Note: Firebase Authentication is required for full access. You can sign in with a Google account.)*
 
 ---
+
+## Screenshots
+
+![image](https://github.com/user-attachments/assets/ba14f94d-b0cb-4e07-bef7-0d0839ea1ec6)
+
+![image](https://github.com/user-attachments/assets/ffda84d4-ae0a-4908-ad90-12e564a73147)
 
 ## Key Features & Workflow
 
@@ -43,12 +49,6 @@ CVIc is built using modern web technologies:
 *   **Shapefile Processing:** shpjs
 *   **Authentication:** Firebase Authentication (Google Sign-In)
 *   **Deployment:** GitHub Pages / Firebase Hosting
-
-## Screenshots
-
-![image](https://github.com/user-attachments/assets/ba14f94d-b0cb-4e07-bef7-0d0839ea1ec6)
-
-![image](https://github.com/user-attachments/assets/ffda84d4-ae0a-4908-ad90-12e564a73147)
 
 ## Getting Started
 
