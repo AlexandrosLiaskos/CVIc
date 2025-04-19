@@ -8,7 +8,7 @@ CVIc is a web-based tool designed to streamline the process of calculating a Coa
 
 ---
 
-**Live Demo:** [https://cvic-456409.web.app/)
+**Live Demo:** [https://cvic-456409.web.app/](CVIc)
 
 *(Note: Firebase Authentication is required for full access. You can sign in with a Google account.)*
 
