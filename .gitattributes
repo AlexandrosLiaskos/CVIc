@@ -1,0 +1,44 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# JSX and TSX files
+*.jsx text
+*.tsx text
+
+# TypeScript files
+*.ts text
+
+# CSS files
+*.css text
+
+# JSON files
+*.json text
+
+# Markdown files
+*.md text diff=markdown
+
+# Documentation
+*.pdf binary
+*.doc binary
+*.docx binary
+*.xls binary
+*.xlsx binary
+*.ppt binary
+*.pptx binary
+
+# Images
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.svg text
+
+# Fonts
+*.ttf binary
+*.eot binary
+*.woff binary
+*.woff2 binary
+
+# Scripts
+*.sh text eol=lf
+*.bat text eol=crlf 
