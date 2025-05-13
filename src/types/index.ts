@@ -1,32 +1,24 @@
 // ---- File: src/types/index.ts ----
-// Add 'stylingMode' to MapProps if it's defined here, otherwise ensure it's correctly in Map.tsx's interface
-// (No changes needed based on current file content, assuming MapProps is correctly defined in Map.tsx)
-
-// Make sure ShorelineSegmentProperties includes vulnerabilityIndex and vulnerabilityFormula
 export interface ShorelineSegmentProperties {
   id: string;
-  FID?: string; // Optional legacy field
+  FID?: string; 
   length?: number;
-  index?: number; // Index within the original LineString feature
-  lineIndex?: number; // Index of the original LineString in a MultiLineString
-  // 'values' seems deprecated/unused in favor of 'parameters' below
-  // values?: Record<string, number>;
-  parameters?: Record<string, ParameterValue>; // Store assigned parameter values/vulnerability here
-  vulnerabilityIndex?: number; // Calculated CVI score
-  vulnerabilityFormula?: Formula['type']; // Formula used for calculation
-  [key: string]: any; // Allow other properties that might come from shapefile
+  index?: number; 
+  lineIndex?: number; 
+  parameters?: Record<string, ParameterValue>; 
+  vulnerabilityIndex?: number; 
+  vulnerabilityFormula?: Formula['type']; 
+  [key: string]: any; 
 }
 
-// Make sure ShorelineSegment includes the 'parameters' property for direct access
 export interface ShorelineSegment {
   type: 'Feature';
   id: string;
   geometry: LineString | MultiLineString;
   properties: ShorelineSegmentProperties;
-  parameters: Record<string, ParameterValue>; // Direct access mirror of properties.parameters
+  parameters: Record<string, ParameterValue>; 
 }
 
-// Rest of the file remains the same...
 import type { Feature, FeatureCollection, Geometry, LineString, MultiLineString } from 'geojson'
 
 export interface User {
@@ -57,12 +49,12 @@ export interface BaseParameterOption {
 
 export interface NumericalParameterOption extends BaseParameterOption {
   type: 'numerical'
-  value: number // May not be strictly necessary if range defines vulnerability
+  value: number 
 }
 
 export interface CategoricalParameterOption extends BaseParameterOption {
   type: 'categorical'
-  value: string // The specific category value (e.g., 'sandy_beach')
+  value: string 
 }
 
 export type ParameterOption = NumericalParameterOption | CategoricalParameterOption
@@ -79,28 +71,11 @@ export interface Parameter {
   type: 'numerical' | 'categorical'
   weight: number
   unit?: string
-  vulnerabilityRanges?: VulnerabilityRange[] // Used for numerical type
-  options?: ParameterOption[] // Used for categorical type
+  vulnerabilityRanges?: VulnerabilityRange[] 
+  options?: ParameterOption[] 
   enabled?: boolean
-  // 'range' might be redundant if using vulnerabilityRanges
-  // range?: {
-  //   min: number
-  //   max: number
-  // }
-  isCustom?: boolean // Flag for user-defined parameters (future)
-  // Redundant fields removed as they belong to segment-specific values
-  // isComplete?: boolean
-  // categories?: Category[]
-  // vulnerability?: number
+  isCustom?: boolean 
 }
-
-// Deprecated? ParameterSegment seems unused
-// export interface ParameterSegment {
-//   id: string
-//   parameterId: string
-//   geometry: LineString | MultiLineString
-//   value: number
-// }
 
 export interface SelectionPolygon {
   id: string
@@ -110,21 +85,12 @@ export interface SelectionPolygon {
   }
 }
 
-// Deprecated? SegmentValue seems unused - values stored in ShorelineSegment.parameters
-// export interface SegmentValue {
-//   segmentId: string
-//   parameterId: string
-//   value: number | string
-// }
-
-
-// Keep this - used for storing original uploaded data
 export interface ShorelineData {
-  name: string // Maybe file name?
-  location: string // Could be derived later or user input
-  length: number // Total length
-  description: string // User input?
-  userId: string // If using auth
+  name: string 
+  location: string 
+  length: number 
+  description: string 
+  userId: string 
   geoJSON?: FeatureCollection<LineString | MultiLineString>
 }
 
@@ -134,12 +100,11 @@ export interface AuthState {
   error: string | null
 }
 
-// Used by Map component potentially for generic features
 export interface MapFeatureProperties {
   id: string;
-  cviScore?: number; // Optional CVI score
+  cviScore?: number; 
   name?: string;
-  [key: string]: any; // Allow other properties
+  [key: string]: any;
 }
 
 export interface MapFeature extends Feature {
@@ -153,44 +118,24 @@ export interface MapFeatureCollection extends FeatureCollection {
   features: MapFeature[];
 }
 
-// Deprecated? WorkflowStep seems unused
-// export type WorkflowStep = 'resolution' | 'parameters' | 'values'
-
-// Deprecated? ParameterPageProps seems unused
-// export interface ParameterPageProps {
-//   shoreline: FeatureCollection<LineString | MultiLineString>
-//   onComplete: (segments: ShorelineSegment[], parameters: Parameter[]) => void
-// }
-
 export interface Formula {
   type: 'geometric-mean' | 'geometric-mean-normalized' | 'arithmetic-mean' | 'nonlinear-power';
   name: string;
   description: string;
 }
 
-// Deprecated? VulnerabilityLevel seems unused in favor of numerical scores 1-5
-// export type VulnerabilityLevel = 'very-low' | 'low' | 'moderate' | 'high' | 'very-high'
-
-// Represents the value assigned to a parameter for a specific segment
 export interface BaseParameterValue {
-  vulnerability: number; // The calculated or assigned vulnerability score (1-5)
+  vulnerability: number; 
 }
 
 export interface NumericalParameterValue extends BaseParameterValue {
   type: 'numerical';
-  value: number; // The actual numerical measurement (optional, could rely purely on vulnerability)
+  value: number; 
 }
 
 export interface CategoricalParameterValue extends BaseParameterValue {
   type: 'categorical';
-  value: string; // The specific category selected (e.g., 'sandy_beach')
+  value: string; 
 }
 
 export type ParameterValue = NumericalParameterValue | CategoricalParameterValue;
-
-// Add MapProps interface definition (if not defined inline in Map.tsx)
-// Example:
-// export interface MapProps {
-//    // ... properties defined in Map.tsx ...
-//    stylingMode?: 'parameter' | 'cvi';
-// }

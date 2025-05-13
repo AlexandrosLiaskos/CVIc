@@ -4,7 +4,6 @@ import type { Parameter } from '../types'
 import type { FeatureCollection } from 'geojson'
 import { indexedDBService } from '../services/indexedDBService'
 
-// Default parameters that users can select from
 const DEFAULT_PARAMETERS: Parameter[] = [
   {
     id: 'geomorphology',
@@ -14,11 +13,11 @@ const DEFAULT_PARAMETERS: Parameter[] = [
     weight: 0.25,
     enabled: true,
     options: [
-      { type: 'categorical', value: 'rocky_cliffs', label: 'Rocky, cliffed coasts / Fiords / Fiards', color: '#1a9850', vulnerability: 1 }, // Rank 1 Green
-      { type: 'categorical', value: 'medium_cliffs', label: 'Medium cliffs / Indented coasts', color: '#91cf60', vulnerability: 2 }, // Rank 2 Lime
-      { type: 'categorical', value: 'low_cliffs', label: 'Low cliffs / Glacial drift / Alluvial plains', color: '#fee08b', vulnerability: 3 }, // Rank 3 Yellow
-      { type: 'categorical', value: 'cobble_beaches', label: 'Cobble beaches / Estuary / Lagoon', color: '#fc8d59', vulnerability: 4 }, // Rank 4 Orange
-      { type: 'categorical', value: 'barrier_beaches', label: 'Barrier beaches / Sand beaches / Salt marsh / Mud flats / Deltas / Mangrove / Coral reefs', color: '#d73027', vulnerability: 5 } // Rank 5 Red
+      { type: 'categorical', value: 'rocky_cliffs', label: 'Rocky, cliffed coasts / Fiords / Fiards', color: '#1a9850', vulnerability: 1 },  
+      { type: 'categorical', value: 'medium_cliffs', label: 'Medium cliffs / Indented coasts', color: '#91cf60', vulnerability: 2 }, 
+      { type: 'categorical', value: 'low_cliffs', label: 'Low cliffs / Glacial drift / Alluvial plains', color: '#fee08b', vulnerability: 3 }, 
+      { type: 'categorical', value: 'cobble_beaches', label: 'Cobble beaches / Estuary / Lagoon', color: '#fc8d59', vulnerability: 4 }, 
+      { type: 'categorical', value: 'barrier_beaches', label: 'Barrier beaches / Sand beaches / Salt marsh / Mud flats / Deltas / Mangrove / Coral reefs', color: '#d73027', vulnerability: 5 } 
     ]
   },
   {
@@ -30,11 +29,11 @@ const DEFAULT_PARAMETERS: Parameter[] = [
     enabled: true,
     unit: '%',
     vulnerabilityRanges: [
-      { value: 1, min: 2.0, max: null, label: 'Very Low', color: '#1a9850' }, // Rank 1 Green
-      { value: 2, min: 0.7, max: 2.0, label: 'Low', color: '#91cf60' }, // Rank 2 Lime
-      { value: 3, min: 0.04, max: 0.07, label: 'Moderate', color: '#fee08b' }, // Rank 3 Yellow
-      { value: 4, min: 0.025, max: 0.04, label: 'High', color: '#fc8d59' }, // Rank 4 Orange
-      { value: 5, min: null, max: 0.025, label: 'Very High', color: '#d73027' } // Rank 5 Red
+      { value: 1, min: 2.0, max: null, label: 'Very Low', color: '#1a9850' },
+      { value: 2, min: 0.7, max: 2.0, label: 'Low', color: '#91cf60' }, 
+      { value: 3, min: 0.04, max: 0.07, label: 'Moderate', color: '#fee08b' }, 
+      { value: 4, min: 0.025, max: 0.04, label: 'High', color: '#fc8d59' },
+      { value: 5, min: null, max: 0.025, label: 'Very High', color: '#d73027' } 
     ]
   },
   {
@@ -46,11 +45,11 @@ const DEFAULT_PARAMETERS: Parameter[] = [
     enabled: true,
     unit: 'mm/yr',
     vulnerabilityRanges: [
-      { value: 1, min: null, max: 1.8, label: 'Very Low', color: '#1a9850' }, // Rank 1 Green
-      { value: 2, min: 1.8, max: 2.5, label: 'Low', color: '#91cf60' }, // Rank 2 Lime
-      { value: 3, min: 2.5, max: 2.95, label: 'Moderate', color: '#fee08b' }, // Rank 3 Yellow
-      { value: 4, min: 2.95, max: 3.16, label: 'High', color: '#fc8d59' }, // Rank 4 Orange
-      { value: 5, min: 3.16, max: null, label: 'Very High', color: '#d73027' } // Rank 5 Red
+      { value: 1, min: null, max: 1.8, label: 'Very Low', color: '#1a9850' }, 
+      { value: 2, min: 1.8, max: 2.5, label: 'Low', color: '#91cf60' }, 
+      { value: 3, min: 2.5, max: 2.95, label: 'Moderate', color: '#fee08b' }, 
+      { value: 4, min: 2.95, max: 3.16, label: 'High', color: '#fc8d59' }, 
+      { value: 5, min: 3.16, max: null, label: 'Very High', color: '#d73027' } 
     ]
   },
   {
@@ -62,11 +61,11 @@ const DEFAULT_PARAMETERS: Parameter[] = [
     enabled: true,
     unit: 'm/yr',
     vulnerabilityRanges: [
-      { value: 1, min: 2.0, max: null, label: 'Accretion', color: '#1a9850' }, // Rank 1 Green
-      { value: 2, min: 1.0, max: 2.0, label: 'Low Erosion/Accretion', color: '#91cf60' }, // Rank 2 Lime
-      { value: 3, min: -1.0, max: 1.0, label: 'Stable', color: '#fee08b' }, // Rank 3 Yellow
-      { value: 4, min: -2.0, max: -1.0, label: 'High Erosion', color: '#fc8d59' }, // Rank 4 Orange - Adjusted range for clarity
-      { value: 5, min: null, max: -2.0, label: 'Very High Erosion', color: '#d73027' } // Rank 5 Red
+      { value: 1, min: 2.0, max: null, label: 'Accretion', color: '#1a9850' }, 
+      { value: 2, min: 1.0, max: 2.0, label: 'Low Erosion/Accretion', color: '#91cf60' }, 
+      { value: 3, min: -1.0, max: 1.0, label: 'Stable', color: '#fee08b' }, 
+      { value: 4, min: -2.0, max: -1.0, label: 'High Erosion', color: '#fc8d59' }, 
+      { value: 5, min: null, max: -2.0, label: 'Very High Erosion', color: '#d73027' } 
     ]
   },
   {
@@ -78,11 +77,11 @@ const DEFAULT_PARAMETERS: Parameter[] = [
     enabled: false,
     unit: 'm',
     vulnerabilityRanges: [
-      { value: 1, min: 6.0, max: null, label: 'Very Low', color: '#1a9850' }, // Rank 1 Green
-      { value: 2, min: 4.1, max: 6.0, label: 'Low', color: '#91cf60' }, // Rank 2 Lime
-      { value: 3, min: 2.0, max: 4.0, label: 'Moderate', color: '#fee08b' }, // Rank 3 Yellow
-      { value: 4, min: 1.0, max: 1.9, label: 'High', color: '#fc8d59' }, // Rank 4 Orange
-      { value: 5, min: null, max: 1.0, label: 'Very High', color: '#d73027' } // Rank 5 Red
+      { value: 1, min: 6.0, max: null, label: 'Very Low', color: '#1a9850' }, 
+      { value: 2, min: 4.1, max: 6.0, label: 'Low', color: '#91cf60' }, 
+      { value: 3, min: 2.0, max: 4.0, label: 'Moderate', color: '#fee08b' }, 
+      { value: 4, min: 1.0, max: 1.9, label: 'High', color: '#fc8d59' },
+      { value: 5, min: null, max: 1.0, label: 'Very High', color: '#d73027' } 
     ]
   },
   {
@@ -94,11 +93,11 @@ const DEFAULT_PARAMETERS: Parameter[] = [
     enabled: false,
     unit: 'm',
     vulnerabilityRanges: [
-      { value: 1, min: null, max: 0.55, label: 'Very Low', color: '#1a9850' }, // Rank 1 Green
-      { value: 2, min: 0.55, max: 0.85, label: 'Low', color: '#91cf60' }, // Rank 2 Lime
-      { value: 3, min: 0.85, max: 1.05, label: 'Moderate', color: '#fee08b' }, // Rank 3 Yellow
-      { value: 4, min: 1.05, max: 1.25, label: 'High', color: '#fc8d59' }, // Rank 4 Orange
-      { value: 5, min: 1.25, max: null, label: 'Very High', color: '#d73027' } // Rank 5 Red
+      { value: 1, min: null, max: 0.55, label: 'Very Low', color: '#1a9850' }, 
+      { value: 2, min: 0.55, max: 0.85, label: 'Low', color: '#91cf60' }, 
+      { value: 3, min: 0.85, max: 1.05, label: 'Moderate', color: '#fee08b' }, 
+      { value: 4, min: 1.05, max: 1.25, label: 'High', color: '#fc8d59' }, 
+      { value: 5, min: 1.25, max: null, label: 'Very High', color: '#d73027' } 
     ]
   }
 ]
@@ -108,13 +107,11 @@ export default function ParameterSelectionPage() {
   const [parameters, setParameters] = useState<Parameter[]>(DEFAULT_PARAMETERS)
   const [error, setError] = useState<string | null>(null)
 
-  // Load any existing parameters from IndexedDB
   useEffect(() => {
     const loadParameters = async () => {
       try {
         const savedData = await indexedDBService.getShorelineData('current-parameters')
         if (savedData && savedData.features) {
-          // Convert FeatureCollection back to Parameter array
           const savedParameters = savedData.features.map(feature => feature.properties as Parameter)
           setParameters(savedParameters.filter((p): p is Parameter => p !== null))
         }
@@ -153,18 +150,14 @@ export default function ParameterSelectionPage() {
   }
 
   const handleContinue = async () => {
-    // Calculate total weight of enabled parameters
     const enabledParameters = parameters.filter(p => p.enabled)
     const totalWeight = enabledParameters.reduce((sum, p) => sum + (p.weight || 0), 0)
-
-    // Validate total weight
     if (Math.abs(totalWeight - 1) > 0.01) {
       setError(`Parameter weights must sum to 100%. Current total: ${(totalWeight * 100).toFixed(0)}%`)
       return
     }
 
     try {
-      // Convert parameters to FeatureCollection for storage
       const parameterCollection: FeatureCollection = {
         type: 'FeatureCollection',
         features: parameters.map(param => ({
@@ -172,12 +165,11 @@ export default function ParameterSelectionPage() {
           properties: param,
           geometry: {
             type: 'Point',
-            coordinates: [0, 0] // Dummy coordinates since this is just for storage
+            coordinates: [0, 0] 
           }
         }))
       }
 
-      // Store parameters in IndexedDB
       await indexedDBService.storeShorelineData('current-parameters', parameterCollection)
       navigate('/parameter-assignment')
     } catch (err) {

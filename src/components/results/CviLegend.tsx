@@ -1,9 +1,6 @@
 // ---- File: src/components/results/CviLegend.tsx ----
 import React from 'react';
 
-/**
- * Displays a simple legend for CVI score categories and their colors.
- */
 export const CviLegend: React.FC = () => {
   const categories = [
     { label: 'Very Low', rank: 1, color: 'bg-green-600', border: 'border-green-700' },

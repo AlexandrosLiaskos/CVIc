@@ -33,11 +33,6 @@
     @apply block text-sm font-medium text-gray-700;
   }
 
-  /* Keep other base card styling if needed elsewhere, but remove the flipping card specific styles */
-  /* Example simple card base (if needed) */
-  /* .card { */
-  /*   @apply bg-white shadow rounded-lg p-6 border border-gray-200; */
-  /* } */
 }
 
 

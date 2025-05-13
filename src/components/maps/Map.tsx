@@ -6,9 +6,7 @@ import 'leaflet/dist/leaflet.css'
 import 'leaflet-draw/dist/leaflet.draw.css'
 import type { Parameter, ShorelineSegment, SelectionPolygon } from '../../types'
 import type { FeatureCollection, Polygon as GeoJSONPolygon, Feature, GeoJsonObject } from 'geojson'
-// @ts-ignore - Suppress TS error for Turf module resolution issues
-import * as turf from '@turf/turf' // Import turf
-import { getCviCategory } from '../../utils/vulnerabilityMapping' // Import CVI category logic
+import * as turf from '@turf/turf' 
 
 interface MapProps {
   segments: ShorelineSegment[]
@@ -20,94 +18,85 @@ interface MapProps {
   onSelectionDelete: (polygonId: string) => void
   onAreaSelect: (geometry: GeoJSONPolygon) => void
   isEditing: boolean
-  initialBounds?: L.LatLngBoundsExpression | null // Updated type
-  geoJSON?: FeatureCollection | null // Allow null for initial state
-  zoomToFeatureId?: string | null // New prop for zooming to specific feature
-  stylingMode?: 'parameter' | 'cvi' // New prop to control styling logic
+  initialBounds?: L.LatLngBoundsExpression | null 
+  geoJSON?: FeatureCollection | null 
+  zoomToFeatureId?: string | null 
+  stylingMode?: 'parameter' | 'cvi' 
 }
 
-// Function to get CVI color based on score using 5 ranks
 const getCviColor = (score: number | undefined | null): string => {
-  if (score === undefined || score === null || isNaN(score)) return '#808080'; // Default Grey for no data/NaN
+  if (score === undefined || score === null || isNaN(score)) return '#808080';
 
-  const rank = Math.round(score); // Use rounded score to determine rank
-  if (rank <= 1) return '#1a9850'; // Rank 1: Green
-  if (rank === 2) return '#91cf60'; // Rank 2: Lime
-  if (rank === 3) return '#fee08b'; // Rank 3: Yellow
-  if (rank === 4) return '#fc8d59'; // Rank 4: Orange
-  if (rank >= 5) return '#d73027'; // Rank 5: Red
-  return '#808080'; // Default fallback (shouldn't be reached with rounding)
+  const rank = Math.round(score); 
+  if (rank <= 1) return '#1a9850'; 
+  if (rank === 2) return '#91cf60'; 
+  if (rank === 3) return '#fee08b'; 
+  if (rank === 4) return '#fc8d59';
+  if (rank >= 5) return '#d73027'; 
+  return '#808080';
 };
 
-// Combined styling function
 function getFeatureStyle(
   feature: Feature,
-  segments: ShorelineSegment[], // Pass all segments for lookup if needed
-  parameters: Parameter[], // Pass parameters for parameter styling mode
-  selectedSegments: string[], // For highlighting selection
-  selectedParameterId: string | null, // For parameter styling mode
-  stylingMode: 'parameter' | 'cvi' = 'parameter' // Default to parameter mode
+  segments: ShorelineSegment[], 
+  parameters: Parameter[],
+  selectedSegments: string[], 
+  selectedParameterId: string | null, 
+  stylingMode: 'parameter' | 'cvi' = 'parameter'
 ): L.PathOptions {
 
   const segmentId = feature.properties?.id;
   const isSelected = segmentId ? selectedSegments.includes(segmentId) : false;
   const cviScore = feature.properties?.vulnerabilityIndex;
 
-  // --- CVI Styling Mode ---
   if (stylingMode === 'cvi') {
     const color = getCviColor(cviScore);
     return {
-      color: isSelected ? '#0ea5e9' : color, // Use a distinct selection color (e.g., blue) in CVI mode
+      color: isSelected ? '#0ea5e9' : color, 
       weight: isSelected ? 5 : 3,
       opacity: isSelected ? 1 : 0.8,
       fillOpacity: isSelected ? 0.4 : 0.2,
     };
   }
 
-  // --- Parameter Styling Mode (Original Logic) ---
+  
   const segmentData = segmentId ? segments.find(s => s.id === segmentId) : null;
   const parameter = selectedParameterId ? parameters.find(p => p.id === selectedParameterId) : null;
 
-  // Default style if no parameter selected or segment data missing
   if (!selectedParameterId || !parameter || !segmentData?.parameters) {
     return {
-      color: isSelected ? '#FF4500' : '#3388ff', // Default Blue / Orange selection
+      color: isSelected ? '#FF4500' : '#3388ff', 
       weight: isSelected ? 5 : 3,
-      opacity: 1, // Keep opacity high for better visibility
+      opacity: 1, 
     };
   }
 
   const paramValue = segmentData.parameters[selectedParameterId];
 
-  // Style for segments without a value for the selected parameter
   if (!paramValue) {
     return {
-      color: isSelected ? '#FF4500' : '#808080', // Grey for missing value / Orange selection
+      color: isSelected ? '#FF4500' : '#808080', 
       weight: isSelected ? 5 : 2,
       opacity: isSelected ? 1 : 0.6,
       dashArray: '5,5',
     };
   }
 
-  // Determine color based on parameter type and value
-  let valueColor = '#3388ff'; // Default Blue if calculation fails below
-  const vulnerabilityScore = paramValue.vulnerability; // Use the direct vulnerability score (1-5)
+  let valueColor = '#3388ff';
+  const vulnerabilityScore = paramValue.vulnerability;
 
-  // Map vulnerability score (1-5) directly to color
   if (parameter.type === 'categorical' && parameter.options) {
     const option = parameter.options.find(o => o.value === paramValue.value);
-    valueColor = option?.color || getCviColor(vulnerabilityScore); // Use score color as fallback
+    valueColor = option?.color || getCviColor(vulnerabilityScore); 
   } else if (parameter.type === 'numerical' && parameter.vulnerabilityRanges) {
-    // Find range to get color defined in config, but use vulnerability score for direct mapping if needed
     const range = parameter.vulnerabilityRanges.find(r => r.value === vulnerabilityScore);
     valueColor = range?.color || '#808080';
   }
 
-  // Final style for parameter mode
   return {
     color: isSelected ? '#FF4500' : valueColor,
-    weight: isSelected ? 5 : 3, // Slightly thicker weight for parameter mode
-    opacity: 1, // Keep opacity high
+    weight: isSelected ? 5 : 3, 
+    opacity: 1,
  };
 }
 
@@ -117,7 +106,6 @@ const Map: React.FC<MapProps> = ({
   parameters,
   selectedSegments,
   selectedParameter,
-  selectionPolygons,
   onSegmentSelect,
   onSelectionDelete,
   onAreaSelect,
@@ -125,24 +113,21 @@ const Map: React.FC<MapProps> = ({
   initialBounds,
   geoJSON,
   zoomToFeatureId,
-  stylingMode = 'parameter' // Default to 'parameter'
+  stylingMode = 'parameter' 
 }) => {
   const mapRef = useRef<L.Map | null>(null)
   const drawControlRef = useRef<L.Control.Draw | null>(null)
   const segmentsLayerRef = useRef<L.GeoJSON | null>(null)
   const drawnItemsRef = useRef<L.FeatureGroup | null>(null)
   const [isMapInitialized, setIsMapInitialized] = useState(false)
-
-  // Memoized click handler for segments
   const handleSegmentClick = useCallback((feature: Feature, layer: L.Layer) => {
     if (feature.properties && feature.properties.id) {
       const segmentId = feature.properties.id
       console.log('Map: Segment clicked:', segmentId)
       onSegmentSelect(segmentId)
 
-       // Add popup logic here if needed (example)
        if (mapRef.current && layer instanceof L.Path) {
-           const props = feature.properties || {} as any; // Added type assertion
+           const props = feature.properties || {} as any;
            let popupContent = `<b>Segment ID:</b> ${props.id}`;
            if (props.cviScore !== undefined) {
                popupContent += `<br/><b>CVI Score:</b> ${props.cviScore.toFixed(2)}`;
@@ -157,7 +142,6 @@ const Map: React.FC<MapProps> = ({
     }
   }, [onSegmentSelect])
 
-  // Effect 1: Initialize Map (runs only once)
   useEffect(() => {
     console.log('Map Effect 1: Initializing map instance...')
     if (mapRef.current || typeof window === 'undefined') return
@@ -168,7 +152,6 @@ const Map: React.FC<MapProps> = ({
       return
     }
 
-    // Remove potential stale Leaflet instance ID
     if ((mapContainer as any)._leaflet_id) {
       console.warn("Map container already had a Leaflet ID. Clearing it.");
       (mapContainer as any)._leaflet_id = null;
@@ -203,13 +186,12 @@ const Map: React.FC<MapProps> = ({
         mapRef.current.remove()
         mapRef.current = null
       }
-      drawnItemsRef.current = null; // Clear drawn items ref
-      segmentsLayerRef.current = null; // Clear segments layer ref
+      drawnItemsRef.current = null;
+      segmentsLayerRef.current = null; 
       setIsMapInitialized(false)
     }
-  }, []) // Empty dependency array - run only once
+  }, []) 
 
-  // Effect 2: Update Data Layer
   useEffect(() => {
     const mapInstance = mapRef.current
     if (!mapInstance || !isMapInitialized) {
@@ -217,39 +199,35 @@ const Map: React.FC<MapProps> = ({
        return;
     }
 
-    // Clear existing layer
     if (segmentsLayerRef.current) {
       mapInstance.removeLayer(segmentsLayerRef.current)
       segmentsLayerRef.current = null
       console.log("Map Effect 2: Removed existing segments layer.")
     }
 
-    // Add new layer if geoJSON exists and has features
     if (geoJSON && geoJSON.features && geoJSON.features.length > 0) {
       console.log(`Map Effect 2: Creating GeoJSON layer with ${geoJSON.features.length} features (Styling: ${stylingMode}).`);
 
       const segmentsLayer = L.geoJSON(geoJSON as GeoJsonObject, {
         style: (feature?: Feature) => {
-          if (!feature) return { color: '#808080', weight: 1 }; // Minimal style if no feature
-          // Use the combined styling function
+          if (!feature) return { color: '#808080', weight: 1 }; 
           return getFeatureStyle(
               feature,
-              segments, // Provide segment data if needed by parameter styling
-              parameters, // Provide parameters if needed by parameter styling
+              segments, 
+              parameters, 
               selectedSegments,
               selectedParameter,
               stylingMode
           );
         },
         onEachFeature: (feature, layer) => {
-          // Apply hover effects and click handler
           layer.on({
             mouseover: (e) => {
                const targetLayer = e.target;
                const segmentId = feature.properties?.id;
                if (segmentId && !selectedSegments.includes(segmentId)) {
                  if (targetLayer instanceof L.Path) {
-                   targetLayer.setStyle({ weight: 5 }); // Highlight on hover
+                   targetLayer.setStyle({ weight: 5 }); 
                    targetLayer.bringToFront();
                  }
                }
@@ -259,15 +237,13 @@ const Map: React.FC<MapProps> = ({
                const segmentId = feature.properties?.id;
                if (segmentId && !selectedSegments.includes(segmentId)) {
                  if (segmentsLayerRef.current && targetLayer instanceof L.Path) {
-                   // Reset style using the main layer ref
                    segmentsLayerRef.current.resetStyle(targetLayer);
                  }
                }
              },
-             click: () => handleSegmentClick(feature, layer) // Use memoized handler
+             click: () => handleSegmentClick(feature, layer)
           });
 
-          // Add tooltips (optional)
            const props = feature.properties || {};
            let tooltipContent = `ID: ${props.id}`;
            if (props.cviScore !== undefined) tooltipContent += ` | CVI: ${props.cviScore.toFixed(2)}`;
@@ -281,10 +257,8 @@ const Map: React.FC<MapProps> = ({
     } else {
       console.log("Map Effect 2: No features in geoJSON to display.");
     }
-  // Dependencies: Update layer when data, selection, styling parameters, or styling mode change
   }, [geoJSON, segments, parameters, selectedSegments, selectedParameter, stylingMode, handleSegmentClick, isMapInitialized]);
 
-  // Effect 3: Fit Bounds to Data or Initial Bounds
   useEffect(() => {
     const mapInstance = mapRef.current;
     if (!mapInstance || !isMapInitialized) {
@@ -292,7 +266,6 @@ const Map: React.FC<MapProps> = ({
       return;
     }
 
-    // Don't fit bounds if we are trying to zoom to a specific feature
     if (zoomToFeatureId && segmentsLayerRef.current) {
        console.log("Map Effect 3: Skipping general bounds fitting because zoomToFeatureId is active.");
        return;
@@ -300,7 +273,6 @@ const Map: React.FC<MapProps> = ({
 
     let targetBounds: L.LatLngBounds | null = null;
 
-    // Priority 1: Use initialBounds if provided and valid
     if (initialBounds) {
       try {
         const bounds = initialBounds instanceof L.LatLngBounds
@@ -318,18 +290,17 @@ const Map: React.FC<MapProps> = ({
       }
     }
 
-    // Priority 2: Calculate bounds from geoJSON if no valid initialBounds provided
     if (!targetBounds && geoJSON && geoJSON.features && geoJSON.features.length > 0) {
        console.log("Map Effect 3: Calculating bounds from geoJSON data.");
        try {
          const validFeatures = geoJSON.features.filter(f => f && f.geometry);
          if (validFeatures.length > 0) {
-           const featureCollection = turf.featureCollection(validFeatures as any); // Cast to any for turf compatibility
-           const bbox = turf.bbox(featureCollection); // [minLon, minLat, maxLon, maxLat]
+           const featureCollection = turf.featureCollection(validFeatures as any); 
+           const bbox = turf.bbox(featureCollection); 
             if (bbox && bbox.length === 4 && bbox.every((b: number) => isFinite(b)) && bbox[0] <= bbox[2] && bbox[1] <= bbox[3]) {
                 targetBounds = L.latLngBounds([
-                  [bbox[1], bbox[0]], // Southwest corner (lat, lon)
-                  [bbox[3], bbox[2]]  // Northeast corner (lat, lon)
+                  [bbox[1], bbox[0]], 
+                  [bbox[3], bbox[2]]  
                 ]);
                 console.log("Map Effect 3: Calculated bounds from geoJSON", targetBounds.toBBoxString());
             } else {
@@ -343,26 +314,21 @@ const Map: React.FC<MapProps> = ({
        }
     }
 
-    // Apply bounds if found
     if (targetBounds && targetBounds.isValid()) {
       console.log("Map Effect 3: Fitting map to bounds:", targetBounds.toBBoxString());
-      // Use setTimeout to ensure rendering completes before fitting, prevents race condition
       setTimeout(() => {
          mapInstance.fitBounds(targetBounds, { padding: [50, 50], maxZoom: 18 });
       }, 100); // Small delay
-    } else if (!initialBounds) { // Only reset view if no specific bounds were intended
+    } else if (!initialBounds) { 
       console.warn("Map Effect 3: No valid bounds found to fit. Resetting to default view.");
-      mapInstance.setView([20, 0], 2); // Reset to default view if no data/bounds
+      mapInstance.setView([20, 0], 2); 
     }
-  // Dependencies: Refit when geoJSON data changes or specific initialBounds are passed
-  }, [geoJSON, initialBounds, isMapInitialized, zoomToFeatureId]); // Add zoomToFeatureId to prevent fitting when zooming
+  }, [geoJSON, initialBounds, isMapInitialized, zoomToFeatureId]); 
 
-   // Effect 4: Zoom to Specific Feature
    useEffect(() => {
     const mapInstance = mapRef.current;
     const segmentsLayer = segmentsLayerRef.current;
     if (!mapInstance || !segmentsLayer || !zoomToFeatureId || !isMapInitialized) {
-      // console.log("Map Effect 4: Skipping zoom to feature (conditions not met).", { mapInstance: !!mapInstance, segmentsLayer: !!segmentsLayer, zoomToFeatureId, isMapInitialized });
       return;
     }
 
@@ -387,10 +353,8 @@ const Map: React.FC<MapProps> = ({
     } else {
        console.warn(`Map Effect 4: Feature with ID ${zoomToFeatureId} not found in the segments layer or has no bounds.`);
     }
-  // Dependencies: Trigger when the target feature ID changes or map initializes
-  }, [zoomToFeatureId, isMapInitialized]); // Add isMapInitialized
+  }, [zoomToFeatureId, isMapInitialized]);
 
-  // Effect 5: Manage Draw Control
   useEffect(() => {
     const mapInstance = mapRef.current
     const drawnItemsInstance = drawnItemsRef.current
@@ -402,17 +366,15 @@ const Map: React.FC<MapProps> = ({
 
     console.log(`Map Effect 5: Setting up draw controls (isEditing: ${isEditing}).`)
 
-    // Cleanup previous draw control and listeners
     if (drawControlRef.current) {
       console.log("Map Effect 5: Removing previous draw control.")
       try { mapInstance.removeControl(drawControlRef.current); } catch(e) { console.warn("Minor error removing old draw control", e); }
       drawControlRef.current = null;
     }
-    // Remove specific listeners to avoid duplicates
     mapInstance.off(L.Draw.Event.CREATED);
     mapInstance.off(L.Draw.Event.DELETED);
     mapInstance.off(L.Draw.Event.DRAWSTART);
-    mapInstance.off(L.Draw.Event.DRAWSTOP); // Added DRAWSTOP
+    mapInstance.off(L.Draw.Event.DRAWSTOP); 
 
     if (isEditing) {
       console.log("Map Effect 5: Adding Leaflet Draw controls.");
@@ -420,32 +382,27 @@ const Map: React.FC<MapProps> = ({
       const drawControlInstance = new L.Control.Draw({
         draw: {
           polyline: false,
-          rectangle: false, // Kept disabled
+          rectangle: false, 
           circle: false,
           circlemarker: false,
           marker: false,
           polygon: {
             allowIntersection: false,
-            showArea: false, // Hide area tooltip during drawing
+            showArea: false, 
             shapeOptions: { color: '#007bff', weight: 2, opacity: 0.7, fillOpacity: 0.1 },
-            // Tooltip text can be customized if needed
-            // drawError: { color: '#e1e1e1', message: 'Error!' },
-            // tooltip: { start: 'Click to start drawing shape.', cont: 'Click to continue drawing shape.', end: 'Click first point to close this shape.' }
           }
         },
         edit: {
           featureGroup: drawnItemsInstance,
-          remove: true // Allow deletion of the drawn shape
+          remove: true 
         }
       });
 
       mapInstance.addControl(drawControlInstance);
       drawControlRef.current = drawControlInstance;
 
-      // Event Handlers
       mapInstance.on(L.Draw.Event.DRAWSTART, (e: any) => {
         console.log(`Draw Event: START (${e.layerType})`);
-        // Clear previous temporary shapes immediately
         drawnItemsInstance.clearLayers();
       });
 
@@ -454,7 +411,6 @@ const Map: React.FC<MapProps> = ({
          const type = e.layerType;
          console.log(`Draw Event: CREATED (${type})`);
 
-         // Only process polygons for area selection
          if (type === 'polygon') {
            try {
              const layerWithGeoJSON = layer as any;
@@ -463,17 +419,7 @@ const Map: React.FC<MapProps> = ({
                if (feature.geometry && feature.geometry.type === 'Polygon') {
                  const geoJsonGeom = feature.geometry as GeoJSONPolygon;
                  console.log("Map: Passing geometry to onAreaSelect:", JSON.stringify(geoJsonGeom));
-                 onAreaSelect(geoJsonGeom); // Pass the geometry to the parent handler
-
-                 // IMPORTANT: Clear the drawn layer *after* processing by the parent.
-                 // Do not add it to drawnItemsInstance if it's meant to be temporary.
-                 // If you need it to persist for editing, then add it:
-                 // drawnItemsInstance.addLayer(layer);
-                 // But for simple selection, clearing is usually desired:
-                 // setTimeout(() => mapInstance.removeLayer(layer), 0); // Remove the visual layer
-                 // The parent component (ParameterAssignmentPage) now handles adding to selectedSegments.
-                 // We don't need to keep the polygon visually unless specified.
-                 // Let's assume the polygon is temporary for selection:
+                 onAreaSelect(geoJsonGeom); 
                  setTimeout(() => {
                     try {
                         if (mapInstance.hasLayer(layer)) {
@@ -483,7 +429,7 @@ const Map: React.FC<MapProps> = ({
                     } catch (removeError) {
                         console.warn("Map: Error removing temporary drawing layer:", removeError);
                     }
-                 }, 0); // Use timeout to ensure event processing completes
+                 }, 0); 
 
 
                } else {
@@ -496,7 +442,6 @@ const Map: React.FC<MapProps> = ({
              console.error("Map: Error processing created geometry:", error);
            }
          } else {
-            // Handle other types if needed, or just remove them
             setTimeout(() => mapInstance.removeLayer(layer), 0);
          }
        });
@@ -504,23 +449,16 @@ const Map: React.FC<MapProps> = ({
 
       mapInstance.on(L.Draw.Event.DELETED, (e: any) => {
         console.log("Draw Event: DELETED (Selection shape removed by user)");
-        // If selectionPolygons state is used to persist shapes, call onSelectionDelete here
-        // e.layers.eachLayer(layer => {
-        //   const polygonId = (layer as any).polygonId; // Assuming you add an ID
-        //   if (polygonId) onSelectionDelete(polygonId);
-        // });
       });
 
       mapInstance.on(L.Draw.Event.DRAWSTOP, (e: any) => {
          console.log(`Draw Event: STOP`);
-         // Could potentially clear temporary layers here too if needed
       });
 
     } else {
       console.log("Map Effect 5: Editing disabled, draw controls not added.")
     }
 
-    // Cleanup function for the effect
     return () => {
       console.log("Map Effect 5: Cleaning up draw controls and listeners.");
       if (mapRef.current && drawControlRef.current) {
@@ -528,16 +466,15 @@ const Map: React.FC<MapProps> = ({
         drawControlRef.current = null;
       }
       if (mapRef.current) {
-        // Remove listeners added in this effect
         mapRef.current.off(L.Draw.Event.CREATED);
         mapRef.current.off(L.Draw.Event.DELETED);
         mapRef.current.off(L.Draw.Event.DRAWSTART);
-        mapRef.current.off(L.Draw.Event.DRAWSTOP); // Added DRAWSTOP cleanup
+        mapRef.current.off(L.Draw.Event.DRAWSTOP); 
       }
     }
-  }, [isEditing, onAreaSelect, onSelectionDelete, isMapInitialized]); // Add onSelectionDelete dependency
+  }, [isEditing, onAreaSelect, onSelectionDelete, isMapInitialized]); 
 
   return <div id="map" style={{ height: '100%', width: '100%', minHeight: '400px' }}></div>
 }
-Map.displayName = 'MapComponent'; // Add display name
+Map.displayName = 'MapComponent'; 
 export default Map

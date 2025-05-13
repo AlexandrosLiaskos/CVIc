@@ -1,8 +1,5 @@
 import type { Formula } from '../types';
 
-/**
- * Defines the available CVI calculation formulas.
- */
 export const availableFormulas: Formula[] = [
   {
     name: 'Geometric Mean (Normalized)',

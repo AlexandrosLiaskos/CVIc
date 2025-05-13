@@ -4,19 +4,12 @@ import type { ShorelineSegment, Parameter, Formula } from '../../types';
 import { getCviCategory } from '../../utils/vulnerabilityMapping'; // Assuming this utility exists
 
 interface SegmentTablePanelProps {
-  /** Array of all shoreline segments */
   segments: ShorelineSegment[];
-  /** Array of enabled parameters to display as columns */
   parameters: Parameter[];
-  /** Array of IDs for the currently selected segments */
   selectedSegmentIds: string[];
-  /** Handler for selecting/deselecting a segment via the table row */
   onSegmentSelect: (segmentId: string) => void;
-  /** Record of calculated CVI scores per segment ID */
   cviScores: Record<string, number>;
-  /** The currently selected CVI formula (for display purposes) */
   selectedFormula: Formula | null;
-  /** Calculated CVI statistics (for display purposes) */
   cviStatistics: {
     min: string;
     max: string;
@@ -34,13 +27,9 @@ interface SegmentTablePanelProps {
 
 const SEGMENTS_PER_PAGE = 10;
 
-/**
- * Component displaying shoreline segments in a paginated table,
- * showing assigned parameter vulnerabilities and calculated CVI scores.
- */
 export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
   segments,
-  parameters: enabledParameters, // Rename prop for clarity
+  parameters: enabledParameters, 
   selectedSegmentIds,
   onSegmentSelect,
   cviScores,
@@ -49,7 +38,6 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Sort segments: selected first, then by ID (numerical part)
   const sortedSegments = useMemo(() => {
     const segmentsCopy = [...segments];
     const compareSegmentIds = (idA: string, idB: string) => {
@@ -62,14 +50,13 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
       const isSelectedA = selectedSegmentIds.includes(a.id);
       const isSelectedB = selectedSegmentIds.includes(b.id);
       if (isSelectedA !== isSelectedB) {
-        return isSelectedA ? -1 : 1; // Selected first
+        return isSelectedA ? -1 : 1;
       }
-      return compareSegmentIds(a.id, b.id); // Then sort by ID
+      return compareSegmentIds(a.id, b.id); 
     });
     return segmentsCopy;
   }, [segments, selectedSegmentIds]);
 
-  // Paginate the sorted segments
   const paginatedSegments = useMemo(() => {
     const startIndex = (currentPage - 1) * SEGMENTS_PER_PAGE;
     return sortedSegments.slice(startIndex, startIndex + SEGMENTS_PER_PAGE);
@@ -83,34 +70,31 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
     }
   };
 
-  // Function to get the display ID (numerical part)
   const getDisplayId = (segmentId: string): string => {
     return segmentId.includes('segment-') ? segmentId.split('-')[1] : segmentId;
   }
 
-  // Function to get vulnerability color class
   const getVulnerabilityClass = (vulnerability: number | null | undefined): string => {
     if (vulnerability === null || vulnerability === undefined) return 'bg-gray-300';
-    switch (Math.round(vulnerability)) { // Round to nearest integer for color mapping
-      case 1: return 'bg-green-600'; // Darker Green
-      case 2: return 'bg-lime-500';  // Lime
-      case 3: return 'bg-yellow-400';// Yellow
+    switch (Math.round(vulnerability)) { 
+      case 1: return 'bg-green-600'; 
+      case 2: return 'bg-lime-500';  
+      case 3: return 'bg-yellow-400';
       case 4: return 'bg-orange-500';
-      case 5: return 'bg-red-600';   // Darker Red
+      case 5: return 'bg-red-600'; 
       default: return 'bg-gray-400';
     }
   };
 
-  // Function to get CVI color class based on 5 ranks (using rounded score)
    const getCviClass = (score: number | null | undefined): string => {
      if (score === null || score === undefined || isNaN(score)) return 'bg-gray-400';
      const rank = Math.round(score);
-     if (rank <= 1) return 'bg-green-600'; // Rank 1
-     if (rank === 2) return 'bg-lime-500';  // Rank 2
-     if (rank === 3) return 'bg-yellow-400';// Rank 3
-     if (rank === 4) return 'bg-orange-500';// Rank 4
-     if (rank >= 5) return 'bg-red-600';   // Rank 5
-     return 'bg-gray-400'; // Fallback
+     if (rank <= 1) return 'bg-green-600';
+     if (rank === 2) return 'bg-lime-500';  
+     if (rank === 3) return 'bg-yellow-400';
+     if (rank === 4) return 'bg-orange-500';
+     if (rank >= 5) return 'bg-red-600';   
+     return 'bg-gray-400'; 
    };
 
 

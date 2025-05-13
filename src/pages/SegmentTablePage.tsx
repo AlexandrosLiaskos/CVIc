@@ -4,9 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import Map from '../components/maps/Map'
 import { indexedDBService } from '../services/indexedDBService'
 import type { ShorelineSegment } from '../types'
-// Removed unused Feature, FeatureCollection imports
 import type { LineString, MultiLineString } from 'geojson'
-// @ts-ignore - Suppress TS error for Turf module resolution issues
 import * as turf from '@turf/turf'
 import L from 'leaflet'
 import { ErrorAlert } from '../components/common/ErrorAlert'
@@ -33,7 +31,6 @@ export default function SegmentTablePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [mapInitialBounds, setMapInitialBounds] = useState<L.LatLngBoundsExpression | null>(null);
 
-  // Effect to load segments and calculate initial bounds
   useEffect(() => {
     const loadSegments = async () => {
       setLoading(true);
@@ -91,7 +88,6 @@ export default function SegmentTablePage() {
           const fc = turf.featureCollection(featuresForBounds);
           try {
             const bbox = turf.bbox(fc);
-            // FIX TS7006: Added ': number' to type parameter 'b'
             if (bbox && bbox.length === 4 && bbox.every((b: number) => isFinite(b)) && bbox[0] <= bbox[2] && bbox[1] <= bbox[3]) {
               const bounds: L.LatLngBoundsExpression = [[bbox[1], bbox[0]], [bbox[3], bbox[2]]];
               setMapInitialBounds(bounds);
@@ -111,12 +107,11 @@ export default function SegmentTablePage() {
     loadSegments();
   }, [navigate]);
 
-  // Memoized filtering, sorting, pagination (identical to previous version)
   const filteredSegments = useMemo(() => {
     return segments.filter(segment => {
       const searchStr = searchTerm.toLowerCase();
       return (
-        segment.id.toLowerCase().includes(searchStr) || // Keep ID searchable even if not displayed
+        segment.id.toLowerCase().includes(searchStr) || 
         String(segment.properties.index).includes(searchStr)
       );
     });
@@ -152,8 +147,6 @@ export default function SegmentTablePage() {
   }, [sortedSegments, currentPage]);
 
   const totalPages = Math.ceil(filteredSegments.length / ITEMS_PER_PAGE);
-
-  // Handlers (identical to previous version)
   const handleSegmentSelect = useCallback((segmentId: string) => {
     const newSelectedId = segmentId === selectedSegmentId ? null : segmentId;
     setSelectedSegmentId(newSelectedId);
@@ -190,7 +183,6 @@ export default function SegmentTablePage() {
     }
   }
 
-  // GeoJSON for map rendering (identical to previous version)
   const geoJSONForMap = useMemo(() => {
     if (!segments || segments.length === 0) return null;
     return {
@@ -207,7 +199,6 @@ export default function SegmentTablePage() {
     return selectedSegmentId ? [selectedSegmentId] : [];
   }, [selectedSegmentId]);
 
-  // Loading State
   if (loading && segments.length === 0) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -217,7 +208,6 @@ export default function SegmentTablePage() {
     );
   }
 
-  // Main page structure - Side-by-side Grid Layout
   return (
     <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8"> {/* Use larger max-width for side-by-side */}
 
@@ -419,6 +409,6 @@ export default function SegmentTablePage() {
 
       </div> {/* End Grid Container */}
 
-    </div> // End Page Container
+    </div> 
   );
 }

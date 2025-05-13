@@ -2,10 +2,8 @@ import shp from 'shpjs'
 import * as turf from '@turf/turf'
 import type { Feature, FeatureCollection, Geometry, LineString, MultiLineString, GeoJsonProperties, Position } from 'geojson'
 
-// Maximum file size (50MB)
 const MAX_FILE_SIZE = 50 * 1024 * 1024
 
-// Allowed file types
 const ALLOWED_TYPES = ['application/zip', 'application/x-zip-compressed']
 
 interface ShapefileFeature extends Feature<LineString | MultiLineString> {
@@ -81,22 +79,12 @@ function validateGeoJSON(geoJSON: FeatureCollection): void {
 
 export async function processShapefile(file: File): Promise<{ geoJSON: FeatureCollection }> {
   try {
-    // Validate file before processing
     validateFile(file)
-
-    // Read file as ArrayBuffer
     const arrayBuffer = await file.arrayBuffer()
-
-    // Process shapefile
     const result = await shp(arrayBuffer)
     const geoJSON = Array.isArray(result) ? result[0] : result
-
-    // Validate processed GeoJSON
     validateGeoJSON(geoJSON)
-
-    // Clean and optimize GeoJSON
     const cleanedGeoJSON = cleanGeoJSON(geoJSON)
-
     return { geoJSON: cleanedGeoJSON }
   } catch (error) {
     console.error('Error processing shapefile:', error)
@@ -105,15 +93,12 @@ export async function processShapefile(file: File): Promise<{ geoJSON: FeatureCo
 }
 
 function cleanGeoJSON(geoJSON: FeatureCollection): FeatureCollection {
-  // Remove any invalid or unnecessary properties
   const cleanedFeatures = geoJSON.features.map(feature => ({
     ...feature,
     properties: {
       ...(feature.properties || {}),
-      // Remove any potentially problematic properties
       _id: undefined,
       id: undefined,
-      // Keep only essential properties
       ...Object.fromEntries(
         Object.entries(feature.properties || {}).filter(([key]) => 
           !key.startsWith('_') && !key.includes('password') && !key.includes('secret')

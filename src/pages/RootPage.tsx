@@ -3,17 +3,9 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { ChevronRightIcon, CubeTransparentIcon, CommandLineIcon, MapIcon, CircleStackIcon, FingerPrintIcon, PaintBrushIcon, BeakerIcon, CpuChipIcon } from '@heroicons/react/24/outline'; // Added more icons
 
-/**
- * The main landing page for the CVIc application.
- * Provides a concise overview of the platform's purpose, workflow, and technology.
- */
 export default function RootPage() {
-  // Reason: Access authentication state to conditionally render CTA buttons.
   const { user, loading } = useAuth();
-
-  // Reason: Define the core workflow steps implemented in the application.
   const workflowSteps = [
-    // Icons adjusted slightly for consistency if needed, ensuring they are 24/outline
     { text: "Upload shoreline Shapefile.", icon: <CpuChipIcon className="h-6 w-6 text-primary-600" /> },
     { text: "Segment shoreline by specified resolution.", icon: <CubeTransparentIcon className="h-6 w-6 text-primary-600" /> },
     { text: "Select vulnerability parameters & assign weights.", icon: <BeakerIcon className="h-6 w-6 text-primary-600" /> },
@@ -22,7 +14,6 @@ export default function RootPage() {
     { text: "Visualize results & export as GeoJSON.", icon: <CircleStackIcon className="h-6 w-6 text-primary-600" /> },
   ];
 
-  // Reason: List the key technologies used and their purpose in the application.
   const techStack = [
     { name: "React", purpose: "UI Framework", icon: <CubeTransparentIcon className="h-4 w-4 text-cyan-700" /> },
     { name: "TypeScript", purpose: "Language / Type Safety", icon: <CommandLineIcon className="h-4 w-4 text-blue-700" /> },
@@ -38,7 +29,6 @@ export default function RootPage() {
     { name: "Firebase Auth", purpose: "User Authentication", icon: <FingerPrintIcon className="h-4 w-4 text-yellow-700" /> },
   ];
 
-  // Reason: Display a loading indicator while authentication status is being checked.
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">

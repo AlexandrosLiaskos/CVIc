@@ -1,22 +1,33 @@
-import { Link, useLocation, Outlet } from 'react-router-dom'
-import { useAuth } from '../../hooks/useAuth'
+import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 
-const navigation = [
-]
+interface NavigationItem {
+  name: string;
+  href: string;
+  current?: boolean;
+}
+
+const navigation: NavigationItem[] = [
+];
 
 export const Layout = () => {
-  const location = useLocation()
-  const { user, loading, signOut } = useAuth()
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user, loading, signOut: firebaseSignOut } = useAuth(); 
 
-  // Remove the base path from the location pathname for comparison
-  const currentPath = location.pathname.replace('/CVIc', '')
+  const currentPath = location.pathname.replace('/CVIc', ''); 
+
+  const handleSignOut = async () => {
+    await firebaseSignOut();
+    navigate('/login'); 
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600"></div>
       </div>
-    )
+    );
   }
 
   return (
@@ -30,30 +41,47 @@ export const Layout = () => {
                   CVIc
                 </Link>
               </div>
-              {user && (
-                <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                  {navigation.map((item) => (
-                    <Link
-                      key={item.name}
-                      to={item.href}
-                      className={`${
-                        currentPath === item.href
-                          ? 'border-primary-500 text-gray-900'
-                          : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                      } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
-                </div>
-              )}
+              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+                {/* Main navigation items from array */}
+                {user && navigation.map((item) => (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={`${
+                      currentPath === item.href
+                        ? 'border-primary-500 text-gray-900'
+                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                    } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+                {/* My Results link for logged-in users */}
+                {/* {user && (
+                  <Link
+                    to="/my-results"
+                    className={`${
+                      currentPath === '/my-results'
+                        ? 'border-primary-500 text-gray-900'
+                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                    } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
+                  >
+                    My Results
+                  </Link>
+                )} */}
+              </div>
             </div>
             <div className="flex items-center">
               {user ? (
                 <div className="flex items-center space-x-4">
-                  <span className="text-sm text-gray-700">{user.displayName}</span>
+                  {user.displayName && (
+                    <span className="text-sm text-gray-700 hidden sm:inline">Welcome, {user.displayName}!</span>
+                  )}
+                   {!user.displayName && user.email && (
+                    <span className="text-sm text-gray-700 hidden sm:inline">{user.email}</span>
+                  )}
                   <button
-                    onClick={() => signOut()}
+                    onClick={handleSignOut}
                     className="btn btn-secondary text-sm"
                   >
                     Sign Out
@@ -73,5 +101,5 @@ export const Layout = () => {
         <Outlet />
       </main>
     </div>
-  )
-} 
+  );
+};

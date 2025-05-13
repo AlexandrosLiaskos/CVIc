@@ -1,21 +1,18 @@
 // ---- File: src/pages/ResultsPage.tsx ----
-import React, { useState, useEffect, useMemo, useCallback } from 'react'; // Added useCallback
+import { useState, useEffect, useMemo, useCallback } from 'react'; 
 import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
-// @ts-ignore - Suppress TS error for Turf module resolution issues
+
 import * as turf from '@turf/turf';
 import { indexedDBService } from '../services/indexedDBService';
 import Map from '../components/maps/Map';
 import { ErrorAlert } from '../components/common/ErrorAlert';
 import { CviLegend } from '../components/results/CviLegend';
-import type { ShorelineSegment, Parameter, Formula, ShorelineSegmentProperties } from '../types'; // Added ShorelineSegmentProperties
-import type { FeatureCollection, LineString, MultiLineString, Feature } from 'geojson'; // Added Feature
+import type { ShorelineSegment, Parameter, Formula, ShorelineSegmentProperties } from '../types';
+import type { FeatureCollection, LineString, MultiLineString, Feature } from 'geojson';
 import { getCviCategory } from '../utils/vulnerabilityMapping';
 import { availableFormulas } from '../config/formulas';
 
-/**
- * Page to display the final CVI results on a map and summary statistics.
- */
 export default function ResultsPage() {
   const navigate = useNavigate();
   const [segments, setSegments] = useState<ShorelineSegment[]>([]);
@@ -25,7 +22,6 @@ export default function ResultsPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load data from IndexedDB
   useEffect(() => {
     const loadResultsData = async () => {
       setLoading(true);
@@ -33,7 +29,6 @@ export default function ResultsPage() {
       try {
         console.log("Loading data for Results Page...");
 
-        // Load Segments
         const segmentData = await indexedDBService.getShorelineData('current-segments');
         if (!segmentData || !segmentData.features || segmentData.features.length === 0) {
           throw new Error('No segments found. Please complete previous steps.');
@@ -42,7 +37,6 @@ export default function ResultsPage() {
         const loadedSegments = segmentData.features
           .filter(feature => feature && feature.geometry && (feature.geometry.type === 'LineString' || feature.geometry.type === 'MultiLineString') && feature.properties?.vulnerabilityIndex !== undefined)
           .map((feature, index) => {
-            // Ensure segment structure matches ShorelineSegment, especially properties
             const properties = feature.properties || {};
             return {
               id: properties.id || `segment-${index + 1}`,
@@ -50,13 +44,13 @@ export default function ResultsPage() {
               geometry: feature.geometry as LineString | MultiLineString,
               properties: {
                 ...properties,
-                id: properties.id || `segment-${index + 1}`, // Ensure ID
+                id: properties.id || `segment-${index + 1}`,
                 vulnerabilityIndex: properties.vulnerabilityIndex,
                 vulnerabilityFormula: properties.vulnerabilityFormula,
-                // Ensure parameters exists within properties for export consistency
+                
                 parameters: properties.parameters || {}
               },
-              parameters: properties.parameters || {} // Ensure direct parameters exists
+              parameters: properties.parameters || {} 
             };
           });
 
@@ -66,7 +60,6 @@ export default function ResultsPage() {
         console.log(`Loaded ${loadedSegments.length} segments with CVI scores.`);
         setSegments(loadedSegments as ShorelineSegment[]);
 
-        // Determine used formula from the first segment
         const firstSegmentWithFormula = loadedSegments.find(seg => seg.properties.vulnerabilityFormula);
         if (firstSegmentWithFormula?.properties.vulnerabilityFormula) {
             const formula = availableFormulas.find(f => f.type === firstSegmentWithFormula.properties.vulnerabilityFormula);
@@ -80,8 +73,6 @@ export default function ResultsPage() {
             console.warn("Could not determine the CVI formula used from segment data.");
         }
 
-
-        // Load Parameters (optional, could be useful for context)
         const parameterData = await indexedDBService.getShorelineData('current-parameters');
         if (parameterData && parameterData.features) {
           const loadedParameters = parameterData.features
@@ -91,7 +82,6 @@ export default function ResultsPage() {
           console.log(`Loaded ${loadedParameters.length} enabled parameters.`);
         }
 
-        // Calculate map bounds
         const featuresForBounds = loadedSegments.map(s => ({ type: 'Feature' as const, geometry: s.geometry, properties: {} }));
         const fc = turf.featureCollection(featuresForBounds);
         try {
@@ -114,7 +104,6 @@ export default function ResultsPage() {
     loadResultsData();
   }, [navigate]);
 
-  // Prepare GeoJSON for the map, styling based on CVI
   const geoJSONForMap = useMemo(() => {
     if (segments.length === 0) return null;
     return {
@@ -123,17 +112,16 @@ export default function ResultsPage() {
         type: 'Feature' as const,
         geometry: segment.geometry,
         properties: {
-          ...segment.properties, // Include all original properties
-          id: segment.id, // Ensure ID is present for selection/interaction
-          // Add CVI score directly for easier access in map styling/popups
+          ...segment.properties, 
+          id: segment.id, 
+         
           cviScore: segment.properties.vulnerabilityIndex,
-          cviCategory: getCviCategory(segment.properties.vulnerabilityIndex ?? null), // Use null if undefined
+          cviCategory: getCviCategory(segment.properties.vulnerabilityIndex ?? null),
         },
       })),
     };
   }, [segments]);
 
-  // Calculate CVI statistics
   const cviStatistics = useMemo(() => {
     const scores = segments.map(s => s.properties.vulnerabilityIndex).filter(score => score !== undefined && score !== null) as number[];
     if (scores.length === 0) return null;
@@ -162,14 +150,12 @@ export default function ResultsPage() {
       max: max.toFixed(2),
       avg: avg.toFixed(2),
       count: scores.length,
-      totalSegments: segments.length, // Include total segments for context
+      totalSegments: segments.length,
       categories: { veryLow: veryLowCount, low: lowCount, moderate: moderateCount, high: highCount, veryHigh: veryHighCount }
     };
   }, [segments]);
 
   const handleStartNew = () => {
-    // Optional: Clear IndexedDB before starting new? Or just navigate?
-    // Consider adding a confirmation dialog.
     navigate('/shoreline');
   };
 
@@ -177,25 +163,20 @@ export default function ResultsPage() {
     navigate('/parameter-assignment');
   };
 
-  // Handler for exporting GeoJSON
   const handleExportGeoJSON = useCallback(() => {
     if (segments.length === 0) {
       setError("No segment data available to export.");
       return;
     }
-    setError(null); // Clear previous errors
+    setError(null);
 
     try {
-      // 1. Prepare the features for export
       const exportFeatures = segments.map(segment => {
-        // Create a properties object for export, including CVI details
         const exportProperties: ShorelineSegmentProperties & { cvi_score?: number; cvi_category?: string } = {
-          ...segment.properties, // Include all original properties
-          cvi_score: segment.properties.vulnerabilityIndex, // Add explicit CVI score field
-          cvi_category: getCviCategory(segment.properties.vulnerabilityIndex ?? null), // Add explicit category
+          ...segment.properties, 
+          cvi_score: segment.properties.vulnerabilityIndex, 
+          cvi_category: getCviCategory(segment.properties.vulnerabilityIndex ?? null),  
         };
-        // Optional: remove the nested 'parameters' from the export properties if it feels redundant
-        // delete exportProperties.parameters;
 
         return {
           type: 'Feature' as const,
@@ -204,27 +185,19 @@ export default function ResultsPage() {
         };
       });
 
-      // 2. Create the FeatureCollection
       const exportFeatureCollection: FeatureCollection = {
         type: 'FeatureCollection',
-        features: exportFeatures as Feature[], // Cast because exportProperties might have extra fields
+        features: exportFeatures as Feature[], 
       };
 
-      // 3. Convert to JSON string
-      const jsonString = JSON.stringify(exportFeatureCollection, null, 2); // Pretty print with 2 spaces
-
-      // 4. Create a Blob
+      const jsonString = JSON.stringify(exportFeatureCollection, null, 2);
       const blob = new Blob([jsonString], { type: 'application/geo+json' });
-
-      // 5. Create a download link and trigger download
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'cvic_results.geojson'; // Filename for the download
-      document.body.appendChild(a); // Append to body to ensure click works
+      a.download = 'cvic_results.geojson'; 
+      document.body.appendChild(a); 
       a.click();
-
-      // 6. Clean up
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
@@ -234,7 +207,7 @@ export default function ResultsPage() {
       console.error("Error exporting GeoJSON:", err);
       setError(`Failed to export GeoJSON: ${err instanceof Error ? err.message : String(err)}`);
     }
-  }, [segments]); // Dependency: segments array
+  }, [segments]); 
 
   if (loading) {
     return (
@@ -264,17 +237,17 @@ export default function ResultsPage() {
             {geoJSONForMap ? (
               <Map
                 geoJSON={geoJSONForMap}
-                segments={segments} // Pass segments for potential popups/interactions if needed
-                parameters={parameters} // Pass parameters if needed for context
-                selectedSegments={[]} // No selection state needed here typically
-                selectedParameter={null} // No parameter selection needed
+                segments={segments} 
+                parameters={parameters} 
+                selectedSegments={[]} 
+                selectedParameter={null} 
                 selectionPolygons={[]}
-                onSegmentSelect={(segmentId) => console.log("Segment clicked:", segmentId)} // Basic click handler for now
+                onSegmentSelect={(segmentId) => console.log("Segment clicked:", segmentId)}
                 onSelectionDelete={() => {}}
                 onAreaSelect={() => {}}
-                isEditing={false} // Not editing on results page
+                isEditing={false} 
                 initialBounds={mapBounds}
-                stylingMode="cvi" // Tell Map component to style by CVI score
+                stylingMode="cvi" 
               />
             ) : (
               <div className="flex items-center justify-center h-full text-gray-500">

@@ -1,9 +1,8 @@
 // ---- File: src/pages/SegmentationPage.tsx ----
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-// @ts-ignore - Suppress TS error for Turf module resolution issues
 import * as turf from '@turf/turf';
-import L from 'leaflet'; // Import L for LatLngBoundsExpression type
+import L from 'leaflet'; 
 import Map from '../components/maps/Map';
 import { segmentShoreline } from '../utils/geometry';
 import { indexedDBService } from '../services/indexedDBService';
@@ -16,17 +15,12 @@ import {
     InformationCircleIcon,
     ExclamationTriangleIcon,
     CheckCircleIcon,
-    BeakerIcon, // For 'Preview' action
-    MapPinIcon, // For indicating length/source data
-    CubeTransparentIcon, // Represents segmentation process/result
-    Cog6ToothIcon // Represents controls/settings
-} from '@heroicons/react/24/outline'; // Added Cog6ToothIcon
+    BeakerIcon,
+    MapPinIcon, 
+    CubeTransparentIcon, 
+    Cog6ToothIcon 
+} from '@heroicons/react/24/outline'; 
 
-/**
- * Page for configuring and performing shoreline segmentation.
- * Allows users to set a resolution, preview the resulting segments on a map,
- * and confirm before proceeding.
- */
 export default function SegmentationPage() {
   const navigate = useNavigate();
   const [originalGeoJSON, setOriginalGeoJSON] = useState<FeatureCollection<LineString | MultiLineString> | null>(null);
@@ -40,7 +34,6 @@ export default function SegmentationPage() {
   const [error, setError] = useState<string | null>(null);
   const [isPreviewDone, setIsPreviewDone] = useState<boolean>(false);
 
-  // Effect to load original shoreline data and calculate initial bounds (no changes needed)
   useEffect(() => {
     const loadShorelineData = async () => {
       setLoading(true);
@@ -88,7 +81,6 @@ export default function SegmentationPage() {
     loadShorelineData();
   }, [navigate]);
 
-  // Update estimated segments (no changes needed)
   useEffect(() => {
     if (typeof resolution === 'number' && resolution > 0 && totalShorelineLength > 0) {
       setEstimatedSegments(Math.ceil((totalShorelineLength * 1000) / resolution));
@@ -97,7 +89,6 @@ export default function SegmentationPage() {
     }
   }, [resolution, totalShorelineLength]);
 
-  // Handlers (no changes needed)
   const handleResolutionChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
     const numValue = value === '' ? '' : Number(value);
@@ -174,8 +165,6 @@ export default function SegmentationPage() {
   }, [isPreviewDone, segmentsPreview, navigate, estimatedSegments]);
 
   const handleBack = useCallback(() => { navigate('/shoreline'); }, [navigate]);
-
-  // Memoized data for map (no changes needed)
   const geoJSONForMap = useMemo(() => {
     if (isPreviewDone && segmentsPreview.length > 0) {
       return {
@@ -192,8 +181,6 @@ export default function SegmentationPage() {
 
   const mapStylingMode = useMemo(() => (isPreviewDone ? 'parameter' : undefined), [isPreviewDone]);
 
-  // --- Render ---
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -204,7 +191,6 @@ export default function SegmentationPage() {
   }
 
   return (
-    // Adjusted max-width for side-by-side
     <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="text-center mb-10">

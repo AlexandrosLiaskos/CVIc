@@ -1,14 +1,12 @@
 // src/pages/ParameterAssignmentPage.tsx
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Parameter, ShorelineSegment, ParameterValue, SelectionPolygon, Formula, ParameterOption } from '../types';
-import type { FeatureCollection, LineString, MultiLineString, Polygon as GeoJSONPolygon } from 'geojson';
-import L from 'leaflet';
+import type { Parameter, SelectionPolygon, Formula } from '../types';
+import type { Polygon as GeoJSONPolygon } from 'geojson';
 import { MapInteractionPanel } from '../components/parameters/MapInteractionPanel';
 import { ParameterValuePanel } from '../components/parameters/ParameterValuePanel';
 import { CviFormulaPanel } from '../components/parameters/CviFormulaPanel';
 import { SegmentTablePanel } from '../components/parameters/SegmentTablePanel';
-// @ts-ignore - Suppress TS error for Turf module resolution issues
 import * as turf from '@turf/turf';
 import { useParameterAssignmentData } from '../hooks/useParameterAssignmentData';
 import { applyParameterValueToSegments } from '../logic/valueAssignmentLogic';
@@ -21,8 +19,6 @@ import { ErrorAlert } from '../components/common/ErrorAlert';
 export default function ParameterAssignmentPage() {
   const navigate = useNavigate();
   const mapContainerRef = useRef<HTMLDivElement>(null);
-
-  // Use the custom hook to manage data loading and state
   const {
     segments,
     setSegments,
@@ -35,21 +31,16 @@ export default function ParameterAssignmentPage() {
     setError: setDataError
   } = useParameterAssignmentData();
 
-  // Local UI State
   const [selectedSegments, setSelectedSegments] = useState<string[]>([]);
   const [activeParameter, setActiveParameter] = useState<Parameter | null>(null);
-  const [selectionPolygons, setSelectionPolygons] = useState<SelectionPolygon[]>([]); // Keep for potential future use, though maybe not rendered
-  // State related to value assignment (managed primarily via handlers)
+  const [selectionPolygons, setSelectionPolygons] = useState<SelectionPolygon[]>([]); 
   const [currentValueToApply, setCurrentValueToApply] = useState<string | null>(null);
   const [currentVulnerabilityToApply, setCurrentVulnerabilityToApply] = useState<number>(1);
-  // State for CVI formula selection and calculation
   const [selectedFormula, setSelectedFormula] = useState<Formula | null>(null);
   const [cviScores, setCviScores] = useState<Record<string, number>>({});
   const [calculatingCvi, setCalculatingCvi] = useState<boolean>(false);
   const [pageError, setPageError] = useState<string | null>(null);
 
-
-  // Effect to set initial parameter, formula, and CVI scores once data loads
   useEffect(() => {
     if (!dataLoading && parameters.length > 0 && !activeParameter) {
       setActiveParameter(parameters[0]);
@@ -62,23 +53,18 @@ export default function ParameterAssignmentPage() {
     }
   }, [dataLoading, parameters, initialFormula, initialCviScores, activeParameter, selectedFormula, cviScores]);
 
-
-  // Calculate completion percentage
   const completionPercentage = useMemo(() => {
     if (segments.length === 0 || parameters.length === 0) return 0;
     const totalPossibleValues = segments.length * parameters.length;
     let filledValues = 0;
     segments.forEach(segment => {
       parameters.forEach(param => {
-        // Use direct parameters property for check
         if (segment.parameters && segment.parameters[param.id] !== undefined) filledValues++;
       });
     });
     return totalPossibleValues === 0 ? 0 : Math.round((filledValues / totalPossibleValues) * 100);
   }, [segments, parameters]);
 
-
-  // Memoize the geoJSON for the map
   const geoJSONForMap = useMemo(() => {
     if (!segments || segments.length === 0) return null;
     return {
@@ -90,16 +76,12 @@ export default function ParameterAssignmentPage() {
             ...segment.properties,
             id: segment.id,
             isSelected: selectedSegments.includes(segment.id),
-            // Include CVI score if available, useful for map popups/tooltips even in parameter mode
             vulnerabilityIndex: segment.properties.vulnerabilityIndex,
             vulnerabilityFormula: segment.properties.vulnerabilityFormula,
         }
       }))
     };
   }, [segments, selectedSegments]);
-
-
-  // --- Handlers ---
 
   const handleError = (message: string | null) => {
     setPageError(message);
@@ -150,7 +132,6 @@ export default function ParameterAssignmentPage() {
     handleError(null);
 
     try {
-      // Delegate update logic and DB persistence to the utility function
       const updatedSegments = await applyParameterValueToSegments(
         segments,
         selectedSegments,
@@ -158,17 +139,13 @@ export default function ParameterAssignmentPage() {
         currentValueToApply,
         currentVulnerabilityToApply
       );
-      // Update local state AFTER successful persistence (handled within applyParameterValueToSegments)
-      setSegments(updatedSegments); // This state update triggers re-renders
+      setSegments(updatedSegments); 
       console.log("Successfully applied value and updated segments state.");
-      // Optional: Clear selection after applying? User might want to keep it.
-      // handleClearSelection();
     } catch (err) {
       console.error('Error applying parameter value:', err);
       handleError(err instanceof Error ? err.message : 'Failed to apply value.');
     }
   }, [activeParameter, currentValueToApply, currentVulnerabilityToApply, segments, selectedSegments, setSegments]);
-
 
   const handleFormulaSelect = useCallback((formulaType: Formula['type'] | null) => {
     const formula = formulaType ? availableFormulas.find(f => f.type === formulaType) : null;
@@ -177,10 +154,8 @@ export default function ParameterAssignmentPage() {
     handleError(null);
   }, []);
 
-
   const handleCalculateCvi = useCallback(async () => {
     if (!selectedFormula) { handleError('Please select a CVI formula before calculating.'); return; }
-    // Re-check completion based on current segments and parameters state
     const allValuesAssigned = segments.every(segment =>
         parameters.every(param => segment.parameters && segment.parameters[param.id] !== undefined)
     );
@@ -194,31 +169,28 @@ export default function ParameterAssignmentPage() {
     console.log(`Calculating CVI using: ${selectedFormula.name}`);
 
     try {
-      // Call the utility, passing state setters and the error handler
       await calculateAndSaveCVI(
         segments,
         parameters,
         selectedFormula,
-        setSegments, // Pass setter for segment updates (stores CVI in properties)
-        setCviScores, // Pass setter for CVI scores map
-        handleError // Pass error handler
+        setSegments, 
+        setCviScores, 
+        handleError 
       );
       console.log("CVI calculation process finished successfully via utility.");
-      // setSegments and setCviScores are called within calculateAndSaveCVI
+      
     } catch (err) {
-      // calculateAndSaveCVI should use handleError, but catch here as a fallback
+      
       console.error("Error during CVI calculation process:", err);
-      if (!pageError) { // Avoid overwriting specific error from calculateAndSaveCVI
+      if (!pageError) { 
           handleError(err instanceof Error ? err.message : 'CVI calculation failed.');
       }
-      setCviScores({}); // Reset scores on failure
+      setCviScores({}); 
     } finally {
       setCalculatingCvi(false);
     }
-  }, [segments, parameters, selectedFormula, setSegments, setCviScores, completionPercentage, pageError]); // Added pageError dependency
+  }, [segments, parameters, selectedFormula, setSegments, setCviScores, completionPercentage, pageError]);
 
-
-  // Handle area selection completion (polygon drawn on map)
   const handleSelectionCreate = useCallback((geometry: GeoJSONPolygon) => {
     if (!geometry || !geometry.coordinates || geometry.coordinates.length === 0) {
       console.error("Invalid polygon geometry received for area selection");
@@ -231,43 +203,28 @@ export default function ParameterAssignmentPage() {
 
     segments.forEach(segment => {
         try {
-            // Check for intersection using booleanIntersects for better accuracy
+           
             if (turf.booleanIntersects(segment.geometry, selectionPolygonTurf)) {
                 newlySelectedIds.push(segment.id);
             }
-            // Alternative: Check if segment midpoint is within polygon (less accurate for long segments)
-            // const midpoint = turf.midpoint(turf.feature(segment.geometry));
-            // if (turf.booleanPointInPolygon(midpoint, selectionPolygonTurf)) {
-            //     newlySelectedIds.push(segment.id);
-            // }
+  
         } catch (e) {
             console.warn(`Error checking intersection for segment ${segment.id}:`, e);
         }
     });
 
     console.log(`Found ${newlySelectedIds.length} segments intersecting the selected area.`);
-    // Add newly selected segments to the existing selection, removing duplicates
     setSelectedSegments(prev => [...new Set([...prev, ...newlySelectedIds])]);
-
-    // We don't store the selection polygon itself in state for rendering,
-    // as it's usually temporary. The map clears the visual drawing.
-    // const newPolygon: SelectionPolygon = { id: `polygon-${Date.now()}`, geometry };
-    // setSelectionPolygons(prev => [...prev, newPolygon]);
-
   }, [segments]);
 
 
   const handleSelectionDelete = useCallback((polygonId: string) => {
-    // This handler is kept for completeness but might not be actively used
-    // if selection polygons aren't stored/rendered persistently.
-    // If needed, it would remove a polygon from the `selectionPolygons` state.
     console.log("Selection polygon deletion requested (if applicable):", polygonId);
     setSelectionPolygons(prev => prev.filter(p => p.id !== polygonId));
   }, []);
 
 
   const handleContinue = useCallback(async () => {
-    // Final checks before navigating
     const allValuesAssigned = segments.every(segment =>
         parameters.every(param => segment.parameters && segment.parameters[param.id] !== undefined)
     );
@@ -286,16 +243,14 @@ export default function ParameterAssignmentPage() {
 
     try {
       console.log("All checks passed. Navigating to results page...");
-      // Data is already saved in IndexedDB via applyParameterValueToSegments and calculateAndSaveCVI
-      navigate('/results'); // Navigate to the results display page
+      
+      navigate('/results'); 
     } catch (err) {
       console.error('Error preparing to navigate or navigating:', err);
       handleError('Failed to proceed to results.');
     }
   }, [segments, parameters, cviScores, completionPercentage, navigate]);
 
-
-  // Calculate CVI statistics for SegmentTablePanel
   const cviStatistics = useMemo(() => {
     const scores = Object.values(cviScores);
     if (scores.length === 0) return null;
@@ -305,7 +260,6 @@ export default function ParameterAssignmentPage() {
     const sum = scores.reduce((a, b) => a + b, 0);
     const avg = sum / scores.length;
 
-    // Use CVI categories consistent with results page/legend
     let veryLowCount = 0, lowCount = 0, moderateCount = 0, highCount = 0, veryHighCount = 0;
     scores.forEach(score => {
         const rank = Math.round(score);
@@ -327,9 +281,6 @@ export default function ParameterAssignmentPage() {
     };
   }, [cviScores]);
 
-
-  // --- Render ---
-
   if (dataLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -339,7 +290,6 @@ export default function ParameterAssignmentPage() {
     );
   }
 
-  // Handle critical data loading errors
   if (dataError) {
      return (
        <div className="p-4 max-w-lg mx-auto mt-10 text-center">
@@ -351,9 +301,7 @@ export default function ParameterAssignmentPage() {
      );
    }
 
-  // Render main page content if no critical errors
   return (
-    // Use flex-col for the entire page container
     <div className="flex flex-col h-[calc(100vh-64px)] p-4 space-y-4 bg-gray-50"> {/* Adjust height based on nav height */}
       {/* Header - Takes its own space */}
       <ParameterAssignmentHeader
@@ -467,26 +415,7 @@ export default function ParameterAssignmentPage() {
         </div>
 
       </div> {/* End of main content grid */}
-    </div> // End of page container
+    </div> 
   );
 }
 
-
-// Add to index.css or a global style sheet for custom scrollbars (optional)
-/*
-.custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 10px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1; // Tailwind gray-300
-  border-radius: 10px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8; // Tailwind gray-400
-}
-*/

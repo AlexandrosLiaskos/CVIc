@@ -12,20 +12,19 @@ export default function ShorelinePage() {
   const navigate = useNavigate();
   const [geoJSON, setGeoJSON] = useState<FeatureCollection | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null); // Use null for no error
+  const [error, setError] = useState<string | null>(null); 
   const [fileName, setFileName] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
   const handleFileProcess = useCallback(async (file: File | null) => {
     if (!file) return;
 
-    setError(null); // Clear previous errors
+    setError(null); 
     setLoading(true);
-    setGeoJSON(null); // Clear previous map data
+    setGeoJSON(null); 
     setFileName(null);
 
     try {
-      // Process the shapefile
       const result = await processShapefile(file);
       setGeoJSON(result.geoJSON);
       setFileName(file.name);
@@ -41,7 +40,6 @@ export default function ShorelinePage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     handleFileProcess(e.target.files?.[0] ?? null);
-    // Reset the input value to allow uploading the same file again if needed
     e.target.value = '';
   };
 
@@ -80,8 +78,7 @@ export default function ShorelinePage() {
     setError(null);
 
     try {
-      // Store the GeoJSON in IndexedDB
-      const shorelineId = 'current-shoreline'; // Using a fixed ID for simplicity
+      const shorelineId = 'current-shoreline'; 
       await indexedDBService.storeShorelineData(shorelineId, geoJSON);
       console.log("Shoreline data stored in IndexedDB.");
       navigate('/segmentation');
@@ -89,13 +86,11 @@ export default function ShorelinePage() {
       const message = err instanceof Error ? err.message : 'Failed to save shoreline data. Please try again.';
       setError(message);
       console.error('Error storing shoreline data:', err);
-      setLoading(false); // Ensure loading stops on error
+      setLoading(false); 
     }
-    // Loading will implicitly stop on successful navigation
   };
 
   return (
-    // Centered, max-width container similar to RootPage
     <div className="max-w-3xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
 
       {/* Header */}
@@ -126,7 +121,7 @@ export default function ShorelinePage() {
             <input
               type="file"
               id="shapefile"
-              accept=".zip,application/zip,application/x-zip-compressed" // More specific accept types
+              accept=".zip,application/zip,application/x-zip-compressed" 
               onChange={handleFileChange}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               disabled={loading}
@@ -182,16 +177,15 @@ export default function ShorelinePage() {
           <div className="bg-gray-100 rounded-lg shadow-inner border border-gray-200 overflow-hidden h-96">
             <Map
               geoJSON={geoJSON}
-              segments={[]} // No segments at this stage
+              segments={[]} 
               parameters={[]}
               selectedParameter={null}
               selectedSegments={[]}
               selectionPolygons={[]}
-              onSegmentSelect={() => {}} // No interaction needed here
+              onSegmentSelect={() => {}} 
               onSelectionDelete={() => {}}
               onAreaSelect={() => {}}
               isEditing={false}
-              // Let the map auto-fit based on geoJSON data
             />
           </div>
         </div>

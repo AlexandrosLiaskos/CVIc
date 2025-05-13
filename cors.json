@@ -1,0 +1,8 @@
+[
+    {
+      "origin": ["https://cvic-456409.web.app"],
+      "method": ["GET", "OPTIONS"],
+      "maxAgeSeconds": 3600
+    }
+  ]
+  
