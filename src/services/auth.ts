@@ -20,8 +20,8 @@ export async function signInWithGoogle(): Promise<User> {
     return {
       id: user.uid,
       email: user.email || '',
-      displayName: user.displayName || undefined,
-      photoURL: user.photoURL || undefined
+      displayName: user.displayName || null,
+      photoURL: user.photoURL || null
     }
   } catch (error) {
     console.error('Error signing in with Google:', error)
@@ -44,8 +44,8 @@ export function onAuthStateChanged(callback: (user: User | null) => void): () =>
       const user: User = {
         id: firebaseUser.uid,
         email: firebaseUser.email || '',
-        displayName: firebaseUser.displayName || undefined,
-        photoURL: firebaseUser.photoURL || undefined
+        displayName: firebaseUser.displayName || null,
+        photoURL: firebaseUser.photoURL || null
       }
       callback(user)
     } else {
@@ -61,8 +61,8 @@ export function getCurrentUser(): User | null {
   return {
     id: firebaseUser.uid,
     email: firebaseUser.email || '',
-    displayName: firebaseUser.displayName || undefined,
-    photoURL: firebaseUser.photoURL || undefined
+    displayName: firebaseUser.displayName || null,
+    photoURL: firebaseUser.photoURL || null
   }
 }
 
@@ -72,4 +72,4 @@ export function isAuthenticated(): boolean {
 
 export function getUserId(): string | null {
   return auth.currentUser?.uid || null
-} 
+}

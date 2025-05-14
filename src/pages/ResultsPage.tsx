@@ -1,15 +1,15 @@
 // ---- File: src/pages/ResultsPage.tsx ----
-import { useState, useEffect, useMemo, useCallback } from 'react'; 
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 
-import * as turf from '@turf/turf';
 import { indexedDBService } from '../services/indexedDBService';
 import Map from '../components/maps/Map';
 import { ErrorAlert } from '../components/common/ErrorAlert';
 import { CviLegend } from '../components/results/CviLegend';
 import type { ShorelineSegment, Parameter, Formula, ShorelineSegmentProperties } from '../types';
 import type { FeatureCollection, LineString, MultiLineString, Feature } from 'geojson';
+import { createFeatureCollection, calculateBbox } from '../utils/turfHelpers';
 import { getCviCategory } from '../utils/vulnerabilityMapping';
 import { availableFormulas } from '../config/formulas';
 
@@ -47,10 +47,10 @@ export default function ResultsPage() {
                 id: properties.id || `segment-${index + 1}`,
                 vulnerabilityIndex: properties.vulnerabilityIndex,
                 vulnerabilityFormula: properties.vulnerabilityFormula,
-                
+
                 parameters: properties.parameters || {}
               },
-              parameters: properties.parameters || {} 
+              parameters: properties.parameters || {}
             };
           });
 
@@ -83,9 +83,9 @@ export default function ResultsPage() {
         }
 
         const featuresForBounds = loadedSegments.map(s => ({ type: 'Feature' as const, geometry: s.geometry, properties: {} }));
-        const fc = turf.featureCollection(featuresForBounds);
+        const fc = createFeatureCollection(featuresForBounds);
         try {
-          const bbox = turf.bbox(fc);
+          const bbox = calculateBbox(fc);
           if (bbox && bbox.length === 4 && bbox.every((b: number) => isFinite(b)) && bbox[0] <= bbox[2] && bbox[1] <= bbox[3]) {
             const bounds: L.LatLngBoundsExpression = [[bbox[1], bbox[0]], [bbox[3], bbox[2]]];
             setMapBounds(bounds);
@@ -112,9 +112,9 @@ export default function ResultsPage() {
         type: 'Feature' as const,
         geometry: segment.geometry,
         properties: {
-          ...segment.properties, 
-          id: segment.id, 
-         
+          ...segment.properties,
+          id: segment.id,
+
           cviScore: segment.properties.vulnerabilityIndex,
           cviCategory: getCviCategory(segment.properties.vulnerabilityIndex ?? null),
         },
@@ -173,9 +173,9 @@ export default function ResultsPage() {
     try {
       const exportFeatures = segments.map(segment => {
         const exportProperties: ShorelineSegmentProperties & { cvi_score?: number; cvi_category?: string } = {
-          ...segment.properties, 
-          cvi_score: segment.properties.vulnerabilityIndex, 
-          cvi_category: getCviCategory(segment.properties.vulnerabilityIndex ?? null),  
+          ...segment.properties,
+          cvi_score: segment.properties.vulnerabilityIndex,
+          cvi_category: getCviCategory(segment.properties.vulnerabilityIndex ?? null),
         };
 
         return {
@@ -187,7 +187,7 @@ export default function ResultsPage() {
 
       const exportFeatureCollection: FeatureCollection = {
         type: 'FeatureCollection',
-        features: exportFeatures as Feature[], 
+        features: exportFeatures as Feature[],
       };
 
       const jsonString = JSON.stringify(exportFeatureCollection, null, 2);
@@ -195,8 +195,8 @@ export default function ResultsPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'cvic_results.geojson'; 
-      document.body.appendChild(a); 
+      a.download = 'cvic_results.geojson';
+      document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
@@ -207,7 +207,7 @@ export default function ResultsPage() {
       console.error("Error exporting GeoJSON:", err);
       setError(`Failed to export GeoJSON: ${err instanceof Error ? err.message : String(err)}`);
     }
-  }, [segments]); 
+  }, [segments]);
 
   if (loading) {
     return (
@@ -237,17 +237,17 @@ export default function ResultsPage() {
             {geoJSONForMap ? (
               <Map
                 geoJSON={geoJSONForMap}
-                segments={segments} 
-                parameters={parameters} 
-                selectedSegments={[]} 
-                selectedParameter={null} 
+                segments={segments}
+                parameters={parameters}
+                selectedSegments={[]}
+                selectedParameter={null}
                 selectionPolygons={[]}
                 onSegmentSelect={(segmentId) => console.log("Segment clicked:", segmentId)}
                 onSelectionDelete={() => {}}
                 onAreaSelect={() => {}}
-                isEditing={false} 
+                isEditing={false}
                 initialBounds={mapBounds}
-                stylingMode="cvi" 
+                stylingMode="cvi"
               />
             ) : (
               <div className="flex items-center justify-center h-full text-gray-500">

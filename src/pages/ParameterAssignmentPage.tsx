@@ -33,7 +33,7 @@ export default function ParameterAssignmentPage() {
 
   const [selectedSegments, setSelectedSegments] = useState<string[]>([]);
   const [activeParameter, setActiveParameter] = useState<Parameter | null>(null);
-  const [selectionPolygons, setSelectionPolygons] = useState<SelectionPolygon[]>([]); 
+  const [selectionPolygons, setSelectionPolygons] = useState<SelectionPolygon[]>([]);
   const [currentValueToApply, setCurrentValueToApply] = useState<string | null>(null);
   const [currentVulnerabilityToApply, setCurrentVulnerabilityToApply] = useState<number>(1);
   const [selectedFormula, setSelectedFormula] = useState<Formula | null>(null);
@@ -139,7 +139,7 @@ export default function ParameterAssignmentPage() {
         currentValueToApply,
         currentVulnerabilityToApply
       );
-      setSegments(updatedSegments); 
+      setSegments(updatedSegments);
       console.log("Successfully applied value and updated segments state.");
     } catch (err) {
       console.error('Error applying parameter value:', err);
@@ -173,19 +173,19 @@ export default function ParameterAssignmentPage() {
         segments,
         parameters,
         selectedFormula,
-        setSegments, 
-        setCviScores, 
-        handleError 
+        setSegments,
+        setCviScores,
+        handleError
       );
       console.log("CVI calculation process finished successfully via utility.");
-      
+
     } catch (err) {
-      
+
       console.error("Error during CVI calculation process:", err);
-      if (!pageError) { 
+      if (!pageError) {
           handleError(err instanceof Error ? err.message : 'CVI calculation failed.');
       }
-      setCviScores({}); 
+      setCviScores({});
     } finally {
       setCalculatingCvi(false);
     }
@@ -203,11 +203,11 @@ export default function ParameterAssignmentPage() {
 
     segments.forEach(segment => {
         try {
-           
+
             if (turf.booleanIntersects(segment.geometry, selectionPolygonTurf)) {
                 newlySelectedIds.push(segment.id);
             }
-  
+
         } catch (e) {
             console.warn(`Error checking intersection for segment ${segment.id}:`, e);
         }
@@ -243,8 +243,8 @@ export default function ParameterAssignmentPage() {
 
     try {
       console.log("All checks passed. Navigating to results page...");
-      
-      navigate('/results'); 
+
+      navigate('/results');
     } catch (err) {
       console.error('Error preparing to navigate or navigating:', err);
       handleError('Failed to proceed to results.');
@@ -275,8 +275,8 @@ export default function ParameterAssignmentPage() {
       max: max.toFixed(2),
       avg: avg.toFixed(2),
       count: scores.length,
-      categories: { 
-        veryLow: veryLowCount, low: lowCount, moderate: moderateCount, high: highCount, veryHigh: veryHighCount 
+      categories: {
+        veryLow: veryLowCount, low: lowCount, moderate: moderateCount, high: highCount, veryHigh: veryHighCount
       }
     };
   }, [cviScores]);
@@ -415,7 +415,7 @@ export default function ParameterAssignmentPage() {
         </div>
 
       </div> {/* End of main content grid */}
-    </div> 
+    </div>
   );
 }
 

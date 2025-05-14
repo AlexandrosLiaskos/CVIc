@@ -1,16 +1,11 @@
 import shp from 'shpjs'
-import * as turf from '@turf/turf'
-import type { Feature, FeatureCollection, Geometry, LineString, MultiLineString, GeoJsonProperties, Position } from 'geojson'
+import type { FeatureCollection } from 'geojson'
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024
 
 const ALLOWED_TYPES = ['application/zip', 'application/x-zip-compressed']
 
-interface ShapefileFeature extends Feature<LineString | MultiLineString> {
-  properties: {
-    [key: string]: any
-  }
-}
+// Interface removed as it was unused
 
 function validateFile(file: File): void {
   if (!file) {
@@ -29,7 +24,7 @@ function validateFile(file: File): void {
 function validateCoordinate(coord: number[]): boolean {
   if (!Array.isArray(coord) || coord.length < 2) return false
   const [lon, lat] = coord
-  return typeof lon === 'number' && typeof lat === 'number' && 
+  return typeof lon === 'number' && typeof lat === 'number' &&
          lon >= -180 && lon <= 180 && lat >= -90 && lat <= 90
 }
 
@@ -100,7 +95,7 @@ function cleanGeoJSON(geoJSON: FeatureCollection): FeatureCollection {
       _id: undefined,
       id: undefined,
       ...Object.fromEntries(
-        Object.entries(feature.properties || {}).filter(([key]) => 
+        Object.entries(feature.properties || {}).filter(([key]) =>
           !key.startsWith('_') && !key.includes('password') && !key.includes('secret')
         )
       )
@@ -120,7 +115,7 @@ export function validateShapefileAttributes(
   if (!geoJSON.features.length) return false
 
   const firstFeature = geoJSON.features[0]
-  return requiredAttributes.every(attr => 
+  return requiredAttributes.every(attr =>
     firstFeature.properties && attr in firstFeature.properties
   )
-} 
+}

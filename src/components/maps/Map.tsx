@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css'
 import 'leaflet-draw/dist/leaflet.draw.css'
 import type { Parameter, ShorelineSegment, SelectionPolygon } from '../../types'
 import type { FeatureCollection, Polygon as GeoJSONPolygon, Feature, GeoJsonObject } from 'geojson'
-import * as turf from '@turf/turf' 
+import * as turf from '@turf/turf'
 
 interface MapProps {
   segments: ShorelineSegment[]
@@ -18,30 +18,30 @@ interface MapProps {
   onSelectionDelete: (polygonId: string) => void
   onAreaSelect: (geometry: GeoJSONPolygon) => void
   isEditing: boolean
-  initialBounds?: L.LatLngBoundsExpression | null 
-  geoJSON?: FeatureCollection | null 
-  zoomToFeatureId?: string | null 
-  stylingMode?: 'parameter' | 'cvi' 
+  initialBounds?: L.LatLngBoundsExpression | null
+  geoJSON?: FeatureCollection | null
+  zoomToFeatureId?: string | null
+  stylingMode?: 'parameter' | 'cvi'
 }
 
 const getCviColor = (score: number | undefined | null): string => {
   if (score === undefined || score === null || isNaN(score)) return '#808080';
 
-  const rank = Math.round(score); 
-  if (rank <= 1) return '#1a9850'; 
-  if (rank === 2) return '#91cf60'; 
-  if (rank === 3) return '#fee08b'; 
+  const rank = Math.round(score);
+  if (rank <= 1) return '#1a9850';
+  if (rank === 2) return '#91cf60';
+  if (rank === 3) return '#fee08b';
   if (rank === 4) return '#fc8d59';
-  if (rank >= 5) return '#d73027'; 
+  if (rank >= 5) return '#d73027';
   return '#808080';
 };
 
 function getFeatureStyle(
   feature: Feature,
-  segments: ShorelineSegment[], 
+  segments: ShorelineSegment[],
   parameters: Parameter[],
-  selectedSegments: string[], 
-  selectedParameterId: string | null, 
+  selectedSegments: string[],
+  selectedParameterId: string | null,
   stylingMode: 'parameter' | 'cvi' = 'parameter'
 ): L.PathOptions {
 
@@ -52,22 +52,22 @@ function getFeatureStyle(
   if (stylingMode === 'cvi') {
     const color = getCviColor(cviScore);
     return {
-      color: isSelected ? '#0ea5e9' : color, 
+      color: isSelected ? '#0ea5e9' : color,
       weight: isSelected ? 5 : 3,
       opacity: isSelected ? 1 : 0.8,
       fillOpacity: isSelected ? 0.4 : 0.2,
     };
   }
 
-  
+
   const segmentData = segmentId ? segments.find(s => s.id === segmentId) : null;
   const parameter = selectedParameterId ? parameters.find(p => p.id === selectedParameterId) : null;
 
   if (!selectedParameterId || !parameter || !segmentData?.parameters) {
     return {
-      color: isSelected ? '#FF4500' : '#3388ff', 
+      color: isSelected ? '#FF4500' : '#3388ff',
       weight: isSelected ? 5 : 3,
-      opacity: 1, 
+      opacity: 1,
     };
   }
 
@@ -75,7 +75,7 @@ function getFeatureStyle(
 
   if (!paramValue) {
     return {
-      color: isSelected ? '#FF4500' : '#808080', 
+      color: isSelected ? '#FF4500' : '#808080',
       weight: isSelected ? 5 : 2,
       opacity: isSelected ? 1 : 0.6,
       dashArray: '5,5',
@@ -87,7 +87,7 @@ function getFeatureStyle(
 
   if (parameter.type === 'categorical' && parameter.options) {
     const option = parameter.options.find(o => o.value === paramValue.value);
-    valueColor = option?.color || getCviColor(vulnerabilityScore); 
+    valueColor = option?.color || getCviColor(vulnerabilityScore);
   } else if (parameter.type === 'numerical' && parameter.vulnerabilityRanges) {
     const range = parameter.vulnerabilityRanges.find(r => r.value === vulnerabilityScore);
     valueColor = range?.color || '#808080';
@@ -95,7 +95,7 @@ function getFeatureStyle(
 
   return {
     color: isSelected ? '#FF4500' : valueColor,
-    weight: isSelected ? 5 : 3, 
+    weight: isSelected ? 5 : 3,
     opacity: 1,
  };
 }
@@ -113,7 +113,7 @@ const Map: React.FC<MapProps> = ({
   initialBounds,
   geoJSON,
   zoomToFeatureId,
-  stylingMode = 'parameter' 
+  stylingMode = 'parameter'
 }) => {
   const mapRef = useRef<L.Map | null>(null)
   const drawControlRef = useRef<L.Control.Draw | null>(null)
@@ -187,10 +187,10 @@ const Map: React.FC<MapProps> = ({
         mapRef.current = null
       }
       drawnItemsRef.current = null;
-      segmentsLayerRef.current = null; 
+      segmentsLayerRef.current = null;
       setIsMapInitialized(false)
     }
-  }, []) 
+  }, [])
 
   useEffect(() => {
     const mapInstance = mapRef.current
@@ -210,11 +210,11 @@ const Map: React.FC<MapProps> = ({
 
       const segmentsLayer = L.geoJSON(geoJSON as GeoJsonObject, {
         style: (feature?: Feature) => {
-          if (!feature) return { color: '#808080', weight: 1 }; 
+          if (!feature) return { color: '#808080', weight: 1 };
           return getFeatureStyle(
               feature,
-              segments, 
-              parameters, 
+              segments,
+              parameters,
               selectedSegments,
               selectedParameter,
               stylingMode
@@ -227,7 +227,7 @@ const Map: React.FC<MapProps> = ({
                const segmentId = feature.properties?.id;
                if (segmentId && !selectedSegments.includes(segmentId)) {
                  if (targetLayer instanceof L.Path) {
-                   targetLayer.setStyle({ weight: 5 }); 
+                   targetLayer.setStyle({ weight: 5 });
                    targetLayer.bringToFront();
                  }
                }
@@ -295,12 +295,12 @@ const Map: React.FC<MapProps> = ({
        try {
          const validFeatures = geoJSON.features.filter(f => f && f.geometry);
          if (validFeatures.length > 0) {
-           const featureCollection = turf.featureCollection(validFeatures as any); 
-           const bbox = turf.bbox(featureCollection); 
+           const featureCollection = turf.featureCollection(validFeatures as any);
+           const bbox = turf.bbox(featureCollection);
             if (bbox && bbox.length === 4 && bbox.every((b: number) => isFinite(b)) && bbox[0] <= bbox[2] && bbox[1] <= bbox[3]) {
                 targetBounds = L.latLngBounds([
-                  [bbox[1], bbox[0]], 
-                  [bbox[3], bbox[2]]  
+                  [bbox[1], bbox[0]],
+                  [bbox[3], bbox[2]]
                 ]);
                 console.log("Map Effect 3: Calculated bounds from geoJSON", targetBounds.toBBoxString());
             } else {
@@ -319,11 +319,11 @@ const Map: React.FC<MapProps> = ({
       setTimeout(() => {
          mapInstance.fitBounds(targetBounds, { padding: [50, 50], maxZoom: 18 });
       }, 100); // Small delay
-    } else if (!initialBounds) { 
+    } else if (!initialBounds) {
       console.warn("Map Effect 3: No valid bounds found to fit. Resetting to default view.");
-      mapInstance.setView([20, 0], 2); 
+      mapInstance.setView([20, 0], 2);
     }
-  }, [geoJSON, initialBounds, isMapInitialized, zoomToFeatureId]); 
+  }, [geoJSON, initialBounds, isMapInitialized, zoomToFeatureId]);
 
    useEffect(() => {
     const mapInstance = mapRef.current;
@@ -374,7 +374,7 @@ const Map: React.FC<MapProps> = ({
     mapInstance.off(L.Draw.Event.CREATED);
     mapInstance.off(L.Draw.Event.DELETED);
     mapInstance.off(L.Draw.Event.DRAWSTART);
-    mapInstance.off(L.Draw.Event.DRAWSTOP); 
+    mapInstance.off(L.Draw.Event.DRAWSTOP);
 
     if (isEditing) {
       console.log("Map Effect 5: Adding Leaflet Draw controls.");
@@ -382,19 +382,19 @@ const Map: React.FC<MapProps> = ({
       const drawControlInstance = new L.Control.Draw({
         draw: {
           polyline: false,
-          rectangle: false, 
+          rectangle: false,
           circle: false,
           circlemarker: false,
           marker: false,
           polygon: {
             allowIntersection: false,
-            showArea: false, 
+            showArea: false,
             shapeOptions: { color: '#007bff', weight: 2, opacity: 0.7, fillOpacity: 0.1 },
           }
         },
         edit: {
           featureGroup: drawnItemsInstance,
-          remove: true 
+          remove: true
         }
       });
 
@@ -419,7 +419,7 @@ const Map: React.FC<MapProps> = ({
                if (feature.geometry && feature.geometry.type === 'Polygon') {
                  const geoJsonGeom = feature.geometry as GeoJSONPolygon;
                  console.log("Map: Passing geometry to onAreaSelect:", JSON.stringify(geoJsonGeom));
-                 onAreaSelect(geoJsonGeom); 
+                 onAreaSelect(geoJsonGeom);
                  setTimeout(() => {
                     try {
                         if (mapInstance.hasLayer(layer)) {
@@ -429,7 +429,7 @@ const Map: React.FC<MapProps> = ({
                     } catch (removeError) {
                         console.warn("Map: Error removing temporary drawing layer:", removeError);
                     }
-                 }, 0); 
+                 }, 0);
 
 
                } else {
@@ -447,11 +447,11 @@ const Map: React.FC<MapProps> = ({
        });
 
 
-      mapInstance.on(L.Draw.Event.DELETED, (e: any) => {
+      mapInstance.on(L.Draw.Event.DELETED, () => {
         console.log("Draw Event: DELETED (Selection shape removed by user)");
       });
 
-      mapInstance.on(L.Draw.Event.DRAWSTOP, (e: any) => {
+      mapInstance.on(L.Draw.Event.DRAWSTOP, () => {
          console.log(`Draw Event: STOP`);
       });
 
@@ -469,12 +469,12 @@ const Map: React.FC<MapProps> = ({
         mapRef.current.off(L.Draw.Event.CREATED);
         mapRef.current.off(L.Draw.Event.DELETED);
         mapRef.current.off(L.Draw.Event.DRAWSTART);
-        mapRef.current.off(L.Draw.Event.DRAWSTOP); 
+        mapRef.current.off(L.Draw.Event.DRAWSTOP);
       }
     }
-  }, [isEditing, onAreaSelect, onSelectionDelete, isMapInitialized]); 
+  }, [isEditing, onAreaSelect, onSelectionDelete, isMapInitialized]);
 
   return <div id="map" style={{ height: '100%', width: '100%', minHeight: '400px' }}></div>
 }
-Map.displayName = 'MapComponent'; 
+Map.displayName = 'MapComponent';
 export default Map

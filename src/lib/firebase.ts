@@ -30,8 +30,11 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-let app;
-let storage;
+import { FirebaseApp } from 'firebase/app';
+import { FirebaseStorage } from 'firebase/storage';
+
+let app: FirebaseApp;
+let storage: FirebaseStorage;
 
 try {
   app = initializeApp(firebaseConfig);
@@ -65,12 +68,12 @@ export const listUserCviResults = async (userId: string): Promise<{ name: string
         };
       })
     );
-    
-    files.sort((a, b) => b.name.localeCompare(a.name)); 
+
+    files.sort((a, b) => b.name.localeCompare(a.name));
     return files;
   } catch (error) {
     console.error("Error listing CVI results from Firebase Storage:", error);
-    throw error; 
+    throw error;
   }
 };
 
@@ -84,7 +87,7 @@ export const fetchCviGeoJsonByUrl = async (downloadUrl: string): Promise<Feature
     return geoJsonData;
   } catch (error) {
     console.error("Error fetching or parsing CVI GeoJSON from URL:", error);
-    throw error; 
+    throw error;
   }
 };
 
