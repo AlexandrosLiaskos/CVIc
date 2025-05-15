@@ -10,6 +10,25 @@ import parseGeoRaster from 'georaster';
 import type { FeatureCollection, LineString, GeoJsonObject } from 'geojson';
 import type { ProcessedImage } from '../../services/imageProcessor';
 
+// Extend the Leaflet Map type to include our custom properties
+declare module 'leaflet' {
+  interface Map {
+    _cleanupHandlers?: Array<() => void>;
+  }
+}
+
+// Extend GeoRasterLayer options to include our custom properties
+declare module 'georaster-layer-for-leaflet' {
+  interface GeoRasterLayerOptions {
+    debugLevel?: number;
+    renderTimeout?: number;
+    keepBuffer?: number;
+    updateWhenIdle?: boolean;
+    updateWhenZooming?: boolean;
+    resampleMethod?: 'nearest' | 'bilinear';
+  }
+}
+
 interface GeoRasterLeafletMapProps {
   images?: ProcessedImage[];
   geoJSON?: FeatureCollection | null;
@@ -50,25 +69,51 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
     if (mapRef.current) return; // Map already initialized
 
     try {
-      // Create map instance with improved options
+      // Create map instance with improved options for better performance
       const mapInstance = L.map('georaster-leaflet-map', {
         center: [20, 0],
         zoom: 2,
         zoomControl: true,
-        // Add additional options for better performance
+        // Use canvas renderer for better performance with raster layers
         preferCanvas: true,
-        // Disable animations for better performance with large images
-        fadeAnimation: false,
-        zoomAnimation: false,
+        // Optimize animations for better performance with large raster images
+        fadeAnimation: true,
+        zoomAnimation: true,
+        // Disable marker animations for better performance
+        markerZoomAnimation: false,
         // Increase max zoom level
-        maxZoom: 19
+        maxZoom: 19,
+        // Add additional performance options
+        wheelDebounceTime: 40, // Reduce debounce time for more responsive zooming
+        wheelPxPerZoomLevel: 60, // Fewer pixels per zoom level for faster zooming
+        // Enable caching for better performance
+        renderer: L.canvas({
+          padding: 0.5,
+          tolerance: 10
+        }),
+        // Add additional options for better performance
+        zoomSnap: 0.5, // Allow finer zoom levels
+        zoomDelta: 0.5, // Smaller zoom increments
+        trackResize: true, // Enable resize tracking for responsive layouts
+        // Improve tile loading behavior
+        updateWhenIdle: false, // Update tiles while panning
+        updateWhenZooming: false, // Don't update tiles during zoom animation
+        keepBuffer: 4 // Keep more tiles in buffer for smoother panning
       });
       mapRef.current = mapInstance;
 
-      // Add base tile layer (OpenStreetMap)
+      // Add base tile layer (OpenStreetMap) with improved caching
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        // Enable caching for better performance
+        updateWhenIdle: true,
+        updateWhenZooming: false,
+        // Reduce the number of tile requests during zooming
+        updateInterval: 500,
+        // Improve tile loading
+        keepBuffer: 4
+        // Removed bounds: null as it's not compatible with the type
       }).addTo(mapInstance);
 
       // Create feature group for drawn items
@@ -92,6 +137,22 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
     return () => {
       if (mapRef.current) {
         console.log('GeoRasterLeafletMap: Cleaning up map instance.');
+
+        // Clean up any registered event handlers
+        if (mapRef.current._cleanupHandlers && Array.isArray(mapRef.current._cleanupHandlers)) {
+          console.log(`Cleaning up ${mapRef.current._cleanupHandlers.length} event handlers`);
+          mapRef.current._cleanupHandlers.forEach(handler => {
+            if (typeof handler === 'function') {
+              try {
+                handler();
+              } catch (e) {
+                console.warn('Error cleaning up handler:', e);
+              }
+            }
+          });
+          mapRef.current._cleanupHandlers = [];
+        }
+
         mapRef.current.remove();
         mapRef.current = null;
       }
@@ -253,81 +314,354 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
           else if (image.arrayBuffer && !image.metadata?.isJP2) {
             try {
               console.log('Trying to parse arrayBuffer to create georaster');
-              const georaster = await parse(image.arrayBuffer);
 
-              const geoRasterLayer = new GeoRasterLayer({
-                georaster: georaster,
-                opacity: 0.9,
-                resolution: 256,
-                pixelValuesToColorFn: values => {
-                  console.log('Pixel values for parsed GeoTIFF:', values);
+              // Create a URL from the ArrayBuffer for consistent handling with COG
+              // This approach allows us to use the same rendering path for both GeoTIFF and COG
+              if (!image.url) {
+                const blob = new Blob([image.arrayBuffer], { type: 'image/tiff' });
+                image.url = URL.createObjectURL(blob);
+                console.log('Created URL from ArrayBuffer for GeoTIFF:', image.url);
+              }
 
-                  // For false color images or multi-band images
-                  if (values.length >= 3) {
-                    // Get the first three bands for RGB visualization
-                    let r = values[0];
-                    let g = values[1];
-                    let b = values[2];
+              // Try to use parseGeoRaster with URL first (like COG)
+              try {
+                console.log('Attempting to load GeoTIFF using COG approach from URL:', image.url);
+                const georaster = await parseGeoRaster(image.url);
 
-                    // Check if values are very small (near zero) or very large
-                    const maxVal = Math.max(...[r, g, b].filter(v => isFinite(v)));
-
-                    // If values are very large (likely 16-bit data)
-                    if (maxVal > 255) {
-                      // Scale down to 8-bit range
-                      const scaleFactor = 255 / maxVal;
-                      r = Math.round(r * scaleFactor);
-                      g = Math.round(g * scaleFactor);
-                      b = Math.round(b * scaleFactor);
-                    }
-                    // If values are very small (likely normalized data)
-                    else if (maxVal <= 1 && maxVal > 0) {
-                      // Scale up to 0-255 range
-                      r = Math.round(r * 255);
-                      g = Math.round(g * 255);
-                      b = Math.round(b * 255);
-                    }
-
-                    // Ensure values are in valid range
-                    r = Math.min(255, Math.max(0, r || 0));
-                    g = Math.min(255, Math.max(0, g || 0));
-                    b = Math.min(255, Math.max(0, b || 0));
-
-                    return `rgb(${r}, ${g}, ${b})`;
-                  }
-                  // For single-band data (grayscale)
-                  else if (values.length === 1) {
-                    let val = values[0];
-
-                    // Check if value is very small or very large
-                    if (val > 255) {
-                      // Scale down to 8-bit
-                      val = Math.round(val * (255 / Math.max(val, 1)));
-                    } else if (val <= 1 && val > 0) {
-                      // Scale up from 0-1 to 0-255
-                      val = Math.round(val * 255);
-                    }
-
-                    val = Math.min(255, Math.max(0, val || 0));
-                    return `rgb(${val}, ${val}, ${val})`;
-                  }
-
-                  // Default fallback
-                  return 'rgb(128, 128, 128)'; // Gray as fallback
+                // Calculate appropriate resolution based on image size and current zoom
+                // Make sure mapInstance is not null
+                if (!mapInstance) {
+                  console.error('Map instance is null when trying to get zoom level for GeoTIFF');
+                  return;
                 }
-              });
 
-              geoRasterLayer.addTo(mapInstance);
-              layer = geoRasterLayer;
+                const currentZoom = mapInstance.getZoom();
 
-              // Get bounds from the georaster
-              const georasterBounds = L.latLngBounds([
-                [georaster.ymin, georaster.xmin],
-                [georaster.ymax, georaster.xmax]
-              ]);
+                // Calculate optimal resolution based on zoom level
+                // Use a more sophisticated algorithm for resolution calculation
+                // Lower zoom levels (overview): use lower resolution for performance
+                // Higher zoom levels (detail): use higher resolution for clarity
+                const baseResolution = 256;
 
-              bounds.extend(georasterBounds);
-              console.log('Created and added georaster layer with bounds:', georasterBounds);
+                // Exponential scaling for better performance at different zoom levels
+                // This provides better low-res overview at low zoom and high detail at high zoom
+                const zoomFactor = Math.pow(1.2, Math.min(currentZoom - 10, 8));
+                const zoomAdjustedFactor = Math.max(0.5, Math.min(2.5, zoomFactor));
+                const resolution = Math.round(baseResolution * zoomAdjustedFactor);
+
+                // Limit resolution to reasonable bounds based on screen size
+                const maxScreenDimension = Math.max(window.innerWidth, window.innerHeight);
+                const maxResolution = Math.min(512, Math.round(maxScreenDimension / 2));
+                const finalResolution = Math.min(resolution, maxResolution);
+
+                if (Math.random() < 0.1) { // Reduce logging frequency
+                    console.log(`Using optimized resolution for GeoTIFF: ${finalResolution} at zoom level ${currentZoom}`);
+                }
+
+                // Create a loading indicator
+                const loadingIndicator = new L.Control({ position: 'topright' });
+                loadingIndicator.onAdd = function() {
+                  const div = L.DomUtil.create('div', 'loading-indicator');
+                  div.innerHTML = '<div class="spinner">Loading...</div>';
+                  div.style.display = 'none';
+                  div.style.padding = '5px 10px';
+                  div.style.background = 'rgba(255, 255, 255, 0.8)';
+                  div.style.borderRadius = '4px';
+                  div.style.margin = '10px';
+                  div.style.fontWeight = 'bold';
+                  return div;
+                };
+
+                if (mapInstance) {
+                  loadingIndicator.addTo(mapInstance);
+                }
+
+                // Create the GeoRasterLayer with highly optimized settings
+                const geoRasterLayer = new GeoRasterLayer({
+                  georaster: georaster,
+                  opacity: 0.9,
+                  // Use optimized resolution for better performance
+                  resolution: finalResolution,
+                  // Enable caching for better performance during zoom/pan
+                  debugLevel: 0,
+                  // Set a render timeout to prevent blocking the UI
+                  renderTimeout: 1500,
+                  // Add additional performance options
+                  keepBuffer: 8, // Keep more tiles in buffer for smoother panning
+                  updateWhenIdle: true, // Only update when user stops interacting
+                  updateWhenZooming: false, // Don't update during zoom for better performance
+                  resampleMethod: 'nearest', // Faster than bilinear for most cases
+                  pixelValuesToColorFn: values => {
+                    // For false color images or multi-band images
+                    if (values.length >= 3) {
+                      // Get the first three bands for RGB visualization
+                      let r = values[0];
+                      let g = values[1];
+                      let b = values[2];
+
+                      // Check if values are very small (near zero) or very large
+                      const maxVal = Math.max(...[r, g, b].filter(v => isFinite(v)));
+
+                      // If values are very large (likely 16-bit data)
+                      if (maxVal > 255) {
+                        // Scale down to 8-bit range
+                        const scaleFactor = 255 / maxVal;
+                        r = Math.round(r * scaleFactor);
+                        g = Math.round(g * scaleFactor);
+                        b = Math.round(b * scaleFactor);
+                      }
+                      // If values are very small (likely normalized data)
+                      else if (maxVal <= 1 && maxVal > 0) {
+                        // Scale up to 0-255 range
+                        r = Math.round(r * 255);
+                        g = Math.round(g * 255);
+                        b = Math.round(b * 255);
+                      }
+
+                      // Ensure values are in valid range
+                      r = Math.min(255, Math.max(0, r || 0));
+                      g = Math.min(255, Math.max(0, g || 0));
+                      b = Math.min(255, Math.max(0, b || 0));
+
+                      return `rgb(${r}, ${g}, ${b})`;
+                    }
+                    // For single-band data (grayscale)
+                    else if (values.length === 1) {
+                      let val = values[0];
+
+                      // Check if value is very small or very large
+                      if (val > 255) {
+                        // Scale down to 8-bit
+                        val = Math.round(val * (255 / Math.max(val, 1)));
+                      } else if (val <= 1 && val > 0) {
+                        // Scale up from 0-1 to 0-255
+                        val = Math.round(val * 255);
+                      }
+
+                      val = Math.min(255, Math.max(0, val || 0));
+                      return `rgb(${val}, ${val}, ${val})`;
+                    }
+                    // For multi-band data beyond 3 bands (false color)
+                    else if (values.length > 3) {
+                      // Use the first three bands for visualization
+                      let r = values[0];
+                      let g = values[1];
+                      let b = values[2];
+
+                      // Apply scaling as needed
+                      const maxVal = Math.max(...[r, g, b].filter(v => isFinite(v)));
+                      if (maxVal > 255) {
+                        const scaleFactor = 255 / maxVal;
+                        r = Math.round(r * scaleFactor);
+                        g = Math.round(g * scaleFactor);
+                        b = Math.round(b * scaleFactor);
+                      }
+
+                      r = Math.min(255, Math.max(0, r || 0));
+                      g = Math.min(255, Math.max(0, g || 0));
+                      b = Math.min(255, Math.max(0, b || 0));
+
+                      return `rgb(${r}, ${g}, ${b})`;
+                    }
+
+                    // Default fallback
+                    return 'rgb(128, 128, 128)'; // Gray as fallback
+                  }
+                });
+
+                geoRasterLayer.addTo(mapInstance);
+                layer = geoRasterLayer;
+
+                // Get bounds from the georaster
+                const georasterBounds = L.latLngBounds([
+                  [georaster.ymin, georaster.xmin],
+                  [georaster.ymax, georaster.xmax]
+                ]);
+
+                bounds.extend(georasterBounds);
+                console.log('Created and added georaster layer with bounds using COG approach:', georasterBounds);
+
+                // Create a debounced version of the redraw function to prevent excessive redraws
+                let zoomRedrawTimeout: number | null = null;
+
+                // Add event handlers for zoom operations with improved performance
+                const zoomStartHandler = () => {
+                  if (!mapInstance) return;
+
+                  // Show loading indicator
+                  const loadingElement = document.querySelector('.loading-indicator') as HTMLElement;
+                  if (loadingElement) loadingElement.style.display = 'block';
+
+                  // Cancel any pending redraw from previous zoom operations
+                  if (zoomRedrawTimeout !== null) {
+                    window.clearTimeout(zoomRedrawTimeout);
+                    zoomRedrawTimeout = null;
+                  }
+
+                  // Use a much lower resolution during zooming for better performance
+                  // This makes zooming feel much more responsive
+                  const zoomingResolution = 96; // Very low resolution during zoom
+                  (geoRasterLayer.options as any).resolution = zoomingResolution;
+
+                  // Only log occasionally to reduce console spam
+                  if (Math.random() < 0.1) {
+                    console.log('Zoom started, using lower resolution for performance:', zoomingResolution);
+                  }
+                };
+
+                // Handler for when zoom ends with improved performance
+                const zoomEndHandler = () => {
+                  // Make sure mapInstance is not null
+                  if (!mapInstance) {
+                    console.error('Map instance is null in GeoTIFF zoom handler');
+                    return;
+                  }
+
+                  // Cancel any pending redraw from previous zoom operations
+                  if (zoomRedrawTimeout !== null) {
+                    window.clearTimeout(zoomRedrawTimeout);
+                  }
+
+                  // Set a small delay to allow the browser to finish zoom animation
+                  // Using a longer delay actually improves perceived performance
+                  // as it prevents multiple redraws during rapid zoom changes
+                  zoomRedrawTimeout = window.setTimeout(() => {
+                    const newZoom = mapInstance.getZoom();
+
+                    // Calculate optimal resolution based on zoom level using the improved algorithm
+                    const zoomFactor = Math.pow(1.2, Math.min(newZoom - 10, 8));
+                    const zoomAdjustedFactor = Math.max(0.5, Math.min(2.5, zoomFactor));
+                    const resolution = Math.round(baseResolution * zoomAdjustedFactor);
+
+                    // Limit resolution to reasonable bounds based on screen size
+                    const maxScreenDimension = Math.max(window.innerWidth, window.innerHeight);
+                    const maxResolution = Math.min(512, Math.round(maxScreenDimension / 2));
+                    const newResolution = Math.min(resolution, maxResolution);
+
+                    // Only log occasionally to reduce console spam
+                    if (Math.random() < 0.1) {
+                      console.log(`Zoom ended. Adjusting GeoTIFF resolution to ${newResolution} at zoom level ${newZoom}`);
+                    }
+
+                    // Update the resolution with type safety
+                    (geoRasterLayer.options as any).resolution = newResolution;
+
+                    // Redraw the layer with the new resolution
+                    geoRasterLayer.redraw();
+
+                    // Clear the timeout reference
+                    zoomRedrawTimeout = null;
+
+                    // Zoom has ended
+
+                    // Hide loading indicator
+                    const loadingElement = document.querySelector('.loading-indicator') as HTMLElement;
+                    if (loadingElement) loadingElement.style.display = 'none';
+                  }, 200); // Small delay to ensure zoom animation is complete
+                };
+
+                // Add the zoom handlers (with null check)
+                if (mapInstance) {
+                  // Register both zoomstart and zoomend events
+                  mapInstance.on('zoomstart', zoomStartHandler);
+                  mapInstance.on('zoomend', zoomEndHandler);
+
+                  // Store the handlers for cleanup
+                  const cleanupHandler = () => {
+                    if (mapInstance) {
+                      mapInstance.off('zoomstart', zoomStartHandler);
+                      mapInstance.off('zoomend', zoomEndHandler);
+                    }
+                  };
+
+                  // Add to cleanup list (with type safety)
+                  if (!mapInstance._cleanupHandlers) {
+                    mapInstance._cleanupHandlers = [];
+                  }
+                  mapInstance._cleanupHandlers.push(cleanupHandler);
+                }
+
+                return;
+              } catch (cogError) {
+                console.warn('Failed to load GeoTIFF using COG approach, falling back to traditional parse:', cogError);
+
+                // Fall back to traditional parse method
+                const georaster = await parse(image.arrayBuffer);
+
+                const geoRasterLayer = new GeoRasterLayer({
+                  georaster: georaster,
+                  opacity: 0.9,
+                  resolution: 256,
+                  pixelValuesToColorFn: values => {
+                    console.log('Pixel values for parsed GeoTIFF:', values);
+
+                    // For false color images or multi-band images
+                    if (values.length >= 3) {
+                      // Get the first three bands for RGB visualization
+                      let r = values[0];
+                      let g = values[1];
+                      let b = values[2];
+
+                      // Check if values are very small (near zero) or very large
+                      const maxVal = Math.max(...[r, g, b].filter(v => isFinite(v)));
+
+                      // If values are very large (likely 16-bit data)
+                      if (maxVal > 255) {
+                        // Scale down to 8-bit range
+                        const scaleFactor = 255 / maxVal;
+                        r = Math.round(r * scaleFactor);
+                        g = Math.round(g * scaleFactor);
+                        b = Math.round(b * scaleFactor);
+                      }
+                      // If values are very small (likely normalized data)
+                      else if (maxVal <= 1 && maxVal > 0) {
+                        // Scale up to 0-255 range
+                        r = Math.round(r * 255);
+                        g = Math.round(g * 255);
+                        b = Math.round(b * 255);
+                      }
+
+                      // Ensure values are in valid range
+                      r = Math.min(255, Math.max(0, r || 0));
+                      g = Math.min(255, Math.max(0, g || 0));
+                      b = Math.min(255, Math.max(0, b || 0));
+
+                      return `rgb(${r}, ${g}, ${b})`;
+                    }
+                    // For single-band data (grayscale)
+                    else if (values.length === 1) {
+                      let val = values[0];
+
+                      // Check if value is very small or very large
+                      if (val > 255) {
+                        // Scale down to 8-bit
+                        val = Math.round(val * (255 / Math.max(val, 1)));
+                      } else if (val <= 1 && val > 0) {
+                        // Scale up from 0-1 to 0-255
+                        val = Math.round(val * 255);
+                      }
+
+                      val = Math.min(255, Math.max(0, val || 0));
+                      return `rgb(${val}, ${val}, ${val})`;
+                    }
+
+                    // Default fallback
+                    return 'rgb(128, 128, 128)'; // Gray as fallback
+                  }
+                });
+
+                geoRasterLayer.addTo(mapInstance);
+                layer = geoRasterLayer;
+
+                // Get bounds from the georaster
+                const georasterBounds = L.latLngBounds([
+                  [georaster.ymin, georaster.xmin],
+                  [georaster.ymax, georaster.xmax]
+                ]);
+
+                bounds.extend(georasterBounds);
+                console.log('Created and added georaster layer with bounds using traditional parse:', georasterBounds);
+              }
             } catch (error) {
               console.error('Error creating georaster from arrayBuffer:', error);
               // Fall back to simple image overlay
@@ -382,13 +716,36 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
                   bounds: [georaster.xmin, georaster.ymin, georaster.xmax, georaster.ymax]
                 });
 
+                // Calculate appropriate resolution based on image size and current zoom
+                // Make sure mapInstance is not null
+                if (!mapInstance) {
+                  console.error('Map instance is null when trying to get zoom level');
+                  return;
+                }
+
+                const currentZoom = mapInstance.getZoom();
+                // Adjust resolution based on zoom level - higher resolution at higher zoom levels
+                const baseResolution = 256;
+                // Dynamic resolution: higher at higher zoom levels for better detail
+                const zoomFactor = Math.max(1, Math.min(2, currentZoom / 10)); // Scale between 1-2x based on zoom
+                const resolution = Math.round(baseResolution * zoomFactor);
+
+                console.log(`Using dynamic resolution for COG: ${resolution} at zoom level ${currentZoom}`);
+
                 // Create a GeoRasterLayer with the parsed georaster
                 const geoRasterLayer = new GeoRasterLayer({
                   georaster: georaster,
                   opacity: 0.9,
-                  resolution: 256, // Try different values (128, 256, 512) based on your image size
+                  resolution: resolution,
+                  // Enable caching for better performance during zoom/pan
+                  debugLevel: 0,
+                  // Set a render timeout to prevent blocking the UI
+                  renderTimeout: 1000,
                   pixelValuesToColorFn: values => {
-                    console.log('Pixel values for COG:', values);
+                    // Reduce logging frequency for better performance
+                    if (Math.random() < 0.01) { // Only log ~1% of pixel values
+                      console.log('Sample pixel values for COG:', values);
+                    }
 
                     // For false color images or multi-band images
                     if (values.length >= 3) {
@@ -480,6 +837,92 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
 
                 bounds.extend(georasterBounds);
                 console.log('Added COG layer with bounds:', georasterBounds);
+
+                // Create a loading indicator
+                const loadingIndicator = new L.Control({ position: 'topright' });
+                loadingIndicator.onAdd = function() {
+                  const div = L.DomUtil.create('div', 'loading-indicator');
+                  div.innerHTML = '<div class="spinner">Loading...</div>';
+                  div.style.display = 'none';
+                  div.style.padding = '5px 10px';
+                  div.style.background = 'rgba(255, 255, 255, 0.8)';
+                  div.style.borderRadius = '4px';
+                  div.style.margin = '10px';
+                  div.style.fontWeight = 'bold';
+                  return div;
+                };
+
+                if (mapInstance) {
+                  loadingIndicator.addTo(mapInstance);
+                }
+
+                // Add event handlers for zoom operations
+                const zoomStartHandler = () => {
+                  if (!mapInstance) return;
+
+                  // Show loading indicator
+                  const loadingElement = document.querySelector('.loading-indicator') as HTMLElement;
+                  if (loadingElement) loadingElement.style.display = 'block';
+
+                  // Use a lower resolution during zooming for better performance
+                  const zoomingResolution = 128; // Lower resolution during zoom
+                  (geoRasterLayer.options as any).resolution = zoomingResolution;
+
+                  console.log('Zoom started, using lower resolution for COG performance:', zoomingResolution);
+                };
+
+                // Handler for when zoom ends
+                const zoomEndHandler = () => {
+                  // Make sure mapInstance is not null
+                  if (!mapInstance) {
+                    console.error('Map instance is null in COG zoom handler');
+                    return;
+                  }
+
+                  // Set a small delay to allow the browser to finish zoom animation
+                  setTimeout(() => {
+                    const newZoom = mapInstance.getZoom();
+                    // Calculate optimal resolution based on zoom level
+                    // Higher zoom = higher resolution for better detail
+                    const newZoomFactor = Math.max(1, Math.min(2, newZoom / 10));
+                    const newResolution = Math.round(baseResolution * newZoomFactor);
+
+                    console.log(`Zoom ended. Adjusting COG resolution to ${newResolution} at zoom level ${newZoom}`);
+
+                    // Update the resolution with type safety
+                    (geoRasterLayer.options as any).resolution = newResolution;
+
+                    // Redraw the layer with the new resolution
+                    geoRasterLayer.redraw();
+
+                    // Zoom has ended
+
+                    // Hide loading indicator
+                    const loadingElement = document.querySelector('.loading-indicator') as HTMLElement;
+                    if (loadingElement) loadingElement.style.display = 'none';
+                  }, 200); // Small delay to ensure zoom animation is complete
+                };
+
+                // Add the zoom handlers (with null check)
+                if (mapInstance) {
+                  // Register both zoomstart and zoomend events
+                  mapInstance.on('zoomstart', zoomStartHandler);
+                  mapInstance.on('zoomend', zoomEndHandler);
+
+                  // Store the handlers for cleanup
+                  const cleanupHandler = () => {
+                    if (mapInstance) {
+                      mapInstance.off('zoomstart', zoomStartHandler);
+                      mapInstance.off('zoomend', zoomEndHandler);
+                    }
+                  };
+
+                  // Add to cleanup list (with type safety)
+                  if (!mapInstance._cleanupHandlers) {
+                    mapInstance._cleanupHandlers = [];
+                  }
+                  mapInstance._cleanupHandlers.push(cleanupHandler);
+                }
 
                 // Successfully loaded as COG, return early
                 return;
