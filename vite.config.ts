@@ -1,8 +1,41 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { resolve } from 'path'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    // Custom plugin to inject proj4 fix
+    {
+      name: 'inject-proj4-fix',
+      transformIndexHtml(html) {
+        // Add a script to fix proj4 initialization issues
+        return html.replace(
+          '</head>',
+          `<script>
+            // Fix for proj4 initialization issues
+            window.fixProj4Error = function() {
+              if (window.proj4 && typeof window.proj4.defs !== 'function') {
+                console.log('Fixing proj4 initialization...');
+                if (typeof window.proj4.default === 'function') {
+                  window.proj4 = window.proj4.default;
+                  console.log('Fixed proj4 using default export');
+                }
+              }
+            };
+
+            // Run the fix when the window loads and periodically
+            window.addEventListener('load', window.fixProj4Error);
+            // Also try to fix it every 100ms for the first second
+            for (let i = 1; i <= 10; i++) {
+              setTimeout(window.fixProj4Error, i * 100);
+            }
+          </script>
+          </head>`
+        );
+      }
+    }
+  ],
   server: {
     port: 3000,
     open: true
@@ -15,8 +48,23 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           map: ['leaflet', 'leaflet-draw', '@turf/turf'],
+          // Only include the core proj4 library
+          proj4: ['proj4']
         }
       }
+    },
+    // Ensure the build is optimized for production
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: false, // Keep console logs for debugging
+        drop_debugger: true
+      }
+    }
+  },
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src')
     }
   },
   define: {

@@ -12,27 +12,83 @@
   .btn {
     @apply px-4 py-2 rounded-md font-medium transition-colors duration-200;
   }
-  
+
   .btn-primary {
     @apply bg-primary-600 text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
   }
-  
+
   .btn-secondary {
     @apply bg-secondary-600 text-white hover:bg-secondary-700 focus:outline-none focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2;
   }
-  
+
   .btn-sm {
     @apply px-3 py-1.5 text-sm;
   }
-  
+
   .input {
     @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm;
   }
-  
+
   .label {
     @apply block text-sm font-medium text-gray-700;
   }
 
+}
+
+/* Custom styles for map components */
+.satellite-image-overlay {
+  /* Improve image rendering */
+  image-rendering: auto !important;
+  /* Ensure the image is visible with better contrast */
+  filter: contrast(1.2) brightness(1.1);
+  /* Make sure the image is displayed */
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Ensure Leaflet map container has proper stacking context */
+.leaflet-container {
+  z-index: 0;
+}
+
+/* Make sure popups appear above other elements */
+.leaflet-popup {
+  z-index: 1000;
+}
+
+/* Ensure the image overlay is visible */
+.leaflet-image-layer {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Fix for image overlay container */
+.leaflet-overlay-pane {
+  z-index: 400 !important;
+}
+
+/* Ensure the image is displayed at full opacity */
+.leaflet-overlay-pane img {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Styling for image error tooltips */
+.image-error-tooltip {
+  background-color: rgba(255, 0, 0, 0.7) !important;
+  color: white !important;
+  font-weight: bold !important;
+  border: none !important;
+  padding: 8px 12px !important;
+  border-radius: 4px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+  font-size: 14px !important;
+}
+
+.image-error-tooltip::before {
+  border-top-color: rgba(255, 0, 0, 0.7) !important;
 }
 
 

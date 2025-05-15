@@ -38,6 +38,9 @@ out/
 # Coverage reports
 coverage/
 
+# Uploaded files
+src/uploads/
+
 # TypeScript
 *.tsbuildinfo
 

@@ -6,7 +6,8 @@ import { ChevronRightIcon, CubeTransparentIcon, CommandLineIcon, MapIcon, Circle
 export default function RootPage() {
   const { user, loading } = useAuth();
   const workflowSteps = [
-    { text: "Upload shoreline Shapefile.", icon: <CpuChipIcon className="h-6 w-6 text-primary-600" /> },
+    { text: "Choose to upload or create a shoreline.", icon: <CpuChipIcon className="h-6 w-6 text-primary-600" /> },
+    { text: "Upload existing shoreline or digitize from satellite imagery.", icon: <PaintBrushIcon className="h-6 w-6 text-primary-600" /> },
     { text: "Segment shoreline by specified resolution.", icon: <CubeTransparentIcon className="h-6 w-6 text-primary-600" /> },
     { text: "Select vulnerability parameters & assign weights.", icon: <BeakerIcon className="h-6 w-6 text-primary-600" /> },
     { text: "Assign values to segments via interactive map & table.", icon: <MapIcon className="h-6 w-6 text-primary-600" /> },
@@ -56,7 +57,7 @@ export default function RootPage() {
         <section className="text-center mt-10 mb-16">
           {user ? (
             <Link
-              to="/shoreline"
+              to="/shoreline-selection"
               className="inline-flex items-center justify-center bg-primary-600 text-white font-semibold px-6 py-3 text-base rounded-lg shadow-md hover:bg-primary-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
             >
               Start New Analysis
