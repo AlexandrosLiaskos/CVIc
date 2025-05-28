@@ -2,70 +2,102 @@
 import type { Parameter, ShorelineSegment, Formula } from '../types';
 import { indexedDBService } from '../services/indexedDBService';
 
- const calculateGeometricMean = (values: number[], weights: number[]): number => {
-  const sumWeights = weights.reduce((a, b) => a + b, 0);
-  if (sumWeights === 0) return 0;
+/**
+ * Geometric Mean: CVI = ∏(Vi^Wi)
+ * Calculates the product of values raised to their respective weights
+ */
+export const calculateGeometricMean = (values: number[], weights: number[]): number => {
+  if (values.length === 0) return 0;
   let product = 1.0;
   for (let i = 0; i < values.length; i++) {
-    const value = Math.max(1e-9, values[i]);
-    const exponent = weights[i] / sumWeights;
-    product *= Math.pow(value, exponent);
+    const value = Math.max(1e-9, values[i]); // Prevent log(0) issues
+    product *= Math.pow(value, weights[i]);
   }
   return product;
 };
 
-export const calculateGeometricMeanNormalized = (values: number[], weights: number[]): number => {
+/**
+ * Traditional: CVI = √((∏(Vi))/n)
+ * Calculates the nth root of the product of values
+ * Only usable with equal weights
+ */
+export const calculateTraditional = (values: number[], weights: number[]): number => {
   const n = values.length;
   if (n === 0) return 0;
-  const geometricMean = calculateGeometricMean(values, weights);
-  const normalizedResult = Math.pow(geometricMean, 1.0 / n);
-  return normalizedResult;
+
+  // Check if weights are equal (within tolerance)
+  const firstWeight = weights[0];
+  const areWeightsEqual = weights.every(w => Math.abs(w - firstWeight) < 1e-6);
+
+  if (!areWeightsEqual) {
+    console.warn("Traditional formula requires equal weights. Results may not be meaningful.");
+  }
+
+  let product = 1.0;
+  for (let i = 0; i < values.length; i++) {
+    const value = Math.max(1e-9, values[i]); // Prevent log(0) issues
+    product *= value;
+  }
+
+  return Math.pow(product, 1.0 / n);
 };
 
+/**
+ * Arithmetic Mean: CVI = Σ(Vi*Wi)
+ * Calculates the weighted sum of values
+ */
 export const calculateArithmeticMean = (values: number[], weights: number[]): number => {
-  const sumWeights = weights.reduce((a, b) => a + b, 0);
-  if (sumWeights === 0) return 0;
+  if (values.length === 0) return 0;
   let weightedSum = 0.0;
   for (let i = 0; i < values.length; i++) {
     weightedSum += values[i] * weights[i];
   }
-  const result = weightedSum / sumWeights;
-  return result;
+  return weightedSum;
 };
 
+/**
+ * Nonlinear Power: CVI = √(Σ(Vi²*Wi))
+ * Calculates the square root of the weighted sum of squares
+ */
 export const calculateNonlinearPower = (values: number[], weights: number[]): number => {
-    const sumWeights = weights.reduce((a, b) => a + b, 0);
-    if (sumWeights === 0) return 0;
-    const weightedSumOfSquares = values.reduce((acc, val, i) => acc + Math.pow(val, 2) * weights[i], 0);
-    const normalizedValue = weightedSumOfSquares / sumWeights;
-    const result = Math.sqrt(normalizedValue);
-    return result;
+  if (values.length === 0) return 0;
+  const weightedSumOfSquares = values.reduce((acc, val, i) => acc + Math.pow(val, 2) * weights[i], 0);
+  return Math.sqrt(weightedSumOfSquares);
 };
 
 export const calculateAndSaveCVI = async (
   segments: ShorelineSegment[],
-  parameters: Parameter[], 
+  parameters: Parameter[],
   formula: Formula,
   setSegments: React.Dispatch<React.SetStateAction<ShorelineSegment[]>>,
   setCviScores: React.Dispatch<React.SetStateAction<Record<string, number>>>,
   setError: (error: string | null) => void
 ): Promise<void> => {
   console.log("Calculating CVI using formula:", formula.name);
-  setError(null); 
+  setError(null);
 
   try {
     const newCviScores: Record<string, number> = {};
-    const updatedSegments = [...segments]; 
+    const updatedSegments = [...segments];
     let segmentsUpdated = false;
 
     const relevantParameters = parameters.filter(p => p.weight > 0);
-    const sumOfRelevantWeights = relevantParameters.reduce((sum, p) => sum + p.weight, 0);
 
-    if (Math.abs(sumOfRelevantWeights - 1) > 0.01) {
-        const errorMsg = `Weights of parameters used in calculation do not sum to 1 (Sum: ${sumOfRelevantWeights.toFixed(2)}). Please adjust weights in Parameter Selection.`;
+    // Validate weights based on formula type
+    if (formula.type === 'traditional') {
+      // Traditional formula requires equal weights
+      const firstWeight = relevantParameters[0]?.weight || 0;
+      const areWeightsEqual = relevantParameters.every(p => Math.abs(p.weight - firstWeight) < 1e-6);
+
+      if (!areWeightsEqual) {
+        const errorMsg = `Traditional formula requires equal weights for all parameters. Please adjust weights in Parameter Selection.`;
         console.error(errorMsg);
         setError(errorMsg);
+      }
     }
+
+    // Note: Other formulas (geometric-mean, arithmetic-mean, nonlinear-power)
+    // work with any positive weights as specified in the new formulas
 
     segments.forEach((segment, index) => {
       const hasAllParameters = relevantParameters.every(param =>
@@ -86,7 +118,7 @@ export const calculateAndSaveCVI = async (
           console.warn(`Parameter ${param.name} for segment ${segment.id} has vulnerability ${paramValue!.vulnerability} outside 1-5 range. Clamped to ${vulnerability}.`);
         }
         paramValues.push(vulnerability);
-        weights.push(param.weight); 
+        weights.push(param.weight);
       });
 
       let cviScore: number;
@@ -94,8 +126,8 @@ export const calculateAndSaveCVI = async (
         case 'geometric-mean':
           cviScore = calculateGeometricMean(paramValues, weights);
           break;
-        case 'geometric-mean-normalized':
-          cviScore = calculateGeometricMeanNormalized(paramValues, weights);
+        case 'traditional':
+          cviScore = calculateTraditional(paramValues, weights);
           break;
         case 'arithmetic-mean':
           cviScore = calculateArithmeticMean(paramValues, weights);
@@ -111,7 +143,7 @@ export const calculateAndSaveCVI = async (
       cviScore = Math.round(cviScore * 100) / 100;
       newCviScores[segment.id] = cviScore;
 
-      if (updatedSegments[index]?.properties && 
+      if (updatedSegments[index]?.properties &&
           (updatedSegments[index].properties.vulnerabilityIndex !== cviScore ||
            updatedSegments[index].properties.vulnerabilityFormula !== formula.type))
       {
@@ -123,7 +155,7 @@ export const calculateAndSaveCVI = async (
 
     const geoJsonToStore = {
       type: 'FeatureCollection' as const,
-      features: updatedSegments.map(seg => ({ 
+      features: updatedSegments.map(seg => ({
         type: 'Feature' as const,
         geometry: seg.geometry,
         properties: seg.properties,

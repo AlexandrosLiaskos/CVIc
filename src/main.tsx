@@ -17,9 +17,6 @@ import { RouterProvider } from 'react-router-dom';
 import './index.css';
 import { AuthProvider } from './hooks/useAuth';
 import { router } from './router';
-import { DebugPanel } from './components/common/DebugPanel';
-import { RouterDebug } from './components/common/RouterDebug';
-import RouteDebugger from './components/common/RouteDebugger';
 
 // Setup error handling
 const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
@@ -45,17 +42,7 @@ if (rootElement) {
     root.render(
       <React.StrictMode>
         <AuthProvider>
-          <>
-            <RouterProvider router={router} />
-            {/* Only show debug components in development or with debug URL param */}
-            {(isDev || new URLSearchParams(window.location.search).has('debug')) && (
-              <>
-                <RouterDebug />
-                <RouteDebugger />
-                <DebugPanel showByDefault={false} />
-              </>
-            )}
-          </>
+          <RouterProvider router={router} />
         </AuthProvider>
       </React.StrictMode>,
     );

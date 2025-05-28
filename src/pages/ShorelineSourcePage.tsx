@@ -9,9 +9,8 @@ export default function ShorelineSourcePage() {
   const handleContinue = () => {
     if (selectedOption === 'upload') {
       navigate('/satellite-upload');
-    } else if (selectedOption === 'acquire') {
-      navigate('/aoi-selection');
     }
+    // Note: 'acquire' option is disabled as the feature is not yet developed
   };
 
   const handleBack = () => {
@@ -76,17 +75,22 @@ export default function ShorelineSourcePage() {
             <div className="bg-primary-100 p-3 rounded-full">
               <GlobeAltIcon className="h-6 w-6 text-primary-600" />
             </div>
-            <h3 className="ml-4 text-lg font-medium text-gray-900">Acquire New Images</h3>
+            <h3 className="ml-4 text-lg font-medium text-gray-900">Acquire Images</h3>
           </div>
-          <p className="text-gray-600 mb-4">
-            Fetch satellite images from Sentinel Hub for your area of interest.
-          </p>
-          <ul className="text-sm text-gray-500 space-y-1 mb-4">
-            <li>• Draw your area of interest on the map</li>
-            <li>• Select Sentinel-1 or Sentinel-2 imagery</li>
-            <li>• Filter by date range and cloud cover</li>
-            <li>• Images will be automatically mosaicked</li>
-          </ul>
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-100 p-6 rounded-xl border border-blue-200 mb-4">
+            <div className="text-center mb-4">
+              <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-500 rounded-full mb-3">
+                <span className="text-white text-xl">🚀</span>
+              </div>
+              <h4 className="text-lg font-semibold text-blue-900 mb-2">Coming Soon!</h4>
+            </div>
+            <div className="mt-4 pt-4 border-t border-blue-200">
+              <p className="text-xs text-blue-500 text-center">
+                Want to be notified when this feature launches?
+                <span className="font-medium"> Contact us!</span>
+              </p>
+            </div>
+          </div>
           <div className="mt-2">
             <span className={`inline-flex items-center text-sm font-medium ${
               selectedOption === 'acquire' ? 'text-primary-600' : 'text-gray-500'
@@ -110,7 +114,7 @@ export default function ShorelineSourcePage() {
 
         <button
           onClick={handleContinue}
-          disabled={!selectedOption}
+          disabled={!selectedOption || selectedOption === 'acquire'}
           className="inline-flex items-center justify-center bg-primary-600 text-white font-semibold px-8 py-3 text-base rounded-lg shadow-md hover:bg-primary-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Continue

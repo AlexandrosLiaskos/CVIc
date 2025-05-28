@@ -231,7 +231,6 @@ export default function SatelliteImageUploadPage() {
                         <>
                           <p className="font-medium text-primary-600">
                             {image.metadata?.sentinelInfo?.satellite || 'Sentinel-2'} Image
-                            {image.metadata?.isJP2 && ' (JP2 Format)'}
                             {image.metadata?.sentinelInfo?.productType && ` - ${image.metadata.sentinelInfo.productType}`}
                           </p>
                           <p>
@@ -239,11 +238,6 @@ export default function SatelliteImageUploadPage() {
                             {image.metadata?.sentinelInfo?.band && ` • Band: ${image.metadata.sentinelInfo.band}`}
                             {image.metadata?.sentinelInfo?.date && ` • Date: ${image.metadata.sentinelInfo.date}`}
                           </p>
-                          {image.metadata?.isJP2 && (
-                            <p className="italic text-blue-600">
-                              JP2 file - approximate positioning with UTM zone boundaries
-                            </p>
-                          )}
                           <p>
                             Bounds: {image.bounds[0].toFixed(2)}°W, {image.bounds[1].toFixed(2)}°S, {image.bounds[2].toFixed(2)}°E, {image.bounds[3].toFixed(2)}°N
                           </p>

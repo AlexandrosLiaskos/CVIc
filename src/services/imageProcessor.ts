@@ -12,10 +12,6 @@ const MAX_FILE_SIZE = 1024 * 1024 * 1024;
 const ALLOWED_TYPES = [
   'image/tiff',
   'image/geotiff',
-  'image/jp2',
-  'image/x-jp2',
-  'image/jpx',
-  'image/jpm',
   'application/octet-stream', // Some GeoTIFF files might have this MIME type
 ];
 
@@ -155,7 +151,6 @@ export interface ProcessedImage {
     size?: number;
     type?: string;
     isSentinel?: boolean;
-    isJP2?: boolean;
     isCOG?: boolean; // Flag to indicate if this is a Cloud Optimized GeoTIFF
     sentinelInfo?: {
       utmZone?: string;
@@ -184,10 +179,10 @@ export function validateImageFile(file: File): void {
 
   // Check if the file type is allowed or if the file extension is valid
   const fileExtension = file.name.split('.').pop()?.toLowerCase();
-  const isValidExtension = ['tif', 'tiff', 'jp2', 'j2k'].includes(fileExtension || '');
+  const isValidExtension = ['tif', 'tiff'].includes(fileExtension || '');
 
   if (!ALLOWED_TYPES.includes(file.type) && !isValidExtension) {
-    throw new Error('Invalid file type. Please upload a GeoTIFF or JPEG2000 file.');
+    throw new Error('Invalid file type. Please upload a GeoTIFF file.');
   }
 }
 
@@ -195,10 +190,8 @@ export function validateImageFile(file: File): void {
  * Try to extract Sentinel-2 specific information from the filename
  * Sentinel-2 filenames follow patterns like:
  * - S2A_MSIL1C_20220101T103241_N0301_R108_T32TPN_20220101T124837.SAFE
- * - T32TPN_20220101T103241_B08.jp2
  * - S2A_MSIL2A_20230615T103031_N0509_R108_T32UME_20230615T180447.SAFE
- * - S2B_MSIL1C_20230620T103629_N0509_R008_T32UME_20230620T124358.jp2
- * - T34VDN_20250322T100041_TCI_10m.jp2 (True Color Image)
+ * - T34VDN_20250322T100041_TCI_10m.tif (True Color Image)
  */
 function extractSentinelInfo(filename: string): { utmZone?: string, date?: string, band?: string, satellite?: string, productType?: string } {
   const info: { utmZone?: string, date?: string, band?: string, satellite?: string, productType?: string } = {};
@@ -603,9 +596,7 @@ async function createGeoRaster(arrayBuffer: ArrayBuffer, filename?: string): Pro
     if (filename) {
       const sentinelInfo = extractSentinelInfo(filename);
       if (sentinelInfo.utmZone) {
-        console.warn('Could not create GeoRaster for Sentinel-2 image. This is expected for JP2 files.');
-        // In a production app, we would convert the JP2 to a GeoTIFF or use a different library
-        // For now, we'll just throw an error to fall back to simple image overlay
+        console.warn('Could not create GeoRaster for Sentinel-2 image.');
       }
     }
 
@@ -623,16 +614,10 @@ export async function processSatelliteImage(file: File): Promise<ProcessedImage>
     // Read the file as an ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
 
-    // Extract bounds from the GeoTIFF
+    // Initialize variables
     let bounds: [number, number, number, number];
     let georaster: any = null;
     let isSentinel = false;
-    let isJP2 = false;
-
-    // Check if this is a JP2 file
-    const fileExtension = file.name.split('.').pop()?.toLowerCase();
-    isJP2 = fileExtension === 'jp2' || fileExtension === 'j2k' ||
-            file.type.includes('jp2') || file.type.includes('jpx') || file.type.includes('jpm');
 
     // Check if this is a COG (Cloud Optimized GeoTIFF) file
     let isCOG = file.name.includes('COG') ||
@@ -645,8 +630,7 @@ export async function processSatelliteImage(file: File): Promise<ProcessedImage>
 
     // Check if this is a Sentinel-2 image based on filename
     if (file.name.includes('S2') || file.name.match(/T\d{2}[A-Z]{3}/) ||
-        file.name.match(/B\d{2}\.jp2$/i) || file.name.includes('TCI') ||
-        sentinelInfo.satellite) {
+        file.name.includes('TCI') || sentinelInfo.satellite) {
       console.log('Detected Sentinel-2 image from filename');
       isSentinel = true;
     }
@@ -661,31 +645,8 @@ export async function processSatelliteImage(file: File): Promise<ProcessedImage>
       console.log('Detected Copernicus image based on filename or type');
     }
 
-    // For JP2 files, especially Sentinel-2, we need special handling
-    if (isJP2) {
-      console.log('Processing JP2 file:', file.name);
-
-      // For JP2 files, we'll use the filename to determine bounds
-      if (isSentinel && sentinelInfo.utmZone && SENTINEL_UTM_ZONES[sentinelInfo.utmZone]) {
-        console.log(`Using predefined bounds for Sentinel-2 UTM zone ${sentinelInfo.utmZone}`);
-        bounds = SENTINEL_UTM_ZONES[sentinelInfo.utmZone];
-
-        // For JP2 files, we'll use the full UTM zone bounds
-        // This ensures the image is displayed in the correct geographic area
-        console.log(`Using full UTM zone bounds for better visualization: ${bounds}`);
-
-        // No need to narrow down the bounds - we'll display the full UTM zone
-        // This gives a better chance of seeing the actual image content
-
-        console.log('Adjusted bounds for better visualization:', bounds);
-      } else {
-        // If we can't determine the UTM zone, default to a reasonable area (Europe)
-        console.log('Using default bounds (Europe) for JP2 file');
-        bounds = [-10, 35, 30, 60]; // Western Europe
-      }
-    } else {
-      // For non-JP2 files, try to extract bounds from the GeoTIFF
-      try {
+    // Try to extract bounds from the GeoTIFF
+    try {
         bounds = await extractBoundsFromGeoTIFF(arrayBuffer, file.name);
 
         // Try to create a GeoRaster object
@@ -858,7 +819,6 @@ export async function processSatelliteImage(file: File): Promise<ProcessedImage>
           bounds = [-10, 35, 30, 60]; // Western Europe
         }
       }
-    }
 
     // Create a unique ID for the image
     const id = `image-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -874,12 +834,11 @@ export async function processSatelliteImage(file: File): Promise<ProcessedImage>
       timestamp: Date.now(),
       georaster,
       // Store the original array buffer for GeoTIFF files (for OpenLayers)
-      arrayBuffer: !isJP2 ? arrayBuffer : undefined,
+      arrayBuffer: arrayBuffer,
       metadata: {
         size: file.size,
         type: file.type,
         isSentinel,
-        isJP2,
         isCOG,
         sentinelInfo
       }

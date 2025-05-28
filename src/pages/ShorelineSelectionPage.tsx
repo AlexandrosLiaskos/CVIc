@@ -29,10 +29,10 @@ export default function ShorelineSelectionPage() {
       {/* Options */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
         {/* Upload Existing Shoreline Option */}
-        <div 
+        <div
           className={`bg-white p-6 rounded-lg shadow-md border-2 transition-all cursor-pointer
-            ${selectedOption === 'upload' 
-              ? 'border-primary-500 ring-2 ring-primary-200' 
+            ${selectedOption === 'upload'
+              ? 'border-primary-500 ring-2 ring-primary-200'
               : 'border-gray-200 hover:border-gray-300'}`}
           onClick={() => setSelectedOption('upload')}
         >
@@ -61,10 +61,10 @@ export default function ShorelineSelectionPage() {
         </div>
 
         {/* Create New Shoreline Option */}
-        <div 
+        <div
           className={`bg-white p-6 rounded-lg shadow-md border-2 transition-all cursor-pointer
-            ${selectedOption === 'create' 
-              ? 'border-primary-500 ring-2 ring-primary-200' 
+            ${selectedOption === 'create'
+              ? 'border-primary-500 ring-2 ring-primary-200'
               : 'border-gray-200 hover:border-gray-300'}`}
           onClick={() => setSelectedOption('create')}
         >
@@ -79,7 +79,6 @@ export default function ShorelineSelectionPage() {
           </p>
           <ul className="text-sm text-gray-500 space-y-1 mb-4">
             <li>• Upload your own satellite images</li>
-            <li>• Or acquire images from Sentinel Hub</li>
             <li>• Draw shoreline directly on the map</li>
           </ul>
           <div className="mt-2">

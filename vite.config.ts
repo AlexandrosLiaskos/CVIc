@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import react from '@vitejs/plugin-react-swc'
 import { resolve } from 'path'
 import fs from 'fs'
 import path from 'path'
@@ -9,14 +9,16 @@ export default defineConfig({
   // Use root path for production
   base: '/',
   plugins: [
-    react({
-      // Enable Fast Refresh
-      fastRefresh: true,
-    })
+    react()
   ],
   server: {
     port: 3000,
-    open: true
+    open: true,
+    hmr: {
+      port: 24678, // Use a different port for HMR WebSocket
+    },
+    // Add CORS configuration
+    cors: true
   },
   build: {
     outDir: 'dist',

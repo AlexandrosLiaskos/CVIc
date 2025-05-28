@@ -10,14 +10,14 @@ const DEFAULT_PARAMETERS: Parameter[] = [
     name: 'Geomorphology',
     description: 'Coastal landform type and characteristics',
     type: 'categorical',
-    weight: 0.25,
+    weight: 1/6,
     enabled: true,
     options: [
-      { type: 'categorical', value: 'rocky_cliffs', label: 'Rocky, cliffed coasts / Fiords / Fiards', color: '#1a9850', vulnerability: 1 },  
-      { type: 'categorical', value: 'medium_cliffs', label: 'Medium cliffs / Indented coasts', color: '#91cf60', vulnerability: 2 }, 
-      { type: 'categorical', value: 'low_cliffs', label: 'Low cliffs / Glacial drift / Alluvial plains', color: '#fee08b', vulnerability: 3 }, 
-      { type: 'categorical', value: 'cobble_beaches', label: 'Cobble beaches / Estuary / Lagoon', color: '#fc8d59', vulnerability: 4 }, 
-      { type: 'categorical', value: 'barrier_beaches', label: 'Barrier beaches / Sand beaches / Salt marsh / Mud flats / Deltas / Mangrove / Coral reefs', color: '#d73027', vulnerability: 5 } 
+      { type: 'categorical', value: 'rocky_cliffs', label: 'Rocky, cliffed coasts / Fiords / Fiards', color: '#1a9850', vulnerability: 1 },
+      { type: 'categorical', value: 'medium_cliffs', label: 'Medium cliffs / Indented coasts', color: '#91cf60', vulnerability: 2 },
+      { type: 'categorical', value: 'low_cliffs', label: 'Low cliffs / Glacial drift / Alluvial plains', color: '#fee08b', vulnerability: 3 },
+      { type: 'categorical', value: 'cobble_beaches', label: 'Cobble beaches / Estuary / Lagoon', color: '#fc8d59', vulnerability: 4 },
+      { type: 'categorical', value: 'barrier_beaches', label: 'Barrier beaches / Sand beaches / Salt marsh / Mud flats / Deltas / Mangrove / Coral reefs', color: '#d73027', vulnerability: 5 }
     ]
   },
   {
@@ -25,15 +25,15 @@ const DEFAULT_PARAMETERS: Parameter[] = [
     name: 'Coastal Slope',
     description: 'Average slope of the coastal zone (%)',
     type: 'numerical',
-    weight: 0.25,
+    weight: 1/6,
     enabled: true,
     unit: '%',
     vulnerabilityRanges: [
       { value: 1, min: 2.0, max: null, label: 'Very Low', color: '#1a9850' },
-      { value: 2, min: 0.7, max: 2.0, label: 'Low', color: '#91cf60' }, 
-      { value: 3, min: 0.04, max: 0.07, label: 'Moderate', color: '#fee08b' }, 
+      { value: 2, min: 0.7, max: 2.0, label: 'Low', color: '#91cf60' },
+      { value: 3, min: 0.04, max: 0.07, label: 'Moderate', color: '#fee08b' },
       { value: 4, min: 0.025, max: 0.04, label: 'High', color: '#fc8d59' },
-      { value: 5, min: null, max: 0.025, label: 'Very High', color: '#d73027' } 
+      { value: 5, min: null, max: 0.025, label: 'Very High', color: '#d73027' }
     ]
   },
   {
@@ -41,15 +41,15 @@ const DEFAULT_PARAMETERS: Parameter[] = [
     name: 'Relative Sea-level Change',
     description: 'Rate of relative sea-level change',
     type: 'numerical',
-    weight: 0.25,
+    weight: 1/6,
     enabled: true,
     unit: 'mm/yr',
     vulnerabilityRanges: [
-      { value: 1, min: null, max: 1.8, label: 'Very Low', color: '#1a9850' }, 
-      { value: 2, min: 1.8, max: 2.5, label: 'Low', color: '#91cf60' }, 
-      { value: 3, min: 2.5, max: 2.95, label: 'Moderate', color: '#fee08b' }, 
-      { value: 4, min: 2.95, max: 3.16, label: 'High', color: '#fc8d59' }, 
-      { value: 5, min: 3.16, max: null, label: 'Very High', color: '#d73027' } 
+      { value: 1, min: null, max: 1.8, label: 'Very Low', color: '#1a9850' },
+      { value: 2, min: 1.8, max: 2.5, label: 'Low', color: '#91cf60' },
+      { value: 3, min: 2.5, max: 2.95, label: 'Moderate', color: '#fee08b' },
+      { value: 4, min: 2.95, max: 3.16, label: 'High', color: '#fc8d59' },
+      { value: 5, min: 3.16, max: null, label: 'Very High', color: '#d73027' }
     ]
   },
   {
@@ -57,15 +57,15 @@ const DEFAULT_PARAMETERS: Parameter[] = [
     name: 'Shoreline Erosion/Accretion',
     description: 'Rate of shoreline erosion or accretion',
     type: 'numerical',
-    weight: 0.25,
+    weight: 1/6,
     enabled: true,
     unit: 'm/yr',
     vulnerabilityRanges: [
-      { value: 1, min: 2.0, max: null, label: 'Accretion', color: '#1a9850' }, 
-      { value: 2, min: 1.0, max: 2.0, label: 'Low Erosion/Accretion', color: '#91cf60' }, 
-      { value: 3, min: -1.0, max: 1.0, label: 'Stable', color: '#fee08b' }, 
-      { value: 4, min: -2.0, max: -1.0, label: 'High Erosion', color: '#fc8d59' }, 
-      { value: 5, min: null, max: -2.0, label: 'Very High Erosion', color: '#d73027' } 
+      { value: 1, min: 2.0, max: null, label: 'Accretion', color: '#1a9850' },
+      { value: 2, min: 1.0, max: 2.0, label: 'Low Erosion/Accretion', color: '#91cf60' },
+      { value: 3, min: -1.0, max: 1.0, label: 'Stable', color: '#fee08b' },
+      { value: 4, min: -2.0, max: -1.0, label: 'High Erosion', color: '#fc8d59' },
+      { value: 5, min: null, max: -2.0, label: 'Very High Erosion', color: '#d73027' }
     ]
   },
   {
@@ -73,15 +73,15 @@ const DEFAULT_PARAMETERS: Parameter[] = [
     name: 'Mean Tide Range',
     description: 'Average tidal range',
     type: 'numerical',
-    weight: 0,
-    enabled: false,
+    weight: 1/6,
+    enabled: true,
     unit: 'm',
     vulnerabilityRanges: [
-      { value: 1, min: 6.0, max: null, label: 'Very Low', color: '#1a9850' }, 
-      { value: 2, min: 4.1, max: 6.0, label: 'Low', color: '#91cf60' }, 
-      { value: 3, min: 2.0, max: 4.0, label: 'Moderate', color: '#fee08b' }, 
+      { value: 1, min: 6.0, max: null, label: 'Very Low', color: '#1a9850' },
+      { value: 2, min: 4.1, max: 6.0, label: 'Low', color: '#91cf60' },
+      { value: 3, min: 2.0, max: 4.0, label: 'Moderate', color: '#fee08b' },
       { value: 4, min: 1.0, max: 1.9, label: 'High', color: '#fc8d59' },
-      { value: 5, min: null, max: 1.0, label: 'Very High', color: '#d73027' } 
+      { value: 5, min: null, max: 1.0, label: 'Very High', color: '#d73027' }
     ]
   },
   {
@@ -89,15 +89,15 @@ const DEFAULT_PARAMETERS: Parameter[] = [
     name: 'Mean Wave Height',
     description: 'Average wave height',
     type: 'numerical',
-    weight: 0,
-    enabled: false,
+    weight: 1/6,
+    enabled: true,
     unit: 'm',
     vulnerabilityRanges: [
-      { value: 1, min: null, max: 0.55, label: 'Very Low', color: '#1a9850' }, 
-      { value: 2, min: 0.55, max: 0.85, label: 'Low', color: '#91cf60' }, 
-      { value: 3, min: 0.85, max: 1.05, label: 'Moderate', color: '#fee08b' }, 
-      { value: 4, min: 1.05, max: 1.25, label: 'High', color: '#fc8d59' }, 
-      { value: 5, min: 1.25, max: null, label: 'Very High', color: '#d73027' } 
+      { value: 1, min: null, max: 0.55, label: 'Very Low', color: '#1a9850' },
+      { value: 2, min: 0.55, max: 0.85, label: 'Low', color: '#91cf60' },
+      { value: 3, min: 0.85, max: 1.05, label: 'Moderate', color: '#fee08b' },
+      { value: 4, min: 1.05, max: 1.25, label: 'High', color: '#fc8d59' },
+      { value: 5, min: 1.25, max: null, label: 'Very High', color: '#d73027' }
     ]
   }
 ]
@@ -128,13 +128,13 @@ export default function ParameterSelectionPage() {
     .reduce((sum, p) => sum + (p.weight || 0), 0)
 
   const handleToggle = (id: string) => {
-    setParameters(params => 
+    setParameters(params =>
       params.map(p => p.id === id ? { ...p, enabled: !p.enabled } : p)
     )
   }
 
   const handleWeight = (id: string, newWeight: number) => {
-    setParameters(params => 
+    setParameters(params =>
       params.map(p => p.id === id ? { ...p, weight: newWeight } : p)
     )
   }
@@ -144,7 +144,7 @@ export default function ParameterSelectionPage() {
     if (enabledCount === 0) return
 
     const evenWeight = 1 / enabledCount
-    setParameters(params => 
+    setParameters(params =>
       params.map(p => p.enabled ? { ...p, weight: evenWeight } : p)
     )
   }
@@ -153,7 +153,7 @@ export default function ParameterSelectionPage() {
     const enabledParameters = parameters.filter(p => p.enabled)
     const totalWeight = enabledParameters.reduce((sum, p) => sum + (p.weight || 0), 0)
     if (Math.abs(totalWeight - 1) > 0.01) {
-      setError(`Parameter weights must sum to 100%. Current total: ${(totalWeight * 100).toFixed(0)}%`)
+      setError(`Parameter weights must sum to 100%. Current total: ${(totalWeight * 100).toFixed(2)}%`)
       return
     }
 
@@ -165,7 +165,7 @@ export default function ParameterSelectionPage() {
           properties: param,
           geometry: {
             type: 'Point',
-            coordinates: [0, 0] 
+            coordinates: [0, 0]
           }
         }))
       }
@@ -198,7 +198,7 @@ export default function ParameterSelectionPage() {
           <div className="text-right">
             <div className="text-sm text-gray-600 mb-1">Total Weight</div>
             <div className={`text-2xl font-medium ${Math.abs(totalWeight - 1) < 0.01 ? 'text-emerald-600' : 'text-gray-900'}`}>
-              {(totalWeight * 100).toFixed(0)}%
+              {(totalWeight * 100).toFixed(2)}%
             </div>
           </div>
           <button
@@ -212,11 +212,11 @@ export default function ParameterSelectionPage() {
 
       <div className="grid grid-cols-2 gap-4">
         {parameters.map(param => (
-          <div 
+          <div
             key={param.id}
             className={`p-5 rounded-xl border ${
-              param.enabled 
-                ? 'bg-white border-gray-200 shadow-sm' 
+              param.enabled
+                ? 'bg-white border-gray-200 shadow-sm'
                 : 'bg-gray-50 border-gray-100'
             }`}
           >
@@ -239,18 +239,18 @@ export default function ParameterSelectionPage() {
                   </div>
                   {param.enabled && (
                     <span className="text-lg font-medium text-gray-900 ml-4 w-16 text-right flex-shrink-0">
-                      {((param.weight || 0) * 100).toFixed(0)}%
+                      {((param.weight || 0) * 100).toFixed(2)}%
                     </span>
                   )}
                 </div>
-                
+
                 {param.enabled && (
                   <div className="mt-3 flex items-center gap-3">
                     <input
                       type="range"
                       min="0"
                       max="1"
-                      step="0.01"
+                      step="0.0001"
                       value={param.weight || 0}
                       onChange={e => handleWeight(param.id, parseFloat(e.target.value))}
                       className="flex-grow h-2 accent-teal-600 cursor-pointer"

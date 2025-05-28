@@ -1,14 +1,14 @@
 // ---- File: src/types/index.ts ----
 export interface ShorelineSegmentProperties {
   id: string;
-  FID?: string; 
+  FID?: string;
   length?: number;
-  index?: number; 
-  lineIndex?: number; 
-  parameters?: Record<string, ParameterValue>; 
-  vulnerabilityIndex?: number; 
-  vulnerabilityFormula?: Formula['type']; 
-  [key: string]: any; 
+  index?: number;
+  lineIndex?: number;
+  parameters?: Record<string, ParameterValue>;
+  vulnerabilityIndex?: number;
+  vulnerabilityFormula?: Formula['type'];
+  [key: string]: any;
 }
 
 export interface ShorelineSegment {
@@ -16,7 +16,7 @@ export interface ShorelineSegment {
   id: string;
   geometry: LineString | MultiLineString;
   properties: ShorelineSegmentProperties;
-  parameters: Record<string, ParameterValue>; 
+  parameters: Record<string, ParameterValue>;
 }
 
 import type { Feature, FeatureCollection, Geometry, LineString, MultiLineString } from 'geojson'
@@ -49,12 +49,12 @@ export interface BaseParameterOption {
 
 export interface NumericalParameterOption extends BaseParameterOption {
   type: 'numerical'
-  value: number 
+  value: number
 }
 
 export interface CategoricalParameterOption extends BaseParameterOption {
   type: 'categorical'
-  value: string 
+  value: string
 }
 
 export type ParameterOption = NumericalParameterOption | CategoricalParameterOption
@@ -71,10 +71,10 @@ export interface Parameter {
   type: 'numerical' | 'categorical'
   weight: number
   unit?: string
-  vulnerabilityRanges?: VulnerabilityRange[] 
-  options?: ParameterOption[] 
+  vulnerabilityRanges?: VulnerabilityRange[]
+  options?: ParameterOption[]
   enabled?: boolean
-  isCustom?: boolean 
+  isCustom?: boolean
 }
 
 export interface SelectionPolygon {
@@ -86,11 +86,11 @@ export interface SelectionPolygon {
 }
 
 export interface ShorelineData {
-  name: string 
-  location: string 
-  length: number 
-  description: string 
-  userId: string 
+  name: string
+  location: string
+  length: number
+  description: string
+  userId: string
   geoJSON?: FeatureCollection<LineString | MultiLineString>
 }
 
@@ -102,7 +102,7 @@ export interface AuthState {
 
 export interface MapFeatureProperties {
   id: string;
-  cviScore?: number; 
+  cviScore?: number;
   name?: string;
   [key: string]: any;
 }
@@ -119,23 +119,23 @@ export interface MapFeatureCollection extends FeatureCollection {
 }
 
 export interface Formula {
-  type: 'geometric-mean' | 'geometric-mean-normalized' | 'arithmetic-mean' | 'nonlinear-power';
+  type: 'geometric-mean' | 'traditional' | 'arithmetic-mean' | 'nonlinear-power';
   name: string;
   description: string;
 }
 
 export interface BaseParameterValue {
-  vulnerability: number; 
+  vulnerability: number;
 }
 
 export interface NumericalParameterValue extends BaseParameterValue {
   type: 'numerical';
-  value: number; 
+  value: number;
 }
 
 export interface CategoricalParameterValue extends BaseParameterValue {
   type: 'categorical';
-  value: string; 
+  value: string;
 }
 
 export type ParameterValue = NumericalParameterValue | CategoricalParameterValue;

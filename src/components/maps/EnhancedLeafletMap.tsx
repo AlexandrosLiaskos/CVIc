@@ -114,10 +114,6 @@ const EnhancedLeafletMap: React.FC<EnhancedLeafletMapProps> = ({
         try {
           let layer;
 
-          // For JP2 files, especially Sentinel-2, we need special handling
-          const isJP2 = image.metadata?.isJP2;
-          const isSentinel = image.metadata?.isSentinel;
-
           if (image.georaster) {
             // If we have a georaster, use GeoRasterLayer
             console.log(`Using GeoRasterLayer for image ${image.id}`);
@@ -209,30 +205,14 @@ const EnhancedLeafletMap: React.FC<EnhancedLeafletMapProps> = ({
               layer.bindPopup(`<b>${image.name}</b><br>Uploaded: ${new Date(image.timestamp).toLocaleString()}`);
             }
           } else {
-            // For JP2 files or other images without georaster
+            // For images without georaster, use ImageOverlay
             console.log(`Using ImageOverlay for image ${image.id}`);
 
-            // Calculate appropriate bounds
-            let imageBounds;
-
-            if (isJP2 && isSentinel) {
-              // For Sentinel JP2 files, use a more appropriate display area
-              const centerLat = (image.bounds[1] + image.bounds[3]) / 2;
-              const centerLng = (image.bounds[0] + image.bounds[2]) / 2;
-              const latSpan = (image.bounds[3] - image.bounds[1]) * 0.2; // 20% of UTM zone
-              const lngSpan = (image.bounds[2] - image.bounds[0]) * 0.2;
-
-              imageBounds = [
-                [centerLat - latSpan, centerLng - lngSpan], // Southwest corner
-                [centerLat + latSpan, centerLng + lngSpan]  // Northeast corner
-              ];
-            } else {
-              // For other images, use the full bounds
-              imageBounds = [
-                [image.bounds[1], image.bounds[0]], // Southwest corner [lat, lng]
-                [image.bounds[3], image.bounds[2]]  // Northeast corner [lat, lng]
-              ];
-            }
+            // Use the image bounds directly
+            const imageBounds = [
+              [image.bounds[1], image.bounds[0]], // Southwest corner [lat, lng]
+              [image.bounds[3], image.bounds[2]]  // Northeast corner [lat, lng]
+            ];
 
             // Create a DOM Image element to check if the image loads properly
             const img = new Image();

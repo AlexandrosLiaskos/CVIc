@@ -125,15 +125,6 @@ export const Layout = () => {
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         {/* Add key to force re-render when location changes */}
         <Outlet key={location.pathname + location.search} />
-
-        {/* Debug information in development */}
-        {import.meta.env.DEV && (
-          <div className="mt-8 p-4 bg-gray-100 rounded-lg text-xs">
-            <p><strong>Current Path:</strong> {location.pathname}</p>
-            <p><strong>Hash:</strong> {location.hash}</p>
-            <p><strong>Search:</strong> {location.search}</p>
-          </div>
-        )}
       </main>
     </div>
   );

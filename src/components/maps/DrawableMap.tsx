@@ -1,6 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import 'ol/ol.css';
-import Map from 'ol/Map';
 import type { FeatureCollection, LineString as GeoJSONLineString, GeoJsonObject, Feature } from 'geojson';
 import type { ProcessedImage } from '../../services/imageProcessor';
 // Import Leaflet
@@ -18,7 +16,6 @@ interface DrawableMapProps {
   onLineStringDelete?: (id: string) => void;
   drawingEnabled?: boolean;
   readOnly?: boolean;
-  onMapReady?: (map: Map) => void;
 }
 
 const DrawableMap: React.FC<DrawableMapProps> = ({

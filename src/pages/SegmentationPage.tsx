@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as turf from '@turf/turf';
-import L from 'leaflet'; 
+import L from 'leaflet';
 import Map from '../components/maps/Map';
 import { segmentShoreline } from '../utils/geometry';
 import { indexedDBService } from '../services/indexedDBService';
@@ -16,10 +16,10 @@ import {
     ExclamationTriangleIcon,
     CheckCircleIcon,
     BeakerIcon,
-    MapPinIcon, 
-    CubeTransparentIcon, 
-    Cog6ToothIcon 
-} from '@heroicons/react/24/outline'; 
+    MapPinIcon,
+    CubeTransparentIcon,
+    Cog6ToothIcon
+} from '@heroicons/react/24/outline';
 
 export default function SegmentationPage() {
   const navigate = useNavigate();
@@ -107,11 +107,6 @@ export default function SegmentationPage() {
       setError('Original shoreline data is not loaded.');
       return;
     }
-    if (estimatedSegments > 10000) {
-        if (!confirm(`This resolution will generate approximately ${estimatedSegments} segments, which might be slow to preview and process. Continue preview?`)) {
-            return;
-        }
-    }
     setProcessing(true);
     setError(null);
     setSegmentsPreview([]);
@@ -138,11 +133,6 @@ export default function SegmentationPage() {
       setError("Please generate and preview the segmentation first using the 'Preview Segmentation' button.");
       return;
     }
-     if (estimatedSegments > 10000) {
-         if (!confirm(`Confirming segmentation with approximately ${estimatedSegments} segments. This might take time to process in the next steps. Continue?`)) {
-             return;
-         }
-     }
     setProcessing(true);
     setError(null);
     try {
@@ -221,27 +211,31 @@ export default function SegmentationPage() {
             </div>
 
             {/* Resolution Input */}
-            <div> {/* Removed mb-4, using parent space-y */}
-              <label htmlFor="resolution" className="block text-sm font-medium text-gray-700">
-                Segment Resolution
+            <div>
+              <label htmlFor="resolution" className="block text-sm font-medium text-gray-700 mb-2">
+                Segment Resolution/Length <span className="text-red-500">*</span>
               </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
+              <div className="mt-1 relative rounded-md shadow-md border border-gray-200 bg-gray-50 p-1">
                 <input
                   type="number"
                   name="resolution"
                   id="resolution"
-                  placeholder="e.g., 100"
+                  placeholder="Enter resolution (e.g., 10)"
                   value={resolution}
                   onChange={handleResolutionChange}
-                  className="block w-full pr-16 rounded-md border-gray-300 focus:border-primary-500 focus:ring-primary-500 sm:text-sm disabled:bg-gray-100"
+                  className="block w-full pr-16 py-3 px-3 text-base rounded-md border-gray-300 focus:border-primary-500 focus:ring-primary-500 disabled:bg-gray-100 bg-white"
                   disabled={processing}
                   aria-describedby="resolution-unit"
+                  min="1"
+                  step="1"
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                  <span className="text-gray-500 sm:text-sm" id="resolution-unit">meters</span>
+                  <span className="text-gray-500 text-sm" id="resolution-unit">meters</span>
                 </div>
               </div>
-              <p className="mt-2 text-xs text-gray-500">Enter the desired length for each shoreline segment.</p>
+              <p className="mt-2 text-sm text-gray-600">
+                Enter the desired length for each shoreline segment.
+              </p>
             </div>
 
             {/* Estimation & Warning */}
@@ -252,10 +246,10 @@ export default function SegmentationPage() {
                   Estimated segments: <span className="font-semibold">{estimatedSegments.toLocaleString()}</span>
                 </p>
               </div>
-              {estimatedSegments > 5000 && (
+              {estimatedSegments > 300000 && (
                 <div className="flex items-start text-sm text-amber-600">
                   <ExclamationTriangleIcon className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
-                  <span>Warning: High segment count (&gt;5k) may impact performance.</span>
+                  <span>Warning: High segment count (&gt;300k) may impact performance.</span>
                 </div>
               )}
             </div>
