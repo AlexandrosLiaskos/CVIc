@@ -4,11 +4,9 @@ CVIc (Coastal Vulnerability Index Compiler) represents the first open-source spe
 
 ### Key Innovations
 - **First application dedicated to CVA/CVI**
-- **Real-time processing of scientific geospatial methdologies on the web**
-- **Multi-format support** for geospatial data (Shapefiles, GeoJSON, GeoTIFF, COG)
-- **Interactive Maps**
-- **Client-side processing** for faster development to public release till the cloud migration
-- **Multiple Workflows/User-selections**
+- **Real-time processing scientific SaaS on the web**
+- **Client-side processing** 
+- **Development of an integrated standardized CVA platform**
 
 ---
 
