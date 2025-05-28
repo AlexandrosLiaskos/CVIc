@@ -1,10 +1,13 @@
 // ---- File: src/pages/RootPage.tsx ----
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { ChevronRightIcon, CubeTransparentIcon, CommandLineIcon, MapIcon, CircleStackIcon, FingerPrintIcon, PaintBrushIcon, BeakerIcon, CpuChipIcon } from '@heroicons/react/24/outline'; // Added more icons
 
 export default function RootPage() {
+  console.log('RootPage component rendering');
   const { user, loading } = useAuth();
+  console.log('Auth state:', { user, loading });
   const workflowSteps = [
     { text: "Choose to upload or create a shoreline.", icon: <CpuChipIcon className="h-6 w-6 text-primary-600" /> },
     { text: "Upload existing shoreline or digitize from satellite imagery.", icon: <PaintBrushIcon className="h-6 w-6 text-primary-600" /> },
@@ -30,7 +33,24 @@ export default function RootPage() {
     { name: "Firebase Auth", purpose: "User Authentication", icon: <FingerPrintIcon className="h-4 w-4 text-yellow-700" /> },
   ];
 
-  if (loading) {
+  // Only show loading spinner for a maximum of 2 seconds
+  const [showLoading, setShowLoading] = useState(loading);
+
+  useEffect(() => {
+    // If loading is true, set a timeout to force it to false after 2 seconds
+    if (loading) {
+      const timeoutId = setTimeout(() => {
+        console.log('RootPage: Force ending loading state after timeout');
+        setShowLoading(false);
+      }, 2000);
+
+      return () => clearTimeout(timeoutId);
+    } else {
+      setShowLoading(false);
+    }
+  }, [loading]);
+
+  if (showLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-600"></div>

@@ -1,103 +1,78 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import { App } from './App'
-import './index.css'
-import { AuthProvider } from './hooks/useAuth'
-import { initializeProj4 } from './utils/proj4Setup'
+/**
+ * Main entry point for the application
+ *
+ * This file initializes the React application.
+ */
 
-// Global error handler for uncaught errors
-window.addEventListener('error', (event) => {
-  console.error('Global error caught:', event.error);
+// Import our custom proj4 implementation first
+import './lib/proj4-with-defs';
 
-  // Special handling for proj4 errors
-  if (event.error && event.error.message && event.error.message.includes('defs is not a function')) {
-    console.warn('Detected proj4 initialization error, attempting to fix...');
+// Import map libraries to ensure proper initialization
+import './utils/mapLibraries';
 
-    // Try to fix proj4 if it exists in the window object
-    if (window.proj4) {
-      if (typeof window.proj4.default === 'function') {
-        window.proj4 = window.proj4.default;
-        console.log('Fixed proj4 using default export');
-      }
-    }
+// Import React and other dependencies
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { RouterProvider } from 'react-router-dom';
+import './index.css';
+import { AuthProvider } from './hooks/useAuth';
+import { router } from './router';
+import { DebugPanel } from './components/common/DebugPanel';
+import { RouterDebug } from './components/common/RouterDebug';
+import RouteDebugger from './components/common/RouteDebugger';
 
-    // Prevent the white screen by showing a helpful message
-    const rootElement = document.getElementById('root');
-    if (rootElement) {
-      rootElement.innerHTML = `
-        <div style="padding: 20px; font-family: sans-serif;">
-          <h2>Loading application...</h2>
-          <p>If the application doesn't load within a few seconds, please try refreshing the page.</p>
-        </div>
-      `;
+// Setup error handling
+const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
+  console.error('Application Error:', error);
+  console.error('Component Stack:', errorInfo.componentStack);
 
-      // Try to reload the application after a short delay
-      setTimeout(() => {
-        window.location.reload();
-      }, 3000);
-    }
-  }
-});
+  // You could send this to an error tracking service
+};
 
-// Initialize proj4 with common coordinate systems
-// This prevents the "up.defs is not a function" error in production
-try {
-  initializeProj4();
-  console.log('proj4 initialized successfully');
-} catch (error) {
-  console.error('Error initializing proj4:', error);
-}
+// Check if we're in development or production
+const isDev = import.meta.env.DEV;
+console.log(`Running in ${isDev ? 'development' : 'production'} mode`);
+console.log(`Base URL: ${import.meta.env.BASE_URL}`);
 
-// Ensure the DOM is fully loaded before rendering
-const renderApp = () => {
-  const rootElement = document.getElementById('root');
-
-  if (!rootElement) {
-    console.error('Root element not found. Retrying in 100ms...');
-    setTimeout(renderApp, 100);
-    return;
-  }
+// Initialize the app
+console.log('Initializing React application');
+const rootElement = document.getElementById('root');
+if (rootElement) {
+  console.log('Root element found, rendering app');
 
   try {
-    // Check if proj4 is properly initialized
-    if (window.proj4 && typeof window.proj4.defs !== 'function') {
-      console.warn('proj4 is not properly initialized, attempting to fix...');
-      if (typeof window.proj4.default === 'function') {
-        window.proj4 = window.proj4.default;
-        console.log('Fixed proj4 using default export');
-      }
-    }
-
-    ReactDOM.createRoot(rootElement).render(
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(
       <React.StrictMode>
         <AuthProvider>
-          <App />
+          <>
+            <RouterProvider router={router} />
+            {/* Only show debug components in development or with debug URL param */}
+            {(isDev || new URLSearchParams(window.location.search).has('debug')) && (
+              <>
+                <RouterDebug />
+                <RouteDebugger />
+                <DebugPanel showByDefault={false} />
+              </>
+            )}
+          </>
         </AuthProvider>
       </React.StrictMode>,
     );
-    console.log('Application rendered successfully');
   } catch (error) {
     console.error('Error rendering application:', error);
 
-    // Show a helpful error message instead of a white screen
-    if (rootElement) {
-      rootElement.innerHTML = `
-        <div style="padding: 20px; font-family: sans-serif;">
-          <h2>Error Loading Application</h2>
-          <p>There was a problem loading the application. Please try refreshing the page.</p>
-          <p>If the problem persists, please contact support.</p>
-          <button onclick="window.location.reload()" style="padding: 8px 16px; margin-top: 10px;">
-            Refresh Page
-          </button>
-        </div>
-      `;
-    }
+    // Show a fallback UI
+    rootElement.innerHTML = `
+      <div style="padding: 20px; text-align: center; font-family: sans-serif;">
+        <h1>CVIc - Coastal Vulnerability Index Compiler</h1>
+        <p>The application failed to initialize. Please try refreshing the page.</p>
+        <button onclick="window.location.reload()" style="padding: 10px 20px; margin-top: 20px; cursor: pointer;">
+          Reload Page
+        </button>
+      </div>
+    `;
   }
-};
-
-// Start rendering when the DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', renderApp);
 } else {
-  renderApp();
+  console.error('Root element not found');
 }

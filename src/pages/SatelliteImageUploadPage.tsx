@@ -147,7 +147,7 @@ export default function SatelliteImageUploadPage() {
       {/* Error Display */}
       <ErrorAlert message={error} onClose={() => setError(null)} />
 
-      {/* JP2 Info Alert */}
+      {/* File Format Info Alert */}
       <div className="mb-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-md">
         <div className="flex">
           <div className="flex-shrink-0">
@@ -156,19 +156,17 @@ export default function SatelliteImageUploadPage() {
             </svg>
           </div>
           <div className="ml-3">
-            <h3 className="text-sm font-medium text-blue-800">About JP2 (JPEG 2000) Files</h3>
+            <h3 className="text-sm font-medium text-blue-800">About Supported File Formats</h3>
             <div className="mt-2 text-sm text-blue-700">
               <p>
-                When uploading Sentinel-2 JP2 files, the system will:
+                <span className="font-medium">GeoTIFF & Cloud Optimized GeoTIFF (COG):</span>
               </p>
               <ul className="list-disc pl-5 mt-1 space-y-1">
-                <li>Extract UTM zone information from the filename</li>
-                <li>Display the image in its approximate geographic location</li>
-                <li>Show the UTM zone boundaries to help with positioning</li>
+                <li>Both standard GeoTIFF and COG formats are fully supported</li>
+                <li>COG files provide better performance for web-based viewing</li>
+                <li>Images will be displayed in their correct geographic location</li>
+                <li>Files must contain proper georeferencing information</li>
               </ul>
-              <p className="mt-2">
-                For best results with JP2 files, use True Color Images (TCI) when available.
-              </p>
             </div>
           </div>
         </div>
@@ -187,7 +185,7 @@ export default function SatelliteImageUploadPage() {
           <input
             type="file"
             id="satellite-image"
-            accept=".tif,.tiff,.jp2,.j2k"
+            accept=".tif,.tiff"
             onChange={handleFileChange}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             disabled={loading}
@@ -201,7 +199,7 @@ export default function SatelliteImageUploadPage() {
             or click to browse files
           </span>
           <span className="mt-4 block text-xs text-gray-500">
-            Supports GeoTIFF (.tif, .tiff) and JPEG2000 (.jp2, .j2k) formats. Max 1GB per file.
+            Supports GeoTIFF (.tif, .tiff) and Cloud Optimized GeoTIFF (COG) formats. Max 1GB per file.
           </span>
         </div>
 

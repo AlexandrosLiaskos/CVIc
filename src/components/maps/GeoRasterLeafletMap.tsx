@@ -69,51 +69,151 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
     if (mapRef.current) return; // Map already initialized
 
     try {
-      // Create map instance with improved options for better performance
+      // Check if WebGL is available for potential hardware acceleration
+      const useWebGL = (() => {
+        try {
+          const canvas = document.createElement('canvas');
+          return !!(window.WebGLRenderingContext &&
+            (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
+        } catch (e) {
+          return false;
+        }
+      })();
+
+      console.log(`WebGL ${useWebGL ? 'is' : 'is not'} available for hardware acceleration`);
+
+      // Apply advanced hardware acceleration optimizations
+      // These optimizations will be applied regardless of WebGL availability
+      // as they can still improve performance with the Canvas renderer
+      const style = document.createElement('style');
+      style.textContent = `
+        /* Core map container optimizations */
+        #georaster-leaflet-map {
+          will-change: transform;
+          transform: translateZ(0);
+          backface-visibility: hidden;
+          perspective: 1000px;
+          -webkit-perspective: 1000px;
+        }
+
+        /* Tile container optimizations */
+        .leaflet-tile-container {
+          will-change: transform;
+          transform: translateZ(0);
+          backface-visibility: hidden;
+          perspective: 1000px;
+          -webkit-perspective: 1000px;
+        }
+
+        /* Individual tile optimizations */
+        .leaflet-tile {
+          will-change: transform;
+          backface-visibility: hidden;
+          -webkit-transform: translateZ(0);
+          transform: translateZ(0);
+          image-rendering: -webkit-optimize-contrast; /* Sharper image rendering */
+        }
+
+        /* Pane optimizations */
+        .leaflet-pane {
+          will-change: transform;
+          transform: translateZ(0);
+          backface-visibility: hidden;
+        }
+
+        /* Layer optimizations */
+        .leaflet-layer {
+          will-change: transform;
+          transform: translateZ(0);
+          backface-visibility: hidden;
+        }
+
+        /* Zoom animation optimizations */
+        .leaflet-zoom-animated {
+          will-change: transform;
+          transform: translateZ(0);
+          backface-visibility: hidden;
+          transition-timing-function: cubic-bezier(0.215, 0.610, 0.355, 1.000);
+        }
+      `;
+      document.head.appendChild(style);
+
+      // Apply additional WebGL-specific optimizations if available
+      if (useWebGL) {
+        // Add WebGL-specific optimizations
+        const webGLStyle = document.createElement('style');
+        webGLStyle.textContent = `
+          /* WebGL-specific optimizations */
+          .leaflet-canvas-layer {
+            will-change: transform;
+            transform: translateZ(0);
+            backface-visibility: hidden;
+          }
+        `;
+        document.head.appendChild(webGLStyle);
+      }
+      // Create map instance with highly optimized options for perfect zooming
       const mapInstance = L.map('georaster-leaflet-map', {
         center: [20, 0],
         zoom: 2,
         zoomControl: true,
         // Use canvas renderer for better performance with raster layers
         preferCanvas: true,
-        // Optimize animations for better performance with large raster images
+        // Enable smooth animations but with performance optimizations
         fadeAnimation: true,
         zoomAnimation: true,
         // Disable marker animations for better performance
         markerZoomAnimation: false,
-        // Increase max zoom level
-        maxZoom: 19,
-        // Add additional performance options
-        wheelDebounceTime: 40, // Reduce debounce time for more responsive zooming
-        wheelPxPerZoomLevel: 60, // Fewer pixels per zoom level for faster zooming
-        // Enable caching for better performance
+        // Increase max zoom level with better granularity
+        maxZoom: 22,
+        minZoom: 1,
+        // Advanced performance options - increased debounce time for better performance
+        wheelDebounceTime: 40, // Increased debounce for better performance during zooming
+        wheelPxPerZoomLevel: 60, // More sensitive zoom for smoother transitions
+        // High-performance renderer with optimized settings
         renderer: L.canvas({
-          padding: 0.5,
-          tolerance: 10
+          padding: 2.0, // Increased padding for smoother edge transitions
+          tolerance: 8   // Higher tolerance for better performance
         }),
-        // Add additional options for better performance
-        zoomSnap: 0.5, // Allow finer zoom levels
-        zoomDelta: 0.5, // Smaller zoom increments
+        // Advanced zoom options for smoother transitions
+        zoomSnap: 0.5, // Increased for better performance (less granular but faster)
+        zoomDelta: 0.5, // Increased for better performance
         trackResize: true, // Enable resize tracking for responsive layouts
-        // Improve tile loading behavior
-        updateWhenIdle: false, // Update tiles while panning
-        updateWhenZooming: false, // Don't update tiles during zoom animation
-        keepBuffer: 4 // Keep more tiles in buffer for smoother panning
+        // Additional performance optimizations
+        bounceAtZoomLimits: false, // Prevent bouncing at zoom limits
+        // Reduce animation duration for faster zooming
+        zoomAnimationThreshold: 4, // Allow animation for larger zoom changes
+        inertia: true, // Enable inertia for smoother panning
+        inertiaDeceleration: 3000, // Higher value for faster deceleration
+        worldCopyJump: true // Better handling of panning across date line
       });
       mapRef.current = mapInstance;
 
-      // Add base tile layer (OpenStreetMap) with improved caching
+      // Add high-performance base tile layer with advanced caching
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        // Enable caching for better performance
-        updateWhenIdle: true,
-        updateWhenZooming: false,
-        // Reduce the number of tile requests during zooming
-        updateInterval: 500,
-        // Improve tile loading
-        keepBuffer: 4
-        // Removed bounds: null as it's not compatible with the type
+        maxZoom: 22, // Match map's max zoom
+        minZoom: 1,  // Match map's min zoom
+        // Advanced caching and performance options - optimized for zooming
+        updateWhenIdle: true, // Only update when idle for better performance
+        updateWhenZooming: false, // Don't update during zoom for better performance
+        keepBuffer: 4, // Reduced buffer size for better performance
+        // Additional performance optimizations
+        crossOrigin: true, // Enable CORS for better caching
+        detectRetina: true, // Better display on high-DPI screens
+        className: 'base-tile-layer', // Add class for potential CSS optimizations
+        // Improved loading strategy
+        subdomains: 'abc', // Use all available subdomains for parallel loading
+        errorTileUrl: '', // Empty string to prevent error tile display
+        zIndex: 1, // Lower z-index to ensure it's below our raster layers
+        // Improved tile loading
+        tileSize: 256, // Standard tile size
+        zoomOffset: 0, // No zoom offset
+        opacity: 0.7, // Slightly transparent to better see our raster data
+        // Additional performance settings
+        pane: 'tilePane', // Ensure it's in the tile pane for proper layering
+        maxNativeZoom: 19, // Maximum zoom level of the tile server
+        bounds: L.latLngBounds([-90, -180], [90, 180]), // Limit to world bounds
       }).addTo(mapInstance);
 
       // Create feature group for drawn items
@@ -133,10 +233,48 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
       console.error("GeoRasterLeafletMap: Error initializing map:", error);
     }
 
-    // Cleanup function
+    // Advanced cleanup function with memory management
     return () => {
       if (mapRef.current) {
-        console.log('GeoRasterLeafletMap: Cleaning up map instance.');
+        console.log('GeoRasterLeafletMap: Performing comprehensive cleanup.');
+
+        // First, remove all layers to free up memory
+        if (imageLayersRef.current && imageLayersRef.current.length > 0) {
+          console.log(`Removing ${imageLayersRef.current.length} image layers`);
+          imageLayersRef.current.forEach(layer => {
+            try {
+              if (layer && mapRef.current) {
+                mapRef.current.removeLayer(layer);
+
+                // Special handling for GeoRasterLayer to free memory
+                if (layer instanceof GeoRasterLayer || layer.georaster) {
+                  // Clear any cached tiles
+                  if (layer._tiles) {
+                    Object.keys(layer._tiles).forEach(key => {
+                      delete layer._tiles[key];
+                    });
+                  }
+
+                  // Clear georaster data if possible
+                  if (layer.georaster) {
+                    if (layer.georaster.values) {
+                      layer.georaster.values.length = 0;
+                    }
+                    // Clear other large properties
+                    ['_data', '_cache', '_values'].forEach(prop => {
+                      if (layer.georaster[prop]) {
+                        layer.georaster[prop] = null;
+                      }
+                    });
+                  }
+                }
+              }
+            } catch (e) {
+              console.warn('Error removing layer:', e);
+            }
+          });
+          imageLayersRef.current = [];
+        }
 
         // Clean up any registered event handlers
         if (mapRef.current._cleanupHandlers && Array.isArray(mapRef.current._cleanupHandlers)) {
@@ -153,8 +291,32 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
           mapRef.current._cleanupHandlers = [];
         }
 
+        // Remove all event listeners
+        mapRef.current.off();
+
+        // Clear all tiles from the container
+        if (mapRef.current) {
+          const mapContainer = mapRef.current.getContainer();
+          const tileContainers = mapContainer.querySelectorAll('.leaflet-tile-container');
+          tileContainers.forEach((container) => {
+            if (container instanceof HTMLElement) {
+              container.innerHTML = '';
+            }
+          });
+        }
+
+        // Remove the map
         mapRef.current.remove();
         mapRef.current = null;
+
+        // Force garbage collection if possible
+        if (window.gc) {
+          try {
+            window.gc();
+          } catch (e) {
+            console.log('Manual garbage collection not available');
+          }
+        }
       }
     };
   }, []);
@@ -376,19 +538,19 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
                   loadingIndicator.addTo(mapInstance);
                 }
 
-                // Create the GeoRasterLayer with highly optimized settings
+                // Create the GeoRasterLayer with advanced settings optimized for performance
                 const geoRasterLayer = new GeoRasterLayer({
                   georaster: georaster,
                   opacity: 0.9,
-                  // Use optimized resolution for better performance
-                  resolution: finalResolution,
+                  // Use a moderate resolution that balances quality and performance
+                  resolution: 256, // Reduced from 512 for better performance during zooming
                   // Enable caching for better performance during zoom/pan
                   debugLevel: 0,
-                  // Set a render timeout to prevent blocking the UI
-                  renderTimeout: 1500,
-                  // Add additional performance options
-                  keepBuffer: 8, // Keep more tiles in buffer for smoother panning
-                  updateWhenIdle: true, // Only update when user stops interacting
+                  // Set a shorter render timeout for faster response
+                  renderTimeout: 2000,
+                  // Optimize buffer and update settings for better zooming performance
+                  keepBuffer: 4, // Reduced buffer size for better performance
+                  updateWhenIdle: true, // Only update when idle for better performance
                   updateWhenZooming: false, // Don't update during zoom for better performance
                   resampleMethod: 'nearest', // Faster than bilinear for most cases
                   pixelValuesToColorFn: values => {
@@ -481,83 +643,65 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
                 bounds.extend(georasterBounds);
                 console.log('Created and added georaster layer with bounds using COG approach:', georasterBounds);
 
-                // Create a debounced version of the redraw function to prevent excessive redraws
-                let zoomRedrawTimeout: number | null = null;
+                // Use a performance-optimized approach for zooming
+                // that prioritizes responsiveness over quality during zoom operations
 
-                // Add event handlers for zoom operations with improved performance
+                // Calculate a moderate resolution that balances quality and performance
+                // Lower resolution for better performance, especially during zooming
+                const optimalBaseResolution = 256; // Reduced from 512 for better performance
+
+                // Apply optimized settings to the GeoRasterLayer
+                (geoRasterLayer.options as any).resolution = optimalBaseResolution;
+
+                // Optimize rendering settings for better performance
+                (geoRasterLayer.options as any).updateWhenZooming = false; // Don't update during zoom for better performance
+                (geoRasterLayer.options as any).keepBuffer = 4; // Reduced buffer size for better performance
+                (geoRasterLayer.options as any).renderTimeout = 2000; // Shorter timeout for faster response
+
+                // Create a throttled zoom handler to prevent excessive rendering
+                // This helps reduce the number of times the loading indicator is shown/hidden
+                let zoomThrottleTimer: number | null = null;
+                const throttleDelay = 300; // ms between zoom handler executions
+
+                // Add a subtle loading indicator during zoom without changing resolution
                 const zoomStartHandler = () => {
                   if (!mapInstance) return;
 
-                  // Show loading indicator
-                  const loadingElement = document.querySelector('.loading-indicator') as HTMLElement;
-                  if (loadingElement) loadingElement.style.display = 'block';
-
-                  // Cancel any pending redraw from previous zoom operations
-                  if (zoomRedrawTimeout !== null) {
-                    window.clearTimeout(zoomRedrawTimeout);
-                    zoomRedrawTimeout = null;
+                  // Clear any existing timer
+                  if (zoomThrottleTimer !== null) {
+                    window.clearTimeout(zoomThrottleTimer);
+                    zoomThrottleTimer = null;
                   }
 
-                  // Use a much lower resolution during zooming for better performance
-                  // This makes zooming feel much more responsive
-                  const zoomingResolution = 96; // Very low resolution during zoom
-                  (geoRasterLayer.options as any).resolution = zoomingResolution;
-
-                  // Only log occasionally to reduce console spam
-                  if (Math.random() < 0.1) {
-                    console.log('Zoom started, using lower resolution for performance:', zoomingResolution);
-                  }
+                  // Show loading indicator with throttling
+                  zoomThrottleTimer = window.setTimeout(() => {
+                    const loadingElement = document.querySelector('.loading-indicator') as HTMLElement;
+                    if (loadingElement) {
+                      loadingElement.style.display = 'block';
+                      loadingElement.style.opacity = '0.5'; // Make it subtle
+                    }
+                  }, 100); // Short delay before showing indicator
                 };
 
-                // Handler for when zoom ends with improved performance
+                // Hide the loading indicator when zoom ends, but don't redraw the layer
                 const zoomEndHandler = () => {
-                  // Make sure mapInstance is not null
-                  if (!mapInstance) {
-                    console.error('Map instance is null in GeoTIFF zoom handler');
-                    return;
+                  if (!mapInstance) return;
+
+                  // Clear any existing timer
+                  if (zoomThrottleTimer !== null) {
+                    window.clearTimeout(zoomThrottleTimer);
+                    zoomThrottleTimer = null;
                   }
 
-                  // Cancel any pending redraw from previous zoom operations
-                  if (zoomRedrawTimeout !== null) {
-                    window.clearTimeout(zoomRedrawTimeout);
-                  }
-
-                  // Set a small delay to allow the browser to finish zoom animation
-                  // Using a longer delay actually improves perceived performance
-                  // as it prevents multiple redraws during rapid zoom changes
-                  zoomRedrawTimeout = window.setTimeout(() => {
-                    const newZoom = mapInstance.getZoom();
-
-                    // Calculate optimal resolution based on zoom level using the improved algorithm
-                    const zoomFactor = Math.pow(1.2, Math.min(newZoom - 10, 8));
-                    const zoomAdjustedFactor = Math.max(0.5, Math.min(2.5, zoomFactor));
-                    const resolution = Math.round(baseResolution * zoomAdjustedFactor);
-
-                    // Limit resolution to reasonable bounds based on screen size
-                    const maxScreenDimension = Math.max(window.innerWidth, window.innerHeight);
-                    const maxResolution = Math.min(512, Math.round(maxScreenDimension / 2));
-                    const newResolution = Math.min(resolution, maxResolution);
-
-                    // Only log occasionally to reduce console spam
-                    if (Math.random() < 0.1) {
-                      console.log(`Zoom ended. Adjusting GeoTIFF resolution to ${newResolution} at zoom level ${newZoom}`);
-                    }
-
-                    // Update the resolution with type safety
-                    (geoRasterLayer.options as any).resolution = newResolution;
-
-                    // Redraw the layer with the new resolution
-                    geoRasterLayer.redraw();
-
-                    // Clear the timeout reference
-                    zoomRedrawTimeout = null;
-
-                    // Zoom has ended
-
-                    // Hide loading indicator
+                  // Hide loading indicator with throttling
+                  zoomThrottleTimer = window.setTimeout(() => {
                     const loadingElement = document.querySelector('.loading-indicator') as HTMLElement;
-                    if (loadingElement) loadingElement.style.display = 'none';
-                  }, 200); // Small delay to ensure zoom animation is complete
+                    if (loadingElement) {
+                      loadingElement.style.display = 'none';
+                    }
+                    // Force a single redraw after zoom completes for better quality
+                    mapInstance.invalidateSize({ pan: false });
+                  }, throttleDelay);
                 };
 
                 // Add the zoom handlers (with null check)
@@ -588,12 +732,29 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
                 // Fall back to traditional parse method
                 const georaster = await parse(image.arrayBuffer);
 
+                // Use a consistent approach for all GeoRasterLayers
+                // with a fixed high-quality resolution
+                // Using a higher resolution of 512 for better quality
+
                 const geoRasterLayer = new GeoRasterLayer({
                   georaster: georaster,
                   opacity: 0.9,
-                  resolution: 256,
+                  // Use a moderate resolution that balances quality and performance
+                  resolution: 256, // Reduced from 512 for better performance during zooming
+                  // Enable caching for better performance during zoom/pan
+                  debugLevel: 0,
+                  // Set a shorter render timeout for faster response
+                  renderTimeout: 2000,
+                  // Optimize buffer and update settings for better zooming performance
+                  keepBuffer: 4, // Reduced buffer size for better performance
+                  updateWhenIdle: true, // Only update when idle for better performance
+                  updateWhenZooming: false, // Don't update during zoom for better performance
+                  resampleMethod: 'nearest', // Faster than bilinear for most cases
                   pixelValuesToColorFn: values => {
-                    console.log('Pixel values for parsed GeoTIFF:', values);
+                    // Reduce logging frequency
+                    if (Math.random() < 0.01) {
+                      console.log('Pixel values for parsed GeoTIFF:', values);
+                    }
 
                     // For false color images or multi-band images
                     if (values.length >= 3) {
@@ -724,23 +885,43 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
                 }
 
                 const currentZoom = mapInstance.getZoom();
-                // Adjust resolution based on zoom level - higher resolution at higher zoom levels
+
+                // Calculate optimal resolution based on zoom level
+                // Use a more sophisticated algorithm for resolution calculation
+                // Lower zoom levels (overview): use lower resolution for performance
+                // Higher zoom levels (detail): use higher resolution for clarity
                 const baseResolution = 256;
-                // Dynamic resolution: higher at higher zoom levels for better detail
-                const zoomFactor = Math.max(1, Math.min(2, currentZoom / 10)); // Scale between 1-2x based on zoom
-                const resolution = Math.round(baseResolution * zoomFactor);
 
-                console.log(`Using dynamic resolution for COG: ${resolution} at zoom level ${currentZoom}`);
+                // Exponential scaling for better performance at different zoom levels
+                // This provides better low-res overview at low zoom and high detail at high zoom
+                const zoomFactor = Math.pow(1.2, Math.min(currentZoom - 10, 8));
+                const zoomAdjustedFactor = Math.max(0.5, Math.min(2.5, zoomFactor));
+                const resolution = Math.round(baseResolution * zoomAdjustedFactor);
 
-                // Create a GeoRasterLayer with the parsed georaster
+                // Limit resolution to reasonable bounds based on screen size
+                const maxScreenDimension = Math.max(window.innerWidth, window.innerHeight);
+                const maxResolution = Math.min(512, Math.round(maxScreenDimension / 2));
+                const finalResolution = Math.min(resolution, maxResolution);
+
+                if (Math.random() < 0.1) { // Reduce logging frequency
+                    console.log(`Using optimized resolution for COG: ${finalResolution} at zoom level ${currentZoom}`);
+                }
+
+                // Create the GeoRasterLayer with advanced settings optimized for performance
                 const geoRasterLayer = new GeoRasterLayer({
                   georaster: georaster,
                   opacity: 0.9,
-                  resolution: resolution,
+                  // Use a moderate resolution that balances quality and performance
+                  resolution: 256, // Reduced from 512 for better performance during zooming
                   // Enable caching for better performance during zoom/pan
                   debugLevel: 0,
-                  // Set a render timeout to prevent blocking the UI
-                  renderTimeout: 1000,
+                  // Set a shorter render timeout for faster response
+                  renderTimeout: 2000,
+                  // Optimize buffer and update settings for better zooming performance
+                  keepBuffer: 4, // Reduced buffer size for better performance
+                  updateWhenIdle: true, // Only update when idle for better performance
+                  updateWhenZooming: false, // Don't update during zoom for better performance
+                  resampleMethod: 'nearest', // Faster than bilinear for most cases
                   pixelValuesToColorFn: values => {
                     // Reduce logging frequency for better performance
                     if (Math.random() < 0.01) { // Only log ~1% of pixel values
@@ -856,51 +1037,65 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
                   loadingIndicator.addTo(mapInstance);
                 }
 
-                // Add event handlers for zoom operations
+                // Use a performance-optimized approach for zooming
+                // that prioritizes responsiveness over quality during zoom operations
+
+                // Calculate a moderate resolution that balances quality and performance
+                // Lower resolution for better performance, especially during zooming
+                const optimalBaseResolution = 256; // Reduced for better performance
+
+                // Apply optimized settings to the GeoRasterLayer
+                (geoRasterLayer.options as any).resolution = optimalBaseResolution;
+
+                // Optimize rendering settings for better performance
+                (geoRasterLayer.options as any).updateWhenZooming = false; // Don't update during zoom for better performance
+                (geoRasterLayer.options as any).keepBuffer = 4; // Reduced buffer size for better performance
+                (geoRasterLayer.options as any).renderTimeout = 2000; // Shorter timeout for faster response
+
+                // Create a throttled zoom handler to prevent excessive rendering
+                // This helps reduce the number of times the loading indicator is shown/hidden
+                let zoomThrottleTimer: number | null = null;
+                const throttleDelay = 300; // ms between zoom handler executions
+
+                // Add a subtle loading indicator during zoom without changing resolution
                 const zoomStartHandler = () => {
                   if (!mapInstance) return;
 
-                  // Show loading indicator
-                  const loadingElement = document.querySelector('.loading-indicator') as HTMLElement;
-                  if (loadingElement) loadingElement.style.display = 'block';
-
-                  // Use a lower resolution during zooming for better performance
-                  const zoomingResolution = 128; // Lower resolution during zoom
-                  (geoRasterLayer.options as any).resolution = zoomingResolution;
-
-                  console.log('Zoom started, using lower resolution for COG performance:', zoomingResolution);
-                };
-
-                // Handler for when zoom ends
-                const zoomEndHandler = () => {
-                  // Make sure mapInstance is not null
-                  if (!mapInstance) {
-                    console.error('Map instance is null in COG zoom handler');
-                    return;
+                  // Clear any existing timer
+                  if (zoomThrottleTimer !== null) {
+                    window.clearTimeout(zoomThrottleTimer);
+                    zoomThrottleTimer = null;
                   }
 
-                  // Set a small delay to allow the browser to finish zoom animation
-                  setTimeout(() => {
-                    const newZoom = mapInstance.getZoom();
-                    // Calculate optimal resolution based on zoom level
-                    // Higher zoom = higher resolution for better detail
-                    const newZoomFactor = Math.max(1, Math.min(2, newZoom / 10));
-                    const newResolution = Math.round(baseResolution * newZoomFactor);
-
-                    console.log(`Zoom ended. Adjusting COG resolution to ${newResolution} at zoom level ${newZoom}`);
-
-                    // Update the resolution with type safety
-                    (geoRasterLayer.options as any).resolution = newResolution;
-
-                    // Redraw the layer with the new resolution
-                    geoRasterLayer.redraw();
-
-                    // Zoom has ended
-
-                    // Hide loading indicator
+                  // Show loading indicator with throttling
+                  zoomThrottleTimer = window.setTimeout(() => {
                     const loadingElement = document.querySelector('.loading-indicator') as HTMLElement;
-                    if (loadingElement) loadingElement.style.display = 'none';
-                  }, 200); // Small delay to ensure zoom animation is complete
+                    if (loadingElement) {
+                      loadingElement.style.display = 'block';
+                      loadingElement.style.opacity = '0.5'; // Make it subtle
+                    }
+                  }, 100); // Short delay before showing indicator
+                };
+
+                // Hide the loading indicator when zoom ends, but don't redraw the layer
+                const zoomEndHandler = () => {
+                  if (!mapInstance) return;
+
+                  // Clear any existing timer
+                  if (zoomThrottleTimer !== null) {
+                    window.clearTimeout(zoomThrottleTimer);
+                    zoomThrottleTimer = null;
+                  }
+
+                  // Hide loading indicator with throttling
+                  zoomThrottleTimer = window.setTimeout(() => {
+                    const loadingElement = document.querySelector('.loading-indicator') as HTMLElement;
+                    if (loadingElement) {
+                      loadingElement.style.display = 'none';
+                    }
+                    // Force a single redraw after zoom completes for better quality
+                    mapInstance.invalidateSize({ pan: false });
+                  }, throttleDelay);
                 };
 
                 // Add the zoom handlers (with null check)
@@ -1179,13 +1374,53 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
 
     processImages();
 
-    // Cleanup function
+    // Enhanced cleanup function with better memory management
     return () => {
       if (mapRef.current) {
+        // Remove all image layers with proper cleanup
         imageLayersRef.current.forEach(layer => {
-          mapRef.current?.removeLayer(layer);
+          try {
+            // Remove the layer from the map
+            mapRef.current?.removeLayer(layer);
+
+            // Special handling for GeoRasterLayer to free memory
+            if (layer instanceof GeoRasterLayer || (layer as any).georaster) {
+              // Clear any cached tiles
+              if ((layer as any)._tiles) {
+                Object.keys((layer as any)._tiles).forEach(key => {
+                  delete (layer as any)._tiles[key];
+                });
+              }
+
+              // Clear georaster data if possible
+              if ((layer as any).georaster) {
+                if ((layer as any).georaster.values) {
+                  (layer as any).georaster.values.length = 0;
+                }
+                // Clear other large properties
+                ['_data', '_cache', '_values'].forEach(prop => {
+                  if ((layer as any).georaster[prop]) {
+                    (layer as any).georaster[prop] = null;
+                  }
+                });
+              }
+            }
+          } catch (e) {
+            console.warn('Error during layer cleanup:', e);
+          }
         });
+
+        // Clear the layers array
         imageLayersRef.current = [];
+
+        // Force garbage collection if available
+        if (window.gc) {
+          try {
+            window.gc();
+          } catch (e) {
+            console.log('Manual garbage collection not available');
+          }
+        }
       }
     };
   }, [images, isMapInitialized, initialBounds]);

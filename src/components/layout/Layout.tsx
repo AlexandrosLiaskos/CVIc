@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -11,18 +12,42 @@ const navigation: NavigationItem[] = [
 ];
 
 export const Layout = () => {
+  console.log('Layout component rendering');
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, loading, signOut: firebaseSignOut } = useAuth(); 
+  const { user, loading, signOut: firebaseSignOut } = useAuth();
+  console.log('Layout auth state:', { user, loading });
 
-  const currentPath = location.pathname.replace('/CVIc', ''); 
+  // Get the current path - simplified for the new routing approach
+  const currentPath = location.pathname;
+  console.log('Current path:', currentPath, 'Full location:', location);
+
+  // Log hash information for debugging
+  console.log('Hash:', location.hash, 'Search:', location.search);
 
   const handleSignOut = async () => {
     await firebaseSignOut();
-    navigate('/login'); 
+    navigate('/login');
   };
 
-  if (loading) {
+  // Only show loading spinner for a maximum of 2 seconds
+  const [showLoading, setShowLoading] = useState(loading);
+
+  useEffect(() => {
+    // If loading is true, set a timeout to force it to false after 2 seconds
+    if (loading) {
+      const timeoutId = setTimeout(() => {
+        console.log('Layout: Force ending loading state after timeout');
+        setShowLoading(false);
+      }, 2000);
+
+      return () => clearTimeout(timeoutId);
+    } else {
+      setShowLoading(false);
+    }
+  }, [loading]);
+
+  if (showLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600"></div>
@@ -98,7 +123,17 @@ export const Layout = () => {
       </nav>
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <Outlet />
+        {/* Add key to force re-render when location changes */}
+        <Outlet key={location.pathname + location.search} />
+
+        {/* Debug information in development */}
+        {import.meta.env.DEV && (
+          <div className="mt-8 p-4 bg-gray-100 rounded-lg text-xs">
+            <p><strong>Current Path:</strong> {location.pathname}</p>
+            <p><strong>Hash:</strong> {location.hash}</p>
+            <p><strong>Search:</strong> {location.search}</p>
+          </div>
+        )}
       </main>
     </div>
   );

@@ -1,5 +1,6 @@
 import { fromArrayBuffer } from 'geotiff';
-import * as GeoRaster from 'georaster';
+// Import the named exports for direct access
+import { fromArrays } from 'georaster';
 
 // Define TypedArray type for better type checking
 type TypedArray = Int8Array | Uint8Array | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array | Uint8ClampedArray;
@@ -344,6 +345,13 @@ async function extractBoundsFromGeoTIFF(arrayBuffer: ArrayBuffer, filename: stri
  */
 async function createGeoRaster(arrayBuffer: ArrayBuffer, filename?: string): Promise<any> {
   try {
+    // Validate input
+    if (!arrayBuffer || !(arrayBuffer instanceof ArrayBuffer)) {
+      throw new Error('Invalid array buffer provided to createGeoRaster');
+    }
+
+    console.log('Creating GeoRaster from array buffer of size:', arrayBuffer.byteLength);
+
     // Parse the GeoTIFF
     const tiff = await fromArrayBuffer(arrayBuffer);
     const image = await tiff.getImage();
@@ -450,8 +458,33 @@ async function createGeoRaster(arrayBuffer: ArrayBuffer, filename?: string): Pro
       for (let i = 0; i < Math.min(rasters.length, 3); i++) {
         const band = rasters[i];
         if (band) {
-          const samples = Array.from((band as TypedArray).slice(0, 10));
-          sampleValues.push({ band: i, samples });
+          // Check if band has slice method (TypedArray or Array)
+          if (band && typeof (band as any).slice === 'function') {
+            try {
+              const samples = Array.from((band as any).slice(0, 10));
+              sampleValues.push({ band: i, samples });
+            } catch (error) {
+              console.warn(`Could not slice band ${i}:`, error);
+              // Try to get samples without slice if possible
+              const samples = [];
+              if (typeof (band as any).length === 'number') {
+                for (let j = 0; j < Math.min((band as any).length, 10); j++) {
+                  if ((band as any)[j] !== undefined) {
+                    samples.push((band as any)[j]);
+                  }
+                }
+              }
+              sampleValues.push({ band: i, samples });
+            }
+          } else if (Array.isArray(band)) {
+            // Handle case where band is a regular array
+            const samples = band.slice(0, 10);
+            sampleValues.push({ band: i, samples });
+          } else {
+            // Handle case where band is something else
+            console.warn(`Band ${i} is not sliceable, type:`, typeof band);
+            sampleValues.push({ band: i, samples: [] });
+          }
         }
       }
       console.log('Sentinel-2 sample values:', sampleValues);
@@ -500,7 +533,44 @@ async function createGeoRaster(arrayBuffer: ArrayBuffer, filename?: string): Pro
     });
 
     // Create a GeoRaster object with improved configuration
-    const georaster = await GeoRaster.fromArrays({
+    // Use the directly imported fromArrays function
+    console.log('Creating GeoRaster with fromArrays using these parameters:', {
+      noDataValue,
+      projection: 4326,
+      xmin: xMin,
+      ymin: yMin,
+      xmax: xMax,
+      ymax: yMax,
+      pixelWidth: (xMax - xMin) / width,
+      pixelHeight: (yMax - yMin) / height,
+      arraysLength: processedArrays.length,
+      minsLength: mins.length,
+      maxsLength: maxs.length
+    });
+
+    // Validate arrays before passing to fromArrays
+    if (!processedArrays || !Array.isArray(processedArrays) || processedArrays.length === 0) {
+      throw new Error('Invalid or empty arrays provided to fromArrays');
+    }
+
+    // Check if fromArrays is available
+    let fromArraysFunction = fromArrays;
+
+    if (typeof fromArraysFunction !== 'function') {
+      console.error('Local fromArrays is not a function!', typeof fromArraysFunction);
+
+      // Try to get it from the window object
+      if (typeof window !== 'undefined' && typeof window.fromArrays === 'function') {
+        console.log('Using window.fromArrays instead');
+        fromArraysFunction = window.fromArrays;
+      } else {
+        console.error('Failed to get fromArrays function');
+        throw new Error('GeoRaster library not properly loaded. fromArrays is not a function.');
+      }
+    }
+
+    // Create the GeoRaster with the available function
+    const georaster = await fromArraysFunction({
       noDataValue: noDataValue,
       projection: 4326, // WGS84
       xmin: xMin,
@@ -646,8 +716,23 @@ export async function processSatelliteImage(file: File): Promise<ProcessedImage>
                 window: [0, 0, width, height]
               });
 
-              // Create a GeoRaster object directly
-              georaster = await GeoRaster.fromArrays({
+              // Get the appropriate fromArrays function
+              let fromArraysFunction = fromArrays;
+              if (typeof fromArraysFunction !== 'function') {
+                console.error('Local fromArrays is not a function in Copernicus handling!', typeof fromArraysFunction);
+
+                // Try to get it from the window object
+                if (typeof window !== 'undefined' && typeof window.fromArrays === 'function') {
+                  console.log('Using window.fromArrays instead for Copernicus image');
+                  fromArraysFunction = window.fromArrays;
+                } else {
+                  console.error('Failed to get fromArrays function for Copernicus image');
+                  throw new Error('GeoRaster library not properly loaded for Copernicus image. fromArrays is not a function.');
+                }
+              }
+
+              // Create a GeoRaster object using the available function
+              georaster = await fromArraysFunction({
                 noDataValue: 0,
                 projection: 4326, // WGS84
                 xmin: xMin,
@@ -688,8 +773,8 @@ export async function processSatelliteImage(file: File): Promise<ProcessedImage>
               // Read the raster data with options
               const rasters = await image.readRasters();
 
-              // Import the GeoRaster library directly
-              const GeoRasterLib = await import('georaster');
+              // Use the already imported GeoRaster library
+              // No need to import again
 
               // Calculate min/max values for each band
               const altMins: number[] = [];
@@ -718,8 +803,23 @@ export async function processSatelliteImage(file: File): Promise<ProcessedImage>
 
               console.log('Alternative min/max values for bands:', altMins, altMaxs);
 
-              // Create a GeoRaster object with improved configuration
-              const alternativeGeoraster = await GeoRasterLib.default({
+              // Get the appropriate fromArrays function for alternative approach
+              let fromArraysFunction = fromArrays;
+              if (typeof fromArraysFunction !== 'function') {
+                console.error('Local fromArrays is not a function in alternative approach!', typeof fromArraysFunction);
+
+                // Try to get it from the window object
+                if (typeof window !== 'undefined' && typeof window.fromArrays === 'function') {
+                  console.log('Using window.fromArrays instead for alternative approach');
+                  fromArraysFunction = window.fromArrays;
+                } else {
+                  console.error('Failed to get fromArrays function for alternative approach');
+                  throw new Error('GeoRaster library not properly loaded for alternative approach. fromArrays is not a function.');
+                }
+              }
+
+              // Create a GeoRaster object with improved configuration using the available function
+              const alternativeGeoraster = await fromArraysFunction({
                 noDataValue: 0,
                 projection: 4326, // WGS84
                 xmin: xMin,
@@ -728,7 +828,7 @@ export async function processSatelliteImage(file: File): Promise<ProcessedImage>
                 ymax: yMax,
                 pixelWidth: (xMax - xMin) / width,
                 pixelHeight: (yMax - yMin) / height,
-                values: Array.from({ length: rasters.length }, (_, i) => rasters[i]),
+                arrays: Array.from({ length: rasters.length }, (_, i) => rasters[i]), // Use arrays instead of values
                 mins: altMins.length > 0 ? altMins : undefined,
                 maxs: altMaxs.length > 0 ? altMaxs : undefined,
               });

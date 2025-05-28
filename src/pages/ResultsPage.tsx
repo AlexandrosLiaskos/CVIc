@@ -1,5 +1,5 @@
 // ---- File: src/pages/ResultsPage.tsx ----
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 
@@ -7,11 +7,14 @@ import { indexedDBService } from '../services/indexedDBService';
 import Map from '../components/maps/Map';
 import { ErrorAlert } from '../components/common/ErrorAlert';
 import { CviLegend } from '../components/results/CviLegend';
+import CviCharts from '../components/results/CviCharts';
 import type { ShorelineSegment, Parameter, Formula, ShorelineSegmentProperties } from '../types';
 import type { FeatureCollection, LineString, MultiLineString, Feature } from 'geojson';
 import { createFeatureCollection, calculateBbox } from '../utils/turfHelpers';
 import { getCviCategory } from '../utils/vulnerabilityMapping';
 import { availableFormulas } from '../config/formulas';
+import { generateHtmlReport } from '../utils/reportGenerator';
+import { captureMap } from '../utils/mapCapture';
 
 export default function ResultsPage() {
   const navigate = useNavigate();
@@ -21,6 +24,8 @@ export default function ResultsPage() {
   const [mapBounds, setMapBounds] = useState<L.LatLngBoundsExpression | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [exportingHtml, setExportingHtml] = useState<boolean>(false);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const loadResultsData = async () => {
@@ -209,6 +214,152 @@ export default function ResultsPage() {
     }
   }, [segments]);
 
+  const handleExportHtmlReport = useCallback(async () => {
+    if (segments.length === 0) {
+      setError("No segment data available to export.");
+      return;
+    }
+
+    if (!mapContainerRef.current) {
+      setError("Map container not found. Please try again.");
+      return;
+    }
+
+    setError(null);
+    setExportingHtml(true);
+
+    try {
+      // Find the map element inside the container
+      const mapElement = mapContainerRef.current.querySelector('#map');
+
+      if (!mapElement) {
+        throw new Error("Map element not found in the DOM");
+      }
+
+      // Ensure all map layers are fully loaded before capture
+      console.log("Preparing map for capture...");
+
+      // Get the Leaflet map instance if available
+      const mapInstance = (window as any).L?.Maps?.[0];
+      if (mapInstance) {
+        try {
+          // Stop any ongoing animations or movements
+          mapInstance.stop();
+
+          // Force a map redraw to ensure all layers are properly rendered
+          mapInstance.invalidateSize({ animate: false });
+
+          // Make sure all tiles are loaded
+          const tileLoadPromise = new Promise<void>((resolve) => {
+            if (mapInstance.isLoading && mapInstance.isLoading()) {
+              mapInstance.once('load', () => {
+                console.log("Map tiles fully loaded");
+                resolve();
+              });
+
+              // Set a timeout in case the load event doesn't fire
+              setTimeout(() => {
+                console.log("Map load timeout reached, continuing anyway");
+                resolve();
+              }, 2000);
+            } else {
+              resolve();
+            }
+          });
+
+          // Wait for tiles to load
+          await tileLoadPromise;
+
+          // Ensure GeoJSON layer is fully rendered
+          const geoJSONLayer = mapInstance._layers && Object.values(mapInstance._layers).find(
+            (layer: any) => layer.feature || (layer.getLayers && typeof layer.getLayers === 'function')
+          );
+
+          if (geoJSONLayer) {
+            // If it's a feature group or layer group, make sure all sublayers are visible
+            if (geoJSONLayer.getLayers && typeof geoJSONLayer.getLayers === 'function') {
+              const subLayers = geoJSONLayer.getLayers();
+              subLayers.forEach((layer: any) => {
+                if (layer.bringToFront && typeof layer.bringToFront === 'function') {
+                  layer.bringToFront();
+                }
+              });
+            }
+
+            // Bring the entire GeoJSON layer to front
+            if (geoJSONLayer.bringToFront && typeof geoJSONLayer.bringToFront === 'function') {
+              geoJSONLayer.bringToFront();
+            }
+          }
+
+          // Wait for any DOM updates to complete
+          await new Promise(resolve => setTimeout(resolve, 800));
+
+          console.log("Map prepared for capture.");
+        } catch (prepError) {
+          console.warn("Error during map preparation:", prepError);
+          // Continue anyway, the capture might still work
+        }
+      } else {
+        console.warn("Could not access Leaflet map instance for preparation.");
+      }
+
+      // Capture the map as an image with a retry mechanism
+      let mapImageDataUrl: string | null = null;
+      let attempts = 0;
+      const maxAttempts = 3;
+
+      while (!mapImageDataUrl && attempts < maxAttempts) {
+        attempts++;
+        try {
+          console.log(`Capturing map image (attempt ${attempts}/${maxAttempts})...`);
+          mapImageDataUrl = await captureMap(mapElement as HTMLElement);
+        } catch (captureErr) {
+          console.error(`Map capture attempt ${attempts} failed:`, captureErr);
+          if (attempts < maxAttempts) {
+            // Wait before retrying
+            await new Promise(resolve => setTimeout(resolve, 500));
+          } else {
+            throw captureErr;
+          }
+        }
+      }
+
+      if (!mapImageDataUrl) {
+        throw new Error("Failed to capture map after multiple attempts");
+      }
+
+      console.log("Map captured successfully, generating report...");
+
+      // Generate the HTML report
+      const htmlContent = generateHtmlReport(
+        segments,
+        parameters,
+        cviStatistics,
+        usedFormula,
+        mapImageDataUrl
+      );
+
+      // Create a blob and download the HTML file
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'cvic_report.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      console.log("HTML report export completed successfully.");
+    } catch (err) {
+      console.error("Error exporting HTML report:", err);
+      setError(`Failed to export HTML report: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setExportingHtml(false);
+    }
+  }, [segments, parameters, cviStatistics, usedFormula]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -219,21 +370,30 @@ export default function ResultsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto mt-8 px-4">
-      <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">Coastal Vulnerability Index Results</h1>
+    <div className="max-w-7xl mx-auto mt-8 px-4 pb-12">
+      <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
+        <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-primary-800">
+          Coastal Vulnerability Index Results
+        </span>
+      </h1>
 
       <ErrorAlert message={error} onClose={() => setError(null)} />
 
-      {/* Main content grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main content grid - Top section with map and summary */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
 
         {/* Left Column: Map */}
-        <div className="lg:col-span-2 bg-white p-4 rounded-lg shadow overflow-hidden min-h-[600px] flex flex-col">
-          <h2 className="text-xl font-semibold mb-3 text-gray-700">Vulnerability Map</h2>
-           <p className="text-sm text-gray-600 mb-4">
-            Shoreline segments colored by calculated CVI score. Click segments for details. Formula used: <span className="font-medium">{usedFormula?.name || 'Unknown'}</span>.
-           </p>
-          <div className="flex-grow h-full border rounded">
+        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md overflow-hidden min-h-[600px] flex flex-col border border-gray-100">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-800">Vulnerability Map</h2>
+            <span className="px-3 py-1 bg-primary-50 text-primary-700 text-sm font-medium rounded-full">
+              Formula: {usedFormula?.name || 'Unknown'}
+            </span>
+          </div>
+          <p className="text-sm text-gray-600 mb-4">
+            Shoreline segments colored by calculated CVI score. Click segments for details.
+          </p>
+          <div className="flex-grow h-full border rounded-lg overflow-hidden shadow-inner" ref={mapContainerRef}>
             {geoJSONForMap ? (
               <Map
                 geoJSON={geoJSONForMap}
@@ -258,49 +418,65 @@ export default function ResultsPage() {
         </div>
 
         {/* Right Column: Summary & Legend */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4 text-gray-700">Summary Statistics</h2>
+        <div className="lg:col-span-1 space-y-8">
+          {/* Summary Statistics */}
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-primary-600" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+              </svg>
+              Summary Statistics
+            </h2>
             {cviStatistics ? (
-              <div className="space-y-3">
-                 <p className="text-sm text-gray-600">
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-sm text-gray-600 mb-2">
                     Calculated for <span className="font-medium">{cviStatistics.count}</span> of <span className="font-medium">{cviStatistics.totalSegments}</span> segments.
-                 </p>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-xs text-gray-500 uppercase">Min CVI</span>
-                    <p className="text-lg font-medium text-gray-800">{cviStatistics.min}</p>
-                  </div>
-                  <div>
-                    <span className="text-xs text-gray-500 uppercase">Max CVI</span>
-                    <p className="text-lg font-medium text-gray-800">{cviStatistics.max}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-xs text-gray-500 uppercase">Average CVI</span>
-                    <p className="text-lg font-medium text-gray-800">{cviStatistics.avg}</p>
+                  </p>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-white p-3 rounded-lg shadow-sm">
+                      <span className="text-xs text-gray-500 uppercase block">Min CVI</span>
+                      <p className="text-lg font-medium text-gray-800">{cviStatistics.min}</p>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg shadow-sm">
+                      <span className="text-xs text-gray-500 uppercase block">Avg CVI</span>
+                      <p className="text-lg font-medium text-gray-800">{cviStatistics.avg}</p>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg shadow-sm">
+                      <span className="text-xs text-gray-500 uppercase block">Max CVI</span>
+                      <p className="text-lg font-medium text-gray-800">{cviStatistics.max}</p>
+                    </div>
                   </div>
                 </div>
-                <div className="pt-3 mt-3 border-t">
-                  <span className="text-xs text-gray-500 uppercase block mb-1">Segment Counts by Category</span>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-green-700">Very Low:</span>
-                    <span className="font-medium text-gray-800">{cviStatistics.categories.veryLow}</span>
-                  </div>
-                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-lime-600">Low:</span>
-                    <span className="font-medium text-gray-800">{cviStatistics.categories.low}</span>
-                  </div>
-                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-yellow-600">Moderate:</span>
-                    <span className="font-medium text-gray-800">{cviStatistics.categories.moderate}</span>
-                  </div>
-                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-orange-600">High:</span>
-                    <span className="font-medium text-gray-800">{cviStatistics.categories.high}</span>
-                  </div>
-                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-red-700">Very High:</span>
-                    <span className="font-medium text-gray-800">{cviStatistics.categories.veryHigh}</span>
+
+                <div className="pt-3 mt-1">
+                  <span className="text-xs text-gray-500 uppercase block mb-3 font-medium">Segment Counts by Category</span>
+                  <div className="space-y-2">
+                    <div className="flex items-center">
+                      <span className="w-3 h-3 bg-green-600 rounded-full mr-2 border border-green-700"></span>
+                      <span className="text-sm text-gray-700 flex-grow">Very Low</span>
+                      <span className="font-medium text-gray-800 bg-gray-100 px-2 py-1 rounded-md min-w-[2rem] text-center">{cviStatistics.categories.veryLow}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="w-3 h-3 bg-lime-500 rounded-full mr-2 border border-lime-600"></span>
+                      <span className="text-sm text-gray-700 flex-grow">Low</span>
+                      <span className="font-medium text-gray-800 bg-gray-100 px-2 py-1 rounded-md min-w-[2rem] text-center">{cviStatistics.categories.low}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="w-3 h-3 bg-yellow-400 rounded-full mr-2 border border-yellow-500"></span>
+                      <span className="text-sm text-gray-700 flex-grow">Moderate</span>
+                      <span className="font-medium text-gray-800 bg-gray-100 px-2 py-1 rounded-md min-w-[2rem] text-center">{cviStatistics.categories.moderate}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="w-3 h-3 bg-orange-500 rounded-full mr-2 border border-orange-600"></span>
+                      <span className="text-sm text-gray-700 flex-grow">High</span>
+                      <span className="font-medium text-gray-800 bg-gray-100 px-2 py-1 rounded-md min-w-[2rem] text-center">{cviStatistics.categories.high}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="w-3 h-3 bg-red-600 rounded-full mr-2 border border-red-700"></span>
+                      <span className="text-sm text-gray-700 flex-grow">Very High</span>
+                      <span className="font-medium text-gray-800 bg-gray-100 px-2 py-1 rounded-md min-w-[2rem] text-center">{cviStatistics.categories.veryHigh}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -310,41 +486,114 @@ export default function ResultsPage() {
           </div>
 
           {/* Legend */}
-          <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-4 text-gray-700">Map Legend</h2>
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-primary-600" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+              </svg>
+              Map Legend
+            </h2>
+            <div className="bg-gray-50 p-3 rounded-lg">
               <CviLegend />
+            </div>
           </div>
 
           {/* Actions */}
-          <div className="bg-white p-6 rounded-lg shadow">
-             <h2 className="text-xl font-semibold mb-4 text-gray-700">Actions</h2>
-             <div className="space-y-3">
-                 <button
-                   onClick={handleGoBack}
-                   className="w-full px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                   title="Return to the parameter assignment and CVI calculation page"
-                 >
-                   Back to Parameter Assignment
-                 </button>
-                 {/* Export Button Added Here */}
-                  <button
-                    onClick={handleExportGeoJSON}
-                    disabled={segments.length === 0 || loading}
-                    className="w-full px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Download the results as a GeoJSON file"
-                  >
-                    Export Results (GeoJSON)
-                  </button>
-                 <button
-                   onClick={handleStartNew}
-                   className="w-full px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-                   title="Start a new analysis from the beginning (clears current data)"
-                 >
-                   Start New Analysis
-                 </button>
-             </div>
+          <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-primary-600" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+              </svg>
+              Actions
+            </h2>
+            <div className="space-y-3">
+              <button
+                onClick={handleGoBack}
+                className="w-full px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors flex items-center justify-center"
+                title="Return to the parameter assignment and CVI calculation page"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Parameter Assignment
+              </button>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* GeoJSON Export Button */}
+                <button
+                  onClick={handleExportGeoJSON}
+                  disabled={segments.length === 0 || loading}
+                  className="w-full px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                  title="Download the results as a GeoJSON file"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  GeoJSON
+                </button>
+
+                {/* HTML Report Export Button */}
+                <button
+                  onClick={handleExportHtmlReport}
+                  disabled={segments.length === 0 || loading || exportingHtml}
+                  className="w-full px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                  title="Download a complete HTML report with map, statistics, and legend"
+                >
+                  {exportingHtml ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      HTML Report
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <button
+                onClick={handleStartNew}
+                className="w-full px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center justify-center"
+                title="Start a new analysis from the beginning (clears current data)"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Start New Analysis
+              </button>
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* Charts Section - Full width below the map */}
+      <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 mb-8">
+        <h2 className="text-xl font-semibold mb-6 text-gray-800 flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-primary-600" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
+            <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
+          </svg>
+          Vulnerability Analysis Charts
+        </h2>
+        <p className="text-sm text-gray-600 mb-6">
+          Visualization of coastal vulnerability data across analyzed shoreline segments.
+        </p>
+        {cviStatistics ? (
+          <CviCharts
+            segments={segments}
+            parameters={parameters}
+            cviStatistics={cviStatistics}
+          />
+        ) : (
+          <p className="text-gray-500 italic">No CVI data available for charts</p>
+        )}
       </div>
     </div>
   );

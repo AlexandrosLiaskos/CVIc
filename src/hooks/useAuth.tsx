@@ -27,18 +27,33 @@ export function useAuth() {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true) 
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    console.log('AuthProvider: Setting up auth state listener');
+
+    // Set a timeout to ensure loading state doesn't get stuck
+    const timeoutId = setTimeout(() => {
+      console.log('AuthProvider: Force ending loading state after timeout');
+      setLoading(false);
+    }, 3000); // 3 seconds max loading time
+
     const unsubscribe = onAuthStateChanged((authUser) => {
+      console.log('AuthProvider: Auth state changed, user:', authUser ? 'logged in' : 'not logged in');
       setUser(authUser)
-      setLoading(false) 
-      setError(null)    
+      setLoading(false)
+      setError(null)
+
+      // Clear the timeout since we got a response
+      clearTimeout(timeoutId);
     })
 
-    return () => unsubscribe()
-  }, []) 
+    return () => {
+      clearTimeout(timeoutId);
+      unsubscribe();
+    }
+  }, [])
 
   const signIn = async () => {
     setLoading(true)
@@ -60,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error("Sign out error:", err)
       setError(err instanceof Error ? err.message : 'Failed to sign out.')
-      setLoading(false) 
+      setLoading(false)
     }
   }
 
@@ -69,4 +84,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   )
-} 
+}

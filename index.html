@@ -8,12 +8,108 @@
     <meta name="description" content="A tool for assessing shoreline vulnerability to coastal hazards" />
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
 
-    <!-- Load our fix script before any other scripts -->
-    <script src="./json-parse-fix.js" defer></script>
-    <script src="./proj4-fix.js" defer></script>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" crossorigin="" />
+
+    <!-- Error handling for asset loading -->
+    <script>
+      window.addEventListener('error', function(e) {
+        console.error('Asset loading error:', e);
+      }, true);
+    </script>
+
+    <!-- Fixes for SVG namespace - must be loaded before the main bundle -->
+    <script>
+      // Create SVG namespace helper
+      const svgNS = "http://www.w3.org/2000/svg";
+
+      // Define QO with all required methods
+      window.QO = {
+        defs: function() { return document.createElementNS(svgNS, 'defs'); },
+        svg: function() { return document.createElementNS(svgNS, 'svg'); },
+        path: function() { return document.createElementNS(svgNS, 'path'); },
+        circle: function() { return document.createElementNS(svgNS, 'circle'); },
+        rect: function() { return document.createElementNS(svgNS, 'rect'); },
+        line: function() { return document.createElementNS(svgNS, 'line'); },
+        polyline: function() { return document.createElementNS(svgNS, 'polyline'); },
+        polygon: function() { return document.createElementNS(svgNS, 'polygon'); },
+        g: function() { return document.createElementNS(svgNS, 'g'); },
+        use: function() { return document.createElementNS(svgNS, 'use'); },
+        symbol: function() { return document.createElementNS(svgNS, 'symbol'); },
+        clipPath: function() { return document.createElementNS(svgNS, 'clipPath'); },
+        mask: function() { return document.createElementNS(svgNS, 'mask'); },
+        setAttr: function(el, attrs) {
+          for (var key in attrs) { el.setAttribute(key, attrs[key]); }
+          return el;
+        }
+      };
+
+      // Also define QI for good measure
+      window.QI = window.QO;
+
+      console.log('SVG namespace fixes applied');
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Initial loading state that will be replaced by React -->
+      <div style="display: flex; align-items: center; justify-content: center; height: 100vh; flex-direction: column;">
+        <h1 style="font-size: 24px; margin-bottom: 20px; color: #0c4a6e;">CVIc - Coastal Vulnerability Index Compiler</h1>
+        <div style="border: 4px solid #e5e7eb; border-top: 4px solid #0284c7; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;"></div>
+        <p style="margin-top: 20px; color: #64748b;">Loading application...</p>
+      </div>
+    </div>
+
+    <style>
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+
+    <!-- Main script -->
     <script type="module" src="./src/main.tsx"></script>
+
+    <!-- Fallback script that will show content if the app fails to load -->
+    <script>
+      window.addEventListener('load', function() {
+        // Check if the app has loaded after 8 seconds
+        setTimeout(function() {
+          const rootEl = document.getElementById('root');
+          const firstChild = rootEl && rootEl.firstChild;
+
+          // If the root element still has our loading spinner, the app didn't load
+          if (rootEl && firstChild && firstChild.textContent && firstChild.textContent.includes('Loading application')) {
+            console.error('Application failed to render, showing fallback content');
+            rootEl.innerHTML = `
+              <div style="padding: 40px; text-align: center; font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h1 style="color: #0c4a6e; font-size: 28px; margin-bottom: 20px;">CVIc - Coastal Vulnerability Index Compiler</h1>
+                <p style="font-size: 18px; margin-bottom: 30px; color: #475569;">The application is having trouble loading.</p>
+
+                <div style="background-color: #f1f5f9; border-radius: 8px; padding: 20px; margin-bottom: 30px; text-align: left;">
+                  <h2 style="font-size: 18px; margin-bottom: 15px; color: #0f172a;">Please try:</h2>
+                  <ul style="list-style: none; padding: 0; margin: 0;">
+                    <li style="padding: 8px 0; border-bottom: 1px solid #e2e8f0;">1. Refreshing the page</li>
+                    <li style="padding: 8px 0; border-bottom: 1px solid #e2e8f0;">2. Clearing your browser cache</li>
+                    <li style="padding: 8px 0;">3. Disabling any content blockers</li>
+                  </ul>
+                </div>
+
+                <button onclick="window.location.reload()"
+                  style="background-color: #0284c7; color: white; border: none; padding: 12px 24px;
+                  border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: 500;">
+                  Reload Page
+                </button>
+
+                <div style="margin-top: 40px; font-size: 14px; color: #64748b;">
+                  <p>If you continue to experience issues, try accessing the site in a different browser.</p>
+                </div>
+              </div>
+            `;
+          }
+        }, 8000);
+      });
+    </script>
   </body>
 </html>

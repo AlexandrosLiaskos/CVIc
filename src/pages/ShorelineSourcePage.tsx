@@ -33,10 +33,10 @@ export default function ShorelineSourcePage() {
       {/* Options */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
         {/* Upload Existing Images Option */}
-        <div 
+        <div
           className={`bg-white p-6 rounded-lg shadow-md border-2 transition-all cursor-pointer
-            ${selectedOption === 'upload' 
-              ? 'border-primary-500 ring-2 ring-primary-200' 
+            ${selectedOption === 'upload'
+              ? 'border-primary-500 ring-2 ring-primary-200'
               : 'border-gray-200 hover:border-gray-300'}`}
           onClick={() => setSelectedOption('upload')}
         >
@@ -50,7 +50,7 @@ export default function ShorelineSourcePage() {
             Upload your own georeferenced satellite images.
           </p>
           <ul className="text-sm text-gray-500 space-y-1 mb-4">
-            <li>• Supports GeoTIFF, JP2, and other georeferenced formats</li>
+            <li>• Supports GeoTIFF and Cloud Optimized GeoTIFF (COG) formats</li>
             <li>• Images will be displayed on the map in their correct position</li>
             <li>• Multiple images can be uploaded</li>
           </ul>
@@ -65,10 +65,10 @@ export default function ShorelineSourcePage() {
         </div>
 
         {/* Acquire New Images Option */}
-        <div 
+        <div
           className={`bg-white p-6 rounded-lg shadow-md border-2 transition-all cursor-pointer
-            ${selectedOption === 'acquire' 
-              ? 'border-primary-500 ring-2 ring-primary-200' 
+            ${selectedOption === 'acquire'
+              ? 'border-primary-500 ring-2 ring-primary-200'
               : 'border-gray-200 hover:border-gray-300'}`}
           onClick={() => setSelectedOption('acquire')}
         >
@@ -107,7 +107,7 @@ export default function ShorelineSourcePage() {
           <ArrowLeftIcon className="mr-2 h-5 w-5" />
           Back
         </button>
-        
+
         <button
           onClick={handleContinue}
           disabled={!selectedOption}

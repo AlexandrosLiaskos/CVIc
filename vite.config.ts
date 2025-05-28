@@ -1,40 +1,18 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
+import fs from 'fs'
+import path from 'path'
 
+// https://vitejs.dev/config/
 export default defineConfig({
+  // Use root path for production
+  base: '/',
   plugins: [
-    react(),
-    // Custom plugin to inject proj4 fix
-    {
-      name: 'inject-proj4-fix',
-      transformIndexHtml(html) {
-        // Add a script to fix proj4 initialization issues
-        return html.replace(
-          '</head>',
-          `<script>
-            // Fix for proj4 initialization issues
-            window.fixProj4Error = function() {
-              if (window.proj4 && typeof window.proj4.defs !== 'function') {
-                console.log('Fixing proj4 initialization...');
-                if (typeof window.proj4.default === 'function') {
-                  window.proj4 = window.proj4.default;
-                  console.log('Fixed proj4 using default export');
-                }
-              }
-            };
-
-            // Run the fix when the window loads and periodically
-            window.addEventListener('load', window.fixProj4Error);
-            // Also try to fix it every 100ms for the first second
-            for (let i = 1; i <= 10; i++) {
-              setTimeout(window.fixProj4Error, i * 100);
-            }
-          </script>
-          </head>`
-        );
-      }
-    }
+    react({
+      // Enable Fast Refresh
+      fastRefresh: true,
+    })
   ],
   server: {
     port: 3000,
@@ -42,37 +20,56 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    sourcemap: true, // Enable sourcemaps for debugging
+    minify: false, // Disable minification completely
+    // Ensure proper MIME types for assets
+    assetsInlineLimit: 0, // Don't inline assets as base64
+    // Ensure these modules are not externalized
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true
+    },
     rollupOptions: {
+      // Make sure proj4-fully-loaded is properly handled
+      external: [],
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          map: ['leaflet', 'leaflet-draw', '@turf/turf'],
-          // Only include the core proj4 library
-          proj4: ['proj4']
+          // Group proj4 and proj4-fully-loaded together to avoid initialization issues
+          'proj4-bundle': ['proj4', 'proj4-fully-loaded']
         }
-      }
-    },
-    // Ensure the build is optimized for production
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: false, // Keep console logs for debugging
-        drop_debugger: true
       }
     }
   },
   resolve: {
+    dedupe: ['react', 'react-dom'],
     alias: {
-      '@': resolve(__dirname, 'src')
+      // Alias proj4-fully-loaded to our custom implementation
+      'proj4-fully-loaded': path.resolve(__dirname, 'src/lib/proj4-with-defs.js')
     }
   },
-  define: {
-    'process.env.VITE_FIREBASE_API_KEY': JSON.stringify(process.env.VITE_FIREBASE_API_KEY),
-    'process.env.VITE_FIREBASE_AUTH_DOMAIN': JSON.stringify(process.env.VITE_FIREBASE_AUTH_DOMAIN),
-    'process.env.VITE_FIREBASE_PROJECT_ID': JSON.stringify(process.env.VITE_FIREBASE_PROJECT_ID),
-    'process.env.VITE_FIREBASE_STORAGE_BUCKET': JSON.stringify(process.env.VITE_FIREBASE_STORAGE_BUCKET),
-    'process.env.VITE_FIREBASE_MESSAGING_SENDER_ID': JSON.stringify(process.env.VITE_FIREBASE_MESSAGING_SENDER_ID),
-    'process.env.VITE_FIREBASE_APP_ID': JSON.stringify(process.env.VITE_FIREBASE_APP_ID)
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      'leaflet',
+      'leaflet-draw',
+      'proj4',
+      'proj4-fully-loaded',
+      'georaster',
+      'georaster-layer-for-leaflet',
+      'firebase/app',
+      'firebase/auth',
+      'firebase/storage',
+      'idb',
+      'shpjs',
+      'geotiff',
+      '@turf/turf'
+    ],
+    esbuildOptions: {
+      target: 'es2020'
+    },
+    // Force inclusion of dependencies
+    force: true
   }
 })

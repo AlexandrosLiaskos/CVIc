@@ -1,163 +1,81 @@
-# CVIc: Coastal Vulnerability Index Compiler
+# CVIc - Coastal Vulnerability Index Compiler
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+CVIc is a web-based tool designed to streamline the process of calculating a Coastal Vulnerability Index. It enables researchers, coastal managers, and environmental scientists to perform complete CVI calculations directly in the browser.
 
-**Web Platform for Automating Coastal Vulnerability Index Calculation**
+## 📋 Features
 
-CVIc is a web-based tool designed to streamline the process of calculating a Coastal Vulnerability Index (CVI). It guides users through uploading shoreline data, segmenting it, assigning vulnerability parameters and values, selecting a calculation formula, and visualizing the results on an interactive map.
+- **Shoreline Management**: Upload existing shoreline data or digitize new shorelines from satellite imagery
+- **Shoreline Segmentation**: Automatically divide shorelines into analysis segments
+- **Parameter Selection**: Choose and weight vulnerability parameters based on research needs
+- **Value Assignment**: Assign vulnerability scores to shoreline segments through an interactive interface
+- **CVI Calculation**: Apply different formulas to calculate the vulnerability index
+- **Results Visualization**: View results on interactive maps with customizable symbology
+- **Data Export**: Export results as GeoJSON for use in GIS software or as HTML reports
 
----
+## 🔧 Technology Stack
 
-**Live Demo:** [https://cvic-456409.web.app/](CVIc)
+- **Frontend**: React, TypeScript, Vite
+- **Mapping**: Leaflet, OpenLayers, Turf.js
+- **Data Processing**: Proj4, ShpJS, GeoTIFF
+- **Storage**: IndexedDB (browser storage)
+- **Authentication**: Firebase Authentication
+- **Visualization**: Recharts
 
-*(Note: Firebase Authentication is required for full access. You can sign in with a Google account.)*
+## 📊 Workflow Overview
 
----
+1. **Choose Shoreline Source**: Upload an existing shoreline or create a new one
+2. **Upload/Digitize Shoreline**: Process shoreline data or digitize from satellite imagery
+3. **Segment Shoreline**: Divide the shoreline into analysis segments
+4. **Select Parameters**: Choose vulnerability parameters and assign weights
+5. **Assign Values**: Assign parameter values to shoreline segments
+6. **Calculate CVI**: Apply a formula to calculate the vulnerability index
+7. **View Results**: Visualize and export the final results
 
-## Screenshots
+## 📝 CVI Calculation
 
-![image](https://github.com/user-attachments/assets/ba14f94d-b0cb-4e07-bef7-0d0839ea1ec6)
+CVIc offers several formulas for calculating the Coastal Vulnerability Index:
 
-![image](https://github.com/user-attachments/assets/ffda84d4-ae0a-4908-ad90-12e564a73147)
+1. **Geometric Mean**: Standard weighted geometric mean (Gornitz et al. (1994))
+   - Formula: `CVI = (∏(Vi^Wi))^(1/∑Wi)`
+2. **Arithmetic Mean**: Weighted arithmetic mean
+3. **Geometric Mean Normalized**: Normalized weighted geometric mean
+4. **Nonlinear Power**: Nonlinear power-based calculation
 
-## Key Features & Workflow
+Where:
+- Vi = Vulnerability score for parameter i (1-5)
+- Wi = Weight assigned to parameter i (0-1)
+- ∏ = Product of all values
+- ∑ = Sum of all values
 
-The application follows a structured workflow:
+## 💾 Data Persistence
 
-1.  **Upload Shoreline:** Upload shoreline data as a zipped Shapefile (`.zip` containing `.shp`, `.shx`, `.dbf`).
-2.  **Segment Shoreline:** Divide the uploaded shoreline into smaller segments based on a user-defined resolution (e.g., 100 meters).
-3.  **Review Segments:** Examine the generated segments in a table and on an interactive map.
-4.  **Select Parameters:** Choose the relevant vulnerability parameters (e.g., Geomorphology, Coastal Slope, Sea Level Change) and assign weights that sum to 100%.
-5.  **Assign Values:** Assign specific values and corresponding vulnerability scores (1-5) to shoreline segments using an interactive map (click, draw polygon) and table interface.
-6.  **Calculate CVI:** Select a CVI calculation formula (e.g., Geometric Mean, Arithmetic Mean) and compute the index for all segments with complete data.
-7.  **View Results:** Visualize the calculated CVI scores on the map, colored by vulnerability category, view summary statistics, and export the final results as a GeoJSON file.
+The application automatically saves your progress at each step using IndexedDB (browser storage):
 
-## Technology Stack
+1. As you progress through each step of the workflow, your data is automatically saved
+2. If you navigate away from the application and return later, you can continue by navigating to the appropriate step in the workflow
+3. The application will automatically load data from previous steps (shoreline, segments, parameters, etc.)
+4. You must use the same browser and device, as the data is stored locally in your browser's IndexedDB
 
-CVIc is built using modern web technologies:
+## 🔜 Upcoming Features
 
-*   **Frontend Framework:** React with TypeScript
-*   **Build Tool:** Vite
-*   **Routing:** React Router
-*   **Mapping:**
-    *   Leaflet (Core library)
-    *   React Leaflet (React integration)
-    *   Leaflet Draw (Drawing/selection tools)
-*   **Geospatial Analysis:** Turf.js
-*   **Styling:** TailwindCSS
-*   **Client-Side Storage:** IndexedDB (via `idb` library)
-*   **Shapefile Processing:** shpjs
-*   **Authentication:** Firebase Authentication (Google Sign-In)
-*   **Deployment:** GitHub Pages / Firebase Hosting
+1. Cloud storage for project data and results
+2. Additional CVI calculation formulas
+3. Image acquisition from cloud-based services
+4. Existing parameter import as separate layers and CVI calculation
+5. Improved performance optimizations
+6. Enhanced user interface and experience
 
-## Getting Started
+## 📚 Documentation
 
-Follow these instructions to set up and run the project locally.
+For more detailed information, see the [User Guide](CVIc_User_Guide.md) and [Technical Paper](CVIc_Paper.md).
 
-### Prerequisites
+## 🔗 Related Projects
 
-*   Node.js (LTS version recommended, e.g., v18 or v20)
-*   npm, yarn, or pnpm package manager
+CVIc is part of the EO-PERSIST ecosystem, which aims to establish a cloud-based platform for managing and exploiting Earth Observation data. Upcoming companion tools include:
 
-### Installation
+- **SatShor**: Automatic extraction of Satellite-derived Shorelines
+- **CVARs**: Coastal Vulnerability Assessment Parameter Sourcing
+- **CompCVA**: Computational Framework in Coastal Vulnerability Assessment
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/AlexandrosLiaskos/CVIc.git
-    cd CVIc
-    ```
-
-2.  **Install dependencies:**
-    ```bash
-    npm install
-    # or
-    # yarn install
-    # or
-    # pnpm install
-    ```
-
-### Environment Variables
-
-The application uses Firebase for authentication. You need to set up a Firebase project and configure environment variables.
-
-1.  Create a `.env` file in the root of the project.
-2.  Add the following variables, replacing the placeholder values with your actual Firebase project credentials:
-
-    ```dotenv
-    # .env
-
-    # Firebase Configuration (Get these from your Firebase project settings)
-    VITE_FIREBASE_API_KEY=YOUR_API_KEY
-    VITE_FIREBASE_AUTH_DOMAIN=YOUR_AUTH_DOMAIN
-    VITE_FIREBASE_PROJECT_ID=YOUR_PROJECT_ID
-    VITE_FIREBASE_STORAGE_BUCKET=YOUR_STORAGE_BUCKET
-    VITE_FIREBASE_MESSAGING_SENDER_ID=YOUR_MESSAGING_SENDER_ID
-    VITE_FIREBASE_APP_ID=YOUR_APP_ID
-    ```
-
-    **Important:**
-    *   Prefix environment variables with `VITE_` to expose them to the client-side bundle handled by Vite.
-    *   The `.env` file is included in `.gitignore` and should **never** be committed to version control.
-
-### Running Locally
-
-Start the development server:
-
-```bash
-npm run dev
-# or
-# yarn dev
-# or
-# pnpm dev
-```
-
-This will typically start the application on `http://localhost:3000`.
-
-### Building for Production
-
-Create an optimized production build:
-
-```bash
-npm run build
-# or
-# yarn build
-# or
-# pnpm build
-```
-
-The output files will be generated in the `dist` directory.
-
-### Type Checking
-
-Run the TypeScript compiler to check for type errors without emitting files:
-
-```bash
-npm run type-check
-# or
-# yarn type-check
-# or
-# pnpm type-check
-```
-
-## Deployment
-
-The project is configured for deployment using two methods:
-
-1.  **GitHub Pages:**
-    *   The `deploy` script in `package.json` uses `gh-pages` to build and deploy the `dist` folder to the `gh-pages` branch.
-    *   Run: `npm run deploy`
-
-2.  **Firebase Hosting:**
-    *   The `firebase.json` file configures Firebase Hosting.
-    *   Requires Firebase CLI (`npm install -g firebase-tools`).
-    *   Login: `firebase login`
-    *   Deploy: `firebase deploy --only hosting` (after running `npm run build`)
-
-## License
-
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
-
-## Acknowledgements
-
-*   Inspired by traditional CVI methodologies.
-*   Built with the help of many excellent open-source libraries.
+Together, these tools will automate the entire coastal-hazard workflow from satellite imagery to decision-support products.
+Introduction to CVIc: A Web-Based Tool for Coastal Vulnerability Index Calculation

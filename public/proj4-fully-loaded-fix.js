@@ -1,114 +1,73 @@
 /**
- * Complete replacement for proj4-fully-loaded.js
- * This file completely replaces the problematic library with a custom implementation
- * that provides the necessary functionality without the errors.
+ * Fix for proj4-fully-loaded in production builds
+ * 
+ * This script ensures that proj4.defs is available when proj4-fully-loaded is used
+ * It must be loaded before any other scripts that use proj4
  */
 
-(function(global) {
-  console.log('Loading custom proj4-fully-loaded implementation');
-
-  // Store the original proj4 if it exists
-  var originalProj4 = global.proj4;
-
-  // Create a minimal implementation of proj4 if it doesn't exist or is broken
-  if (!originalProj4 || typeof originalProj4.defs !== 'function') {
-    console.log('Creating custom proj4 implementation');
-
-    // Try to use the default export if available
-    if (originalProj4 && typeof originalProj4.default === 'function') {
-      console.log('Using proj4.default as proj4');
-      global.proj4 = originalProj4.default;
-    } else {
-      // Create a minimal implementation
-      var customProj4 = function(fromCode, toCode, coordinates) {
-        console.log('Custom proj4 transform called:', fromCode, toCode);
-        // Just return the coordinates unchanged as a fallback
-        return coordinates;
-      };
-
-      // Storage for projection definitions
-      var projectionDefs = {};
-
-      // Implementation of the defs function
-      customProj4.defs = function(code, def) {
-        if (arguments.length === 0) {
-          return projectionDefs;
+(function() {
+  // Create a global proj4 object if it doesn't exist
+  window.proj4 = window.proj4 || {};
+  
+  // Store original defs function if it exists
+  var originalDefs = window.proj4.defs;
+  
+  // Create a storage for definitions
+  var definitions = {};
+  
+  // Define the defs function that will always be available
+  window.proj4.defs = function(name, projection) {
+    // If only name is provided, return the definition
+    if (arguments.length === 1) {
+      // Try original defs first if it exists and is a function
+      if (typeof originalDefs === 'function') {
+        try {
+          var result = originalDefs.call(window.proj4, name);
+          if (result) {
+            return result;
+          }
+        } catch (e) {
+          console.warn('Error calling original defs:', e);
         }
-
-        if (arguments.length === 1) {
-          if (Array.isArray(code)) {
-            code.forEach(function(c) {
-              if (Array.isArray(c)) {
-                customProj4.defs(c[0], c[1]);
-              }
-            });
-            return customProj4;
-          }
-
-          if (typeof code === 'string') {
-            if (code in projectionDefs) {
-              return projectionDefs[code];
-            }
-            return null;
-          }
-
-          if (typeof code === 'object') {
-            Object.keys(code).forEach(function(key) {
-              projectionDefs[key] = code[key];
-            });
-            return customProj4;
-          }
-
-          return projectionDefs;
+      }
+      
+      // Fall back to our custom definitions
+      return definitions[name];
+    }
+    
+    // If both name and projection are provided, store the definition
+    if (projection) {
+      // Try to use original defs first if it exists and is a function
+      if (typeof originalDefs === 'function') {
+        try {
+          originalDefs.call(window.proj4, name, projection);
+        } catch (e) {
+          console.warn('Error calling original defs for setting:', e);
         }
-
-        projectionDefs[code] = def;
-        return customProj4;
-      };
-
-      // Add other necessary methods
-      customProj4.WGS84 = 'EPSG:4326';
-      customProj4.toPoint = function(array) { return { x: array[0], y: array[1] }; };
-
-      // Replace the global proj4
-      global.proj4 = customProj4;
+      }
+      
+      // Also store in our custom definitions
+      definitions[name] = projection;
     }
+    
+    return window.proj4;
+  };
+  
+  // Add common projections
+  window.proj4.defs('EPSG:4326', '+proj=longlat +datum=WGS84 +no_defs');
+  window.proj4.defs('EPSG:3857', '+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_0=0 +y_0=0 +k=1 +units=m +nadgrids=@null +wktext +no_defs');
+  
+  // UTM zones (North)
+  for (var zone = 1; zone <= 60; zone++) {
+    var code = 32600 + zone;
+    window.proj4.defs('EPSG:' + code, '+proj=utm +zone=' + zone + ' +datum=WGS84 +units=m +no_defs');
   }
-
-  // Define common projections
-  try {
-    // Common projection definitions
-    var commonDefs = {
-      // WGS84
-      'EPSG:4326': '+proj=longlat +datum=WGS84 +no_defs',
-
-      // Web Mercator
-      'EPSG:3857': '+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_0=0 +y_0=0 +k=1 +units=m +nadgrids=@null +wktext +no_defs'
-    };
-
-    // Add UTM zones
-    for (var zone = 1; zone <= 60; zone++) {
-      var epsg = 32600 + zone;
-      commonDefs['EPSG:' + epsg] = '+proj=utm +zone=' + zone + ' +datum=WGS84 +units=m +no_defs';
-    }
-
-    // Register all definitions
-    global.proj4.defs(commonDefs);
-
-    console.log('proj4 initialized with common projections');
-  } catch (error) {
-    console.error('Error initializing proj4 projections:', error);
+  
+  // UTM zones (South)
+  for (var zone = 1; zone <= 60; zone++) {
+    var code = 32700 + zone;
+    window.proj4.defs('EPSG:' + code, '+proj=utm +zone=' + zone + ' +south +datum=WGS84 +units=m +no_defs');
   }
-
-  // Export for CommonJS environments
-  if (typeof module === 'object' && module.exports) {
-    module.exports = global.proj4;
-  }
-
-  // Export for AMD/RequireJS environments
-  if (typeof define === 'function' && define.amd) {
-    define(function() { return global.proj4; });
-  }
-
-  console.log('Custom proj4-fully-loaded implementation complete');
-})(typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : this));
+  
+  console.log('proj4-fully-loaded fix applied - defs function guaranteed');
+})();
