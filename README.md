@@ -1,60 +1,176 @@
-# CVIc - Coastal Vulnerability Index Compiler
+# CVIc: Coastal Vulnerability Index Compiler
 
-CVIc is a web-based tool designed to streamline the process of calculating a Coastal Vulnerability Index. It enables researchers, coastal managers, and environmental scientists to perform complete CVI calculations directly in the browser.
+CVIc (Coastal Vulnerability Index Compiler) represents the first open-source specialized SaaS client-side web application for automated coastal vulnerability index-based assessment
 
-## 📋 Features
+### Key Innovations
+- **First application dedicated to CVA/CVI**
+- **Real-time processing of scientific geospatial methdologies on the web**
+- **Multi-format support** for geospatial data (Shapefiles, GeoJSON, GeoTIFF, COG)
+- **Interactive Maps**
+- **Client-side processing** for faster development to public release till the cloud migration
+- **Multiple Workflows/User-selections**
 
-- **Shoreline Management**: Upload existing shoreline data or digitize new shorelines from satellite imagery
-- **Shoreline Segmentation**: Automatically divide shorelines into analysis segments
-- **Parameter Selection**: Choose and weight vulnerability parameters based on research needs
-- **Value Assignment**: Assign vulnerability scores to shoreline segments through an interactive interface
-- **CVI Calculation**: Apply different formulas to calculate the vulnerability index
-- **Results Visualization**: View results on interactive maps with customizable symbology
-- **Data Export**: Export results as GeoJSON for use in GIS software or as HTML reports
+---
 
-## 🔧 Technology Stack
+## 1. System Architecture
 
-- **Frontend**: React, TypeScript, Vite
-- **Mapping**: Leaflet, OpenLayers, Turf.js
-- **Data Processing**: Proj4, ShpJS, GeoTIFF
-- **Storage**: IndexedDB (browser storage)
-- **Authentication**: Firebase Authentication
-- **Visualization**: Recharts
+### Core Components
+1. **Frontend Framework** - React 18 + TypeScript
+2. **Authentication System** - Firebase Auth
+3. **Mapping Engine** - Leaflet
+4. **CVI Calculation Engine** - Multiple mathematical formulas
+5. **Data Storage** - IndexedDB
+6. **Visualization Components** - Interactive maps and charts
 
-## 📊 Workflow Overview
+### Technology Stack
+```
+Frontend:     React 18, TypeScript, Vite, TailwindCSS
+Mapping:      Leaflet, React-Leaflet, Leaflet-Draw
+Geospatial:   Turf.js, Proj4, GeoRaster, Shapefile.js
+Storage:      IndexedDB, Firebase Auth
+Build:        Vite, React Router, Hash routing
+Extra:        Rechart
+```
 
-1. **Choose Shoreline Source**: Upload an existing shoreline or create a new one
-2. **Upload/Digitize Shoreline**: Process shoreline data or digitize from satellite imagery
-3. **Segment Shoreline**: Divide the shoreline into analysis segments
-4. **Select Parameters**: Choose vulnerability parameters and assign weights
-5. **Assign Values**: Assign parameter values to shoreline segments
-6. **Calculate CVI**: Apply a formula to calculate the vulnerability index
-7. **View Results**: Visualize and export the final results
+---
 
-## 📝 CVI Calculation
+## 2. Workflow Implementation
 
-CVIc offers several formulas for calculating the Coastal Vulnerability Index:
+### 7-Step Integrated Process
 
-1. **Geometric Mean**: Standard weighted geometric mean (Gornitz et al. (1994))
-   - Formula: `CVI = (∏(Vi^Wi))^(1/∑Wi)`
-2. **Arithmetic Mean**: Weighted arithmetic mean
-3. **Geometric Mean Normalized**: Normalized weighted geometric mean
-4. **Nonlinear Power**: Nonlinear power-based calculation
+1. **Shoreline Selection**
+   - Choose to upload existing or create new shoreline
 
-Where:
-- Vi = Vulnerability score for parameter i (1-5)
-- Wi = Weight assigned to parameter i (0-1)
-- ∏ = Product of all values
-- ∑ = Sum of all values
+2. **Shoreline Source**
+   - Upload shapefile or upload satellite imagery and digitize shoreline
+   - Support for multiple coordinate systems via Proj4
 
-## 💾 Data Persistence
+3. **Segmentation**
+   - Automated shoreline division by specified resolution/length
 
-The application automatically saves your progress at each step using IndexedDB (browser storage):
+4. **Parameter Selection**
+   - Choose vulnerability parameters and assign weights
 
-1. As you progress through each step of the workflow, your data is automatically saved
-2. If you navigate away from the application and return later, you can continue by navigating to the appropriate step in the workflow
-3. The application will automatically load data from previous steps (shoreline, segments, parameters, etc.)
-4. You must use the same browser and device, as the data is stored locally in your browser's IndexedDB
+5. **Parameter Assignment**
+   - Interactive map-segment-based value assignment
+   - Table-based editing interface
+   - Bulk operations for multiple segments
+
+6. **Formula Selection**
+   - Choose from CVI calculation methods
+
+7. **Results Visualization**
+   - Color-coded vulnerability mapping
+   - Statistical charts and analysis
+   - GeoJSON export functionality
+   - HTML report export
+
+---
+
+## 3. CVI Calculation Engine
+
+### Mathematical Formulas
+
+1. **Geometric Mean **
+   ```
+   CVI = ∏(Vi^Wi)
+   ```
+   - Standard weighted geometric mean of the non-weighted: (CVI = ∏(Vi)*(1/n))
+
+2. **Traditional**
+   ```
+   CVI = √((∏(Vi))/n)
+   ```
+   - Only usable with equal weights
+   - (Thieler & Hammar-Klose, 2000)
+
+3. **Arithmetic Mean**
+   ```
+   CVI = Σ(Vi*Wi)
+   ```
+   - Weighted arithmetic average of the non-weighted: (CVI = Σ(Vi)/n)
+   - Linear combination approach
+
+4. **Nonlinear Power**
+   ```
+   CVI = √(Σ(Vi²*Wi))
+   ```
+   - Weighted Root mean square of the non-weighted: (CVI = √(Σ(Vi²)/n))
+   - Emphasizes extreme vulnerability values
+
+**Where**: Vi = parameter value, Wi = parameter weight, n = number of parameters
+**Weights must sum up to 1. There are 5 classes for the parameter values of 1, 2, 3, 4, 5
+
+### Calculation Features
+- **Real-time Computation**: Immediate recalculation on parameter changes
+- **Input Validation**: Parameter values constrained to 1-5 scale
+- **Weight Validation**: Automatic verification of weight sum = 1.0
+- **Error Handling**: Graceful handling of missing or invalid data
+- **Precision Control**: Results rounded to 2 decimal places
+- **Batch Processing**: Simultaneous calculation for all segments
+
+---
+
+## 4. Geospatial Processing Capabilities
+
+### Core Features
+- **Coordinate System Support**: Multiple projections via Proj4 library
+- **Geometry Operations**: Turf.js for spatial analysis and calculations
+- **Shoreline Segmentation**: Automated division by distance/resolution
+- **Interactive Drawing**: Leaflet Draw for shoreline digitization
+- **Satellite Image Integration**: GeoRaster support for georeferenced imagery
+- **Multi-format Input**: Shapefiles, GeoJSON, GeoTIFF, COG
+- **Spatial Queries**: Point-in-polygon, distance calculations, buffering
+
+### Data Structures
+```typescript
+interface ShorelineSegment {
+  type: 'Feature';
+  id: string;
+  geometry: LineString | MultiLineString;
+  properties: ShorelineSegmentProperties;
+  parameters: Record<string, ParameterValue>;
+}
+
+interface Parameter {
+  id: string;
+  name: string;
+  type: 'numerical' | 'categorical';
+  weight: number;
+  vulnerabilityRanges?: VulnerabilityRange[];
+}
+```
+
+---
+
+## 5. Data Management Architecture
+
+### Storage Strategy
+- **Client-side Storage**: IndexedDB for persistent local data
+- **Cloud Authentication**: Firebase Auth for user management
+- **Data Persistence**: Automatic saving of work progress
+- **Error Recovery**: Robust error handling with data recovery (?)
+- **Storage Optimization**: Efficient handling of large geospatial datasets
+- **Data Export**: GeoJSON export with calculated CVI scores
+- **Session Management**: State maintenance across browser sessions
+
+### Security & Privacy
+- **Client-side Processing**: Sensitive data never leaves user's device
+- **Firebase Security**: Industry-standard authentication
+- **Data Isolation**: User data separated by authentication
+- **Secure Transmission**: HTTPS for all external communications (?)
+
+---
+
+### Performance Optimization
+- **Client-side Processing**: Reduces server load, improves responsiveness
+- **Lazy Loading**: Components loaded on-demand
+- **Efficient Rendering**: Optimized map rendering with layer management
+- **Data Caching**: IndexedDB caching reduces redundant calculations
+- **Memory Management**: Proper cleanup of resources
+- **Bundle Optimization**: Vite build optimization for production
+
+---
 
 ## 🔜 Upcoming Features
 
@@ -65,9 +181,13 @@ The application automatically saves your progress at each step using IndexedDB (
 5. Improved performance optimizations
 6. Enhanced user interface and experience
 
+---
+
 ## 📚 Documentation
 
 For more detailed information, see the [User Guide](CVIc_User_Guide.md) and [Technical Paper](CVIc_Paper.md).
+
+---
 
 ## 🔗 Related Projects
 
@@ -78,4 +198,4 @@ CVIc is part of the EO-PERSIST ecosystem, which aims to establish a cloud-based 
 - **CompCVA**: Computational Framework in Coastal Vulnerability Assessment
 
 Together, these tools will automate the entire coastal-hazard workflow from satellite imagery to decision-support products.
-Introduction to CVIc: A Web-Based Tool for Coastal Vulnerability Index Calculation
+
