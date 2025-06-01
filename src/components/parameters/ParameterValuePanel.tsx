@@ -47,46 +47,32 @@ export const ParameterValuePanel: React.FC<ParameterValuePanelProps> = ({
       });
       return options;
     }
-    else if (activeParameter.type === 'numerical' && activeParameter.vulnerabilityRanges) {
+    else if (activeParameter.vulnerabilityRanges) {
+      // Use index-specific ranking table if available, otherwise fall back to generic ranges
+      const rangesToUse = activeParameter.indexSpecificRankingTable || activeParameter.vulnerabilityRanges;
       const optionsFromRanges: ParameterOption[] = [];
-      const vulnAdded: Record<number, boolean> = {};
 
-      for (let vulnLevel = 1; vulnLevel <= 5; vulnLevel++) {
-        const range = activeParameter.vulnerabilityRanges.find(r => r.value === vulnLevel);
-        if (range && !vulnAdded[range.value]) {
-           const representativeValue = range.value.toString();
-
-           let rangeLabel = `${range.label}`;
-           if (range.min !== null && range.max !== null) {
-             rangeLabel += ` (${range.min} - ${range.max}${activeParameter.unit || ''})`;
-           } else if (range.min !== null) {
-             rangeLabel += ` (>= ${range.min}${activeParameter.unit || ''})`;
-           } else if (range.max !== null) {
-             rangeLabel += ` (< ${range.max}${activeParameter.unit || ''})`;
-           }
-
-           optionsFromRanges.push({
-             label: rangeLabel,
-             value: representativeValue,
-             vulnerability: range.value
-           });
-           vulnAdded[range.value] = true;
+      rangesToUse.forEach(range => {
+        // For index-specific ranking tables, use the exact criteria
+        let rangeLabel = `${range.label}`;
+        if (range.criteria) {
+          rangeLabel += ` - ${range.criteria}`;
+        } else if (range.min !== null && range.max !== null) {
+          rangeLabel += ` (${range.min} - ${range.max}${activeParameter.unit || ''})`;
+        } else if (range.min !== null) {
+          rangeLabel += ` (>= ${range.min}${activeParameter.unit || ''})`;
+        } else if (range.max !== null) {
+          rangeLabel += ` (< ${range.max}${activeParameter.unit || ''})`;
         }
-      }
 
-      activeParameter.vulnerabilityRanges.forEach(range => {
-        if (!vulnAdded[range.value]) {
-          const representativeValue = range.value.toString();
-          let rangeLabel = `${range.label}`;
-          optionsFromRanges.push({
-            label: rangeLabel,
-            value: representativeValue,
-            vulnerability: range.value
-          });
-          vulnAdded[range.value] = true;
-        }
+        optionsFromRanges.push({
+          label: rangeLabel,
+          value: range.value.toString(),
+          vulnerability: range.value
+        });
       });
 
+      // Sort by vulnerability level
       optionsFromRanges.sort((a, b) => a.vulnerability - b.vulnerability);
 
       return optionsFromRanges;
@@ -186,19 +172,32 @@ export const ParameterValuePanel: React.FC<ParameterValuePanelProps> = ({
           <span className="mr-2 text-gray-600">Value:</span>
           <span className="font-medium">{selectedValue || '-'}</span>
           <span className="mx-4 text-gray-600">Vulnerability:</span>
-          <span className={`inline-block w-6 h-6 rounded-full text-white text-center flex items-center justify-center text-xs font-medium ${
-              (() => {
+          <span
+            className="inline-block w-6 h-6 rounded-full text-white text-center flex items-center justify-center text-xs font-medium"
+            style={{
+              backgroundColor: (() => {
+                // For ICVI parameters, use the result classification colors
+                if (selectedVulnerability >= 0 && selectedVulnerability < 1) {
+                  if (selectedVulnerability < 0.2) return '#1a9850'; // Very Low
+                  if (selectedVulnerability < 0.4) return '#91cf60'; // Low
+                  if (selectedVulnerability < 0.6) return '#fee08b'; // Moderate
+                  if (selectedVulnerability < 0.8) return '#fc8d59'; // High
+                  return '#d73027'; // Very High
+                }
+
+                // For traditional 1-5 scale parameters
                 const rank = Math.round(selectedVulnerability);
                 switch (rank) {
-                  case 1: return 'bg-green-600';
-                  case 2: return 'bg-lime-500';
-                  case 3: return 'bg-yellow-400';
-                  case 4: return 'bg-orange-500';
-                  case 5: return 'bg-red-600';
-                  default: return 'bg-gray-400';
+                  case 1: return '#1a9850';
+                  case 2: return '#91cf60';
+                  case 3: return '#fee08b';
+                  case 4: return '#fc8d59';
+                  case 5: return '#d73027';
+                  default: return '#808080';
                 }
               })()
-          }`}>
+            }}
+          >
             {selectedVulnerability || '?'}
           </span>
         </div>

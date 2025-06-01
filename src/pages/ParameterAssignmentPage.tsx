@@ -11,7 +11,6 @@ import * as turf from '@turf/turf';
 import { useParameterAssignmentData } from '../hooks/useParameterAssignmentData';
 import { applyParameterValueToSegments } from '../logic/valueAssignmentLogic';
 import { calculateAndSaveCVI } from '../utils/cviCalculations';
-import { availableFormulas } from '../config/formulas';
 import { ParameterAssignmentHeader } from '../components/parameters/ParameterAssignmentHeader';
 import { ErrorAlert } from '../components/common/ErrorAlert';
 
@@ -148,12 +147,7 @@ export default function ParameterAssignmentPage() {
     }
   }, [activeParameter, currentValueToApply, currentVulnerabilityToApply, segments, selectedSegments, setSegments]);
 
-  const handleFormulaSelect = useCallback((formulaType: Formula['type'] | null) => {
-    const formula = formulaType ? availableFormulas.find(f => f.type === formulaType) : null;
-    setSelectedFormula(formula || null);
-    console.log("Selected formula:", formula?.name ?? 'None');
-    handleError(null);
-  }, []);
+
 
   const handleCalculateCvi = useCallback(async () => {
     if (!selectedFormula) { handleError('Please select a CVI formula before calculating.'); return; }
@@ -322,10 +316,11 @@ export default function ParameterAssignmentPage() {
 
         {/* Main Content Area: Normal page flow for natural scrolling */}
         {/* Map gets fixed height, table flows naturally with page scroll */}
-        <div className="flex flex-col gap-4 flex-grow">
+        <div className="flex flex-col space-y-8 flex-grow">
 
           {/* Map Section: Balanced height that doesn't dominate the screen */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-1 h-[500px] bg-transparent relative z-20">
+          <section className="w-full">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-1 h-[500px] bg-transparent">
 
             {/* Left Column: Map Interaction Panel */}
             <div className="lg:col-span-2 flex flex-col h-full overflow-hidden"> {/* Ensures map panel fills its column space */}
@@ -376,7 +371,7 @@ export default function ParameterAssignmentPage() {
               </div>
 
               {/* Tab Content */}
-              <div className="flex-grow bg-white rounded-b-lg overflow-y-auto p-4 relative">
+              <div className="flex-grow bg-white rounded-b-lg overflow-y-auto p-4 relative max-h-[400px]">
                 {activeTab === 'parameters' ? (
                   <ParameterValuePanel
                     parameters={parameters}
@@ -391,7 +386,6 @@ export default function ParameterAssignmentPage() {
                 ) : (
                   <CviFormulaPanel
                     selectedFormula={selectedFormula}
-                    onFormulaSelect={handleFormulaSelect}
                     onCalculateCvi={handleCalculateCvi}
                     completionPercentage={completionPercentage}
                     calculatingCvi={calculatingCvi}
@@ -428,20 +422,23 @@ export default function ParameterAssignmentPage() {
                 </div>
               )}
             </div>
-          </div>
+            </div>
+          </section>
 
           {/* Table Section: Natural height, flows with page scroll - Properly separated */}
-          <div className="bg-white p-6 rounded-lg shadow mt-4 relative z-10 clear-both">
-            <SegmentTablePanel
-              segments={segments}
-              parameters={parameters}
-              selectedSegmentIds={selectedSegments}
-              onSegmentSelect={handleSegmentSelect}
-              cviScores={cviScores}
-              selectedFormula={selectedFormula}
-              cviStatistics={cviStatistics}
-            />
-          </div>
+          <section className="w-full">
+            <div className="bg-white p-6 rounded-lg shadow border-t-4 border-gray-100" style={{ minHeight: '200px' }}>
+              <SegmentTablePanel
+                segments={segments}
+                parameters={parameters}
+                selectedSegmentIds={selectedSegments}
+                onSegmentSelect={handleSegmentSelect}
+                cviScores={cviScores}
+                selectedFormula={selectedFormula}
+                cviStatistics={cviStatistics}
+              />
+            </div>
+          </section>
 
         </div> {/* End of main content grid */}
       </div> {/* End of max-width container */}

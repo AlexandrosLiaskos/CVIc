@@ -1,6 +1,7 @@
 // src/utils/cviCalculations.ts
 import type { Parameter, ShorelineSegment, Formula } from '../types';
 import { indexedDBService } from '../services/indexedDBService';
+import { detectIndex, calculateCompositeIndex, calculateICVI, calculateCCVI } from '../logic/compositeFormulas';
 
 /**
  * Geometric Mean: CVI = ∏(Vi^Wi)
@@ -17,8 +18,8 @@ export const calculateGeometricMean = (values: number[], weights: number[]): num
 };
 
 /**
- * Traditional: CVI = √((∏(Vi))/n)
- * Calculates the nth root of the product of values
+ * Traditional: CVI = √(∏(Vi)/n)
+ * Calculates the square root of the product of values divided by the number of variables
  * Only usable with equal weights
  */
 export const calculateTraditional = (values: number[], weights: number[]): number => {
@@ -39,7 +40,8 @@ export const calculateTraditional = (values: number[], weights: number[]): numbe
     product *= value;
   }
 
-  return Math.pow(product, 1.0 / n);
+  // CVI = √(∏Vi / n) - division happens INSIDE the square root
+  return Math.sqrt(product / n);
 };
 
 /**
@@ -134,6 +136,86 @@ export const calculateAndSaveCVI = async (
           break;
         case 'nonlinear-power':
           cviScore = calculateNonlinearPower(paramValues, weights);
+          break;
+        case 'icvi-evi':
+        case 'icvi-svi':
+        case 'icvi-composite':
+        case 'icvi-arithmetic':
+        case 'icvi-geometric':
+        case 'pcvi':
+        case 'ecvi':
+        case 'ccvi-composite':
+        case 'cvi-se':
+        case 'sovi':
+        case 'sevi':
+        case 'lvi':
+        case 'integrated-cvi':
+        case 'gcvi-composite':
+        case 'gcvi-component':
+          // Handle composite formulas - create detection object directly
+          console.log(`Processing composite formula: ${formula.type}`);
+          console.log(`Available parameters: ${relevantParameters.map(p => p.id).join(', ')}`);
+
+          // Create parameters with vulnerability values for this segment
+          const parametersWithValues = relevantParameters.map(param => {
+            const segmentValue = segment.parameters[param.id];
+            return {
+              ...param,
+              vulnerabilityValue: segmentValue?.vulnerability || 1
+            };
+          });
+
+          // Create a detection object based on the selected formula
+          let indexType = formula.type.toUpperCase().replace('-', '_');
+
+          // Map formula types to correct index types
+          switch (formula.type) {
+            case 'cvi-se':
+              indexType = 'CVI_SE';
+              break;
+            case 'icvi-evi':
+              indexType = 'ICVI_EVI';
+              break;
+            case 'icvi-svi':
+              indexType = 'ICVI_SVI';
+              break;
+            case 'icvi-composite':
+            case 'icvi-arithmetic':
+            case 'icvi-geometric':
+              indexType = 'ICVI';
+              break;
+            case 'ccvi-composite':
+              indexType = 'CCVI';
+              break;
+            case 'integrated-cvi':
+              indexType = 'INTEGRATED_CVI';
+              break;
+            case 'gcvi-composite':
+              indexType = 'GCVI';
+              break;
+            case 'gcvi-component':
+              indexType = 'GCVI_GS'; // Default, will be handled in calculation
+              break;
+            default:
+              indexType = formula.type.toUpperCase().replace('-', '_');
+          }
+
+          const syntheticDetection = {
+            indexType,
+            indexName: formula.name,
+            formula: formula.type,
+            confidence: 1.0
+          };
+
+          try {
+            const result = calculateCompositeIndex(parametersWithValues, syntheticDetection);
+            cviScore = result.value;
+            console.log(`Composite calculation successful: ${result.formula}`);
+          } catch (compositeError) {
+            console.error(`Composite calculation failed for ${formula.type}:`, compositeError);
+            console.warn(`Falling back to traditional calculation`);
+            cviScore = calculateTraditional(paramValues, weights);
+          }
           break;
         default:
           console.warn(`Unknown formula type: ${formula.type}. Defaulting to geometric mean.`);

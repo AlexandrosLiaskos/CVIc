@@ -37,7 +37,7 @@ const generateVulnerabilityProfileData = (segments: ShorelineSegment[]) => {
     .filter(s => s.properties.vulnerabilityIndex !== undefined)
     .map((segment, index) => {
       const score = segment.properties.vulnerabilityIndex || 0;
-      const category = getCviCategory(score);
+      const category = getCviCategory(score, segment.properties.vulnerabilityFormula);
 
       // Use the exact same color mapping as in the results page
       const CATEGORY_COLORS = {

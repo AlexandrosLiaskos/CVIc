@@ -15,12 +15,15 @@ import { getCviCategory } from '../utils/vulnerabilityMapping';
 import { availableFormulas } from '../config/formulas';
 import { generateHtmlReport } from '../utils/reportGenerator';
 import { captureMap } from '../utils/mapCapture';
+import { getStandardizedIndexById } from '../config/standardizedIndices';
+import type { StandardizedCoastalIndex } from '../types/indexSpecificTypes';
 
 export default function ResultsPage() {
   const navigate = useNavigate();
   const [segments, setSegments] = useState<ShorelineSegment[]>([]);
   const [parameters, setParameters] = useState<Parameter[]>([]);
   const [usedFormula, setUsedFormula] = useState<Formula | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<StandardizedCoastalIndex | null>(null);
   const [mapBounds, setMapBounds] = useState<L.LatLngBoundsExpression | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,6 +90,19 @@ export default function ResultsPage() {
           console.log(`Loaded ${loadedParameters.length} enabled parameters.`);
         }
 
+        // Load selected index information
+        const indexData = await indexedDBService.getShorelineData('current-index');
+        if (indexData && indexData.features && indexData.features.length > 0) {
+          const indexFeature = indexData.features[0];
+          if (indexFeature.properties?.id) {
+            const index = getStandardizedIndexById(indexFeature.properties.id);
+            if (index) {
+              setSelectedIndex(index);
+              console.log(`Loaded selected index: ${index.name}`);
+            }
+          }
+        }
+
         const featuresForBounds = loadedSegments.map(s => ({ type: 'Feature' as const, geometry: s.geometry, properties: {} }));
         const fc = createFeatureCollection(featuresForBounds);
         try {
@@ -121,16 +137,17 @@ export default function ResultsPage() {
           id: segment.id,
 
           cviScore: segment.properties.vulnerabilityIndex,
-          cviCategory: getCviCategory(segment.properties.vulnerabilityIndex ?? null),
+          cviCategory: getCviCategory(segment.properties.vulnerabilityIndex ?? null, segment.properties.vulnerabilityFormula),
         },
       })),
     };
   }, [segments]);
 
   const cviStatistics = useMemo(() => {
-    const scores = segments.map(s => s.properties.vulnerabilityIndex).filter(score => score !== undefined && score !== null) as number[];
-    if (scores.length === 0) return null;
+    const segmentsWithScores = segments.filter(s => s.properties.vulnerabilityIndex !== undefined && s.properties.vulnerabilityIndex !== null);
+    if (segmentsWithScores.length === 0) return null;
 
+    const scores = segmentsWithScores.map(s => s.properties.vulnerabilityIndex as number);
     const min = Math.min(...scores);
     const max = Math.max(...scores);
     const sum = scores.reduce((a, b) => a + b, 0);
@@ -141,8 +158,10 @@ export default function ResultsPage() {
     let moderateCount = 0;
     let highCount = 0;
     let veryHighCount = 0;
-    scores.forEach(score => {
-      const category = getCviCategory(score);
+    segmentsWithScores.forEach(segment => {
+      const score = segment.properties.vulnerabilityIndex as number;
+      const formula = segment.properties.vulnerabilityFormula;
+      const category = getCviCategory(score, formula);
       if (category === 'Very Low') veryLowCount++;
       else if (category === 'Low') lowCount++;
       else if (category === 'Moderate') moderateCount++;
@@ -180,7 +199,7 @@ export default function ResultsPage() {
         const exportProperties: ShorelineSegmentProperties & { cvi_score?: number; cvi_category?: string } = {
           ...segment.properties,
           cvi_score: segment.properties.vulnerabilityIndex,
-          cvi_category: getCviCategory(segment.properties.vulnerabilityIndex ?? null),
+          cvi_category: getCviCategory(segment.properties.vulnerabilityIndex ?? null, segment.properties.vulnerabilityFormula),
         };
 
         return {
@@ -377,6 +396,31 @@ export default function ResultsPage() {
         </span>
       </h1>
 
+      {/* Index Information */}
+      {selectedIndex && (
+        <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-800 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-primary-600" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+              </svg>
+              Index Used: {selectedIndex.name}
+            </h2>
+            <div className="flex gap-2">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                {selectedIndex.formula}
+              </span>
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                {selectedIndex.requiredParameters.length} parameters
+              </span>
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                equal weights
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ErrorAlert message={error} onClose={() => setError(null)} />
 
       {/* Main content grid - Top section with map and summary */}
@@ -384,11 +428,8 @@ export default function ResultsPage() {
 
         {/* Left Column: Map */}
         <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md overflow-hidden min-h-[600px] flex flex-col border border-gray-100">
-          <div className="flex justify-between items-center mb-4">
+          <div className="mb-4">
             <h2 className="text-xl font-semibold text-gray-800">Vulnerability Map</h2>
-            <span className="px-3 py-1 bg-primary-50 text-primary-700 text-sm font-medium rounded-full">
-              Formula: {usedFormula?.name || 'Unknown'}
-            </span>
           </div>
           <p className="text-sm text-gray-600 mb-4">
             Shoreline segments colored by calculated CVI score. Click segments for details.

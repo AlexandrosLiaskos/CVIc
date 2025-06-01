@@ -73,8 +73,9 @@ const CviCharts: React.FC<CviChartsProps> = ({
         id: segment.id,
         index,
         score: segment.properties.vulnerabilityIndex || 0,
-        category: getCviCategory(segment.properties.vulnerabilityIndex || 0),
-        color: CATEGORY_COLORS[getCviCategory(segment.properties.vulnerabilityIndex || 0) as keyof typeof CATEGORY_COLORS]
+        category: getCviCategory(segment.properties.vulnerabilityIndex || 0, segment.properties.vulnerabilityFormula),
+        color: CATEGORY_COLORS[getCviCategory(segment.properties.vulnerabilityIndex || 0, segment.properties.vulnerabilityFormula) as keyof typeof CATEGORY_COLORS],
+        isICVI: segment.properties.vulnerabilityFormula?.includes('icvi') || false
       }))
       .sort((a, b) => a.index - b.index); // Sort by index to maintain shoreline order
 
@@ -102,6 +103,11 @@ const CviCharts: React.FC<CviChartsProps> = ({
       displayId: `${index+1}`
     }));
   }, [segments]);
+
+  // Determine if we're using ICVI to set appropriate chart scale
+  const isUsingICVI = useMemo(() => {
+    return vulnerabilityProfileData.length > 0 && vulnerabilityProfileData[0].isICVI;
+  }, [vulnerabilityProfileData]);
 
   // Removed parameter correlation matrix data
 
@@ -153,7 +159,7 @@ const CviCharts: React.FC<CviChartsProps> = ({
                   interval={Math.max(1, Math.floor(vulnerabilityProfileData.length / 20))}
                 />
                 <YAxis
-                  domain={[1, 5]}
+                  domain={isUsingICVI ? [0, 1] : [1, 5]}
                   label={{ value: 'CVI Score', angle: -90, position: 'insideLeft' }}
                 />
                 <Tooltip
@@ -167,17 +173,28 @@ const CviCharts: React.FC<CviChartsProps> = ({
                       return (
                         <div className="bg-white p-2 border border-gray-200 shadow-sm rounded">
                           <p className="font-medium">{`Segment ${label} (${item?.category})`}</p>
-                          <p className="text-blue-600">{`CVI Score: ${scorePoint.value}`}</p>
+                          <p className="text-blue-600">{`CVI Score: ${typeof scorePoint.value === 'number' ? scorePoint.value.toFixed(3) : scorePoint.value}`}</p>
                         </div>
                       );
                     }
                     return null;
                   }}
                 />
-                <ReferenceLine y={1.5} stroke="#4caf50" strokeDasharray="3 3" />
-                <ReferenceLine y={2.5} stroke="#ffeb3b" strokeDasharray="3 3" />
-                <ReferenceLine y={3.5} stroke="#ff9800" strokeDasharray="3 3" />
-                <ReferenceLine y={4.5} stroke="#f44336" strokeDasharray="3 3" />
+                {isUsingICVI ? (
+                  <>
+                    <ReferenceLine y={0.2} stroke="#4caf50" strokeDasharray="3 3" />
+                    <ReferenceLine y={0.4} stroke="#ffeb3b" strokeDasharray="3 3" />
+                    <ReferenceLine y={0.6} stroke="#ff9800" strokeDasharray="3 3" />
+                    <ReferenceLine y={0.8} stroke="#f44336" strokeDasharray="3 3" />
+                  </>
+                ) : (
+                  <>
+                    <ReferenceLine y={1.5} stroke="#4caf50" strokeDasharray="3 3" />
+                    <ReferenceLine y={2.5} stroke="#ffeb3b" strokeDasharray="3 3" />
+                    <ReferenceLine y={3.5} stroke="#ff9800" strokeDasharray="3 3" />
+                    <ReferenceLine y={4.5} stroke="#f44336" strokeDasharray="3 3" />
+                  </>
+                )}
                 <Scatter
                   dataKey="score"
                   fill="#8884d8"

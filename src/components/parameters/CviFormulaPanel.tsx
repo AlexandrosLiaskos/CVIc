@@ -1,7 +1,6 @@
 // src/components/parameters/CviFormulaPanel.tsx
 import { useMemo } from 'react';
 import type { Formula, ShorelineSegment } from '../../types';
-import { availableFormulas } from '../../config/formulas'; // Import from config
 import { getCviCategory } from '../../utils/vulnerabilityMapping';
 
 interface CviStatistics {
@@ -20,7 +19,6 @@ interface CviStatistics {
 
 interface CviFormulaPanelProps {
   selectedFormula: Formula | null;
-  onFormulaSelect: (formulaType: Formula['type'] | null) => void;
   onCalculateCvi: () => Promise<void>;
   completionPercentage: number;
   calculatingCvi: boolean;
@@ -30,7 +28,6 @@ interface CviFormulaPanelProps {
 
 export const CviFormulaPanel: React.FC<CviFormulaPanelProps> = ({
   selectedFormula,
-  onFormulaSelect,
   onCalculateCvi,
   completionPercentage,
   calculatingCvi,
@@ -53,7 +50,7 @@ export const CviFormulaPanel: React.FC<CviFormulaPanelProps> = ({
     let highCount = 0;
     let veryHighCount = 0;
     scores.forEach(score => {
-        const category = getCviCategory(score);
+        const category = getCviCategory(score, selectedFormula?.type);
         if (category === 'Very Low') veryLowCount++;
         else if (category === 'Low') lowCount++;
         else if (category === 'Moderate') moderateCount++;
@@ -74,46 +71,58 @@ export const CviFormulaPanel: React.FC<CviFormulaPanelProps> = ({
         veryHigh: veryHighCount
       }
     };
-  }, [cviScores]);
+  }, [cviScores, selectedFormula]);
 
   const canCalculate = useMemo(() => {
     return completionPercentage >= 100 && selectedFormula !== null && !calculatingCvi;
   }, [completionPercentage, selectedFormula, calculatingCvi]);
 
-  const handleFormulaChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = event.target.value;
-    onFormulaSelect(value === '' ? null : value as Formula['type']);
-  };
+
 
   return (
     <div>
       <h3 className="text-lg font-medium mb-4">CVI Calculation</h3>
 
-      {/* Formula Selection Section */}
+      {/* Formula Information Section */}
       <div className="mb-4">
-        <label htmlFor="formula-select" className="block text-sm font-medium text-gray-700 mb-1">
-          Select Formula
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Index Formula
         </label>
-        <select
-          id="formula-select"
-          value={selectedFormula?.type || ''}
-          onChange={handleFormulaChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-          disabled={calculatingCvi}
-        >
-          {/* Placeholder option */}
-          <option value="">-- Select a Formula --</option>
-          {/* Populate options from availableFormulas config */}
-          {availableFormulas.map(formula => (
-            <option key={formula.type} value={formula.type}>
-              {formula.name} {/* Display formula name */}
-            </option>
-          ))}
-        </select>
-        {/* Display description of the selected formula */}
-         {selectedFormula && (
-            <p className="mt-1 text-xs text-gray-600">{selectedFormula.description}</p>
-         )}
+
+        {selectedFormula ? (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span className="font-medium text-blue-900">{selectedFormula.name}</span>
+              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Auto-selected</span>
+            </div>
+            <p className="text-xs text-blue-700 mb-2">{selectedFormula.description}</p>
+            <p className="text-xs text-blue-600">
+              ✓ Formula automatically determined by your selected coastal vulnerability index
+            </p>
+            {selectedFormula.name === 'CVI' && selectedFormula.type === 'geometric-mean' && (
+              <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded">
+                <p className="text-xs text-amber-800">
+                  <strong>Note:</strong> Geometric mean formula preferred over traditional CVI formula to avoid distribution distortions and enable proper ranking of results.
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              <span className="font-medium text-gray-700">No Formula Selected</span>
+            </div>
+            <p className="text-xs text-gray-600">
+              Please select a coastal vulnerability index in the parameter selection step to automatically set the appropriate formula.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Calculate Button Section */}

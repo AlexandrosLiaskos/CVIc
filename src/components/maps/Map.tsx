@@ -7,6 +7,7 @@ import 'leaflet-draw/dist/leaflet.draw.css'
 import type { Parameter, ShorelineSegment, SelectionPolygon } from '../../types'
 import type { FeatureCollection, Polygon as GeoJSONPolygon, Feature, GeoJsonObject } from 'geojson'
 import * as turf from '@turf/turf'
+import { getCviRank } from '../../utils/vulnerabilityMapping'
 
 interface MapProps {
   segments: ShorelineSegment[]
@@ -24,10 +25,10 @@ interface MapProps {
   stylingMode?: 'parameter' | 'cvi'
 }
 
-const getCviColor = (score: number | undefined | null): string => {
+const getCviColor = (score: number | undefined | null, formula?: string): string => {
   if (score === undefined || score === null || isNaN(score)) return '#808080';
 
-  const rank = Math.round(score);
+  const rank = getCviRank(score, formula);
   if (rank <= 1) return '#1a9850';
   if (rank === 2) return '#91cf60';
   if (rank === 3) return '#fee08b';
@@ -50,7 +51,8 @@ function getFeatureStyle(
   const cviScore = feature.properties?.vulnerabilityIndex;
 
   if (stylingMode === 'cvi') {
-    const color = getCviColor(cviScore);
+    const formula = feature.properties?.vulnerabilityFormula;
+    const color = getCviColor(cviScore, formula);
     return {
       color: isSelected ? '#0ea5e9' : color,
       weight: isSelected ? 5 : 3,
@@ -87,7 +89,7 @@ function getFeatureStyle(
 
   if (parameter.type === 'categorical' && parameter.options) {
     const option = parameter.options.find(o => o.value === paramValue.value);
-    valueColor = option?.color || getCviColor(vulnerabilityScore);
+    valueColor = option?.color || getCviColor(vulnerabilityScore, feature.properties?.vulnerabilityFormula);
   } else if (parameter.type === 'numerical' && parameter.vulnerabilityRanges) {
     const range = parameter.vulnerabilityRanges.find(r => r.value === vulnerabilityScore);
     valueColor = range?.color || '#808080';

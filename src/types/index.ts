@@ -39,6 +39,7 @@ export interface VulnerabilityRange {
   max: number | null
   label: string
   color: string
+  criteria?: string // Index-specific criteria text
 }
 
 export interface BaseParameterOption {
@@ -75,6 +76,13 @@ export interface Parameter {
   options?: ParameterOption[]
   enabled?: boolean
   isCustom?: boolean
+  category?: string
+  aliases?: string[]
+  standardId?: string
+  indexId?: string
+  indexSpecificName?: string
+  indexSpecificRankingTable?: any[] // Index-specific ranking table from research papers
+  vulnerabilityValue?: number // Dynamically added during calculations
 }
 
 export interface SelectionPolygon {
@@ -119,7 +127,11 @@ export interface MapFeatureCollection extends FeatureCollection {
 }
 
 export interface Formula {
-  type: 'geometric-mean' | 'traditional' | 'arithmetic-mean' | 'nonlinear-power';
+  type: 'geometric-mean' | 'traditional' | 'arithmetic-mean' | 'nonlinear-power' | 'composite' |
+        'icvi-evi' | 'icvi-svi' | 'icvi-composite' | 'icvi-arithmetic' | 'icvi-geometric' |
+        'pcvi' | 'ecvi' | 'ccvi-composite' |
+        'cvi-se' | 'sovi' | 'sevi' | 'lvi' | 'integrated-cvi' |
+        'gcvi-composite' | 'gcvi-component';
   name: string;
   description: string;
 }

@@ -2,36 +2,54 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { ChevronRightIcon, CubeTransparentIcon, CommandLineIcon, MapIcon, CircleStackIcon, FingerPrintIcon, PaintBrushIcon, BeakerIcon, CpuChipIcon } from '@heroicons/react/24/outline'; // Added more icons
+import { ChevronRightIcon, MapIcon, ChartBarIcon, ShieldCheckIcon, ClockIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
 
 export default function RootPage() {
   console.log('RootPage component rendering');
   const { user, loading } = useAuth();
   console.log('Auth state:', { user, loading });
   const workflowSteps = [
-    { text: "Choose to upload or create a shoreline.", icon: <CpuChipIcon className="h-6 w-6 text-primary-600" /> },
-    { text: "Upload existing shoreline or digitize from satellite imagery.", icon: <PaintBrushIcon className="h-6 w-6 text-primary-600" /> },
-    { text: "Segment shoreline by specified resolution.", icon: <CubeTransparentIcon className="h-6 w-6 text-primary-600" /> },
-    { text: "Select vulnerability parameters & assign weights.", icon: <BeakerIcon className="h-6 w-6 text-primary-600" /> },
-    { text: "Assign values to segments via interactive map & table.", icon: <MapIcon className="h-6 w-6 text-primary-600" /> },
-    { text: "Select CVI calculation formula.", icon: <CommandLineIcon className="h-6 w-6 text-primary-600" /> },
-    { text: "Visualize results & export as GeoJSON.", icon: <CircleStackIcon className="h-6 w-6 text-primary-600" /> },
+    {
+      title: "Upload Shoreline",
+      description: "Upload shoreline data or digitize on uploaded satellite imagery",
+      icon: <GlobeAltIcon className="h-6 w-6 text-blue-600" />
+    },
+    {
+      title: "Select Index",
+      description: "Select vulnerability index",
+      icon: <ChartBarIcon className="h-6 w-6 text-blue-600" />
+    },
+    {
+      title: "Assign Values",
+      description: "Assign values interactively on the map",
+      icon: <MapIcon className="h-6 w-6 text-blue-600" />
+    },
+    {
+      title: "Export Results ",
+      description: "Export results and report",
+      icon: <ShieldCheckIcon className="h-6 w-6 text-blue-600" />
+    },
   ];
 
-  const techStack = [
-    { name: "React", purpose: "UI Framework", icon: <CubeTransparentIcon className="h-4 w-4 text-cyan-700" /> },
-    { name: "TypeScript", purpose: "Language / Type Safety", icon: <CommandLineIcon className="h-4 w-4 text-blue-700" /> },
-    { name: "Vite", purpose: "Build Tool / Dev Server", icon: <CpuChipIcon className="h-4 w-4 text-purple-700" /> },
-    { name: "React Router", purpose: "Client-Side Routing", icon: <MapIcon className="h-4 w-4 text-orange-700" /> },
-    { name: "Leaflet", purpose: "Interactive Maps Core", icon: <MapIcon className="h-4 w-4 text-green-700" /> },
-    { name: "React Leaflet", purpose: "React Integration for Leaflet", icon: <MapIcon className="h-4 w-4 text-green-600" /> },
-    { name: "Leaflet Draw", purpose: "Map Drawing/Selection Tools", icon: <PaintBrushIcon className="h-4 w-4 text-green-800" /> },
-    { name: "Turf.js", purpose: "Geospatial Analysis", icon: <BeakerIcon className="h-4 w-4 text-lime-700" /> },
-    { name: "TailwindCSS", purpose: "Utility-First CSS Styling", icon: <PaintBrushIcon className="h-4 w-4 text-sky-700" /> },
-    { name: "IndexedDB (idb)", purpose: "Client-Side Data Storage", icon: <CircleStackIcon className="h-4 w-4 text-gray-700" /> },
-    { name: "shpjs", purpose: "Shapefile Parsing", icon: <CpuChipIcon className="h-4 w-4 text-red-700" /> },
-    { name: "Firebase Auth", purpose: "User Authentication", icon: <FingerPrintIcon className="h-4 w-4 text-yellow-700" /> },
+  const benefits = [
+    {
+      title: "Real-Time Processing",
+      description: "Implement your own calculations",
+      icon: <ClockIcon className="h-8 w-8 text-blue-600" />
+    },
+    {
+      title: "End-to-End Workflow",
+      description: "From shoreline to CVI results",
+      icon: <ShieldCheckIcon className="h-8 w-8 text-blue-600" />
+    },
+    {
+      title: "Free and Open Source",
+      description: "Transparency and collaboration",
+      icon: <ChartBarIcon className="h-8 w-8 text-blue-600" />
+    }
   ];
+
+
 
   // Only show loading spinner for a maximum of 2 seconds
   const [showLoading, setShowLoading] = useState(loading);
@@ -59,26 +77,28 @@ export default function RootPage() {
   }
 
   return (
-    <div className="bg-white text-gray-800 font-sans py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="bg-gradient-to-br from-gray-50 to-white min-h-screen flex flex-col">
+      <div className="flex-1 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
 
-        {/* Headline */}
-        <div className="text-center mb-12">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-primary-900 tracking-tight">
-            CVIc: Coastal Vulnerability Index Compiler
+        {/* Hero Section */}
+        <div className="text-center mb-16">
+            <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 tracking-tight mb-6">
+            Coastal Vulnerability Index Compiler
             </h1>
-            <p className="mt-3 text-lg text-gray-600">
-            Web Platform for Automating Coastal Vulnerability Index Calculation
+            <p className="text-xl text-gray-600 mb-4 max-w-3xl mx-auto">
+
+            </p>
+            <p className="text-lg text-gray-500 max-w-2xl mx-auto">
+            First web application specialized for the automation of Coastal Vulnerability Assessment
             </p>
         </div>
 
         {/* Call to Action Section */}
-        {/* Added mb-16 here for spacing before the next section */}
-        <section className="text-center mt-10 mb-16">
+        <section className="text-center mb-20">
           {user ? (
             <Link
               to="/shoreline-selection"
-              className="inline-flex items-center justify-center bg-primary-600 text-white font-semibold px-6 py-3 text-base rounded-lg shadow-md hover:bg-primary-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+              className="inline-flex items-center justify-center bg-blue-600 text-white font-semibold px-8 py-4 text-lg rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50"
             >
               Start New Analysis
               <ChevronRightIcon className="ml-2 h-5 w-5" />
@@ -86,33 +106,31 @@ export default function RootPage() {
           ) : (
             <Link
               to="/login"
-              className="inline-flex items-center justify-center bg-primary-600 text-white font-semibold px-6 py-3 text-base rounded-lg shadow-md hover:bg-primary-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+              className="inline-flex items-center justify-center bg-blue-600 text-white font-semibold px-8 py-4 text-lg rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50"
             >
-              Sign In to Begin
+              Get Started
               <ChevronRightIcon className="ml-2 h-5 w-5" />
             </Link>
           )}
         </section>
 
-        {/* Workflow Section - Updated Styling */}
-        {/* This section already has mb-16, so the space below it is handled */}
-        <section className="mb-16">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-8 text-center"> {/* Increased bottom margin */}
-            Workflow Overview
+        {/* How It Works Section */}
+        <section className="mb-20">
+          <h2 className="text-3xl font-bold text-gray-900 mb-12 text-center">
+            How It Works
           </h2>
-          {/* Use a grid layout for compactness on larger screens */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> {/* Changed gap */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {workflowSteps.map((step, index) => (
-              <div key={index} className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg border border-gray-200 shadow-sm hover:shadow-md hover:border-primary-200 transition duration-200 ease-in-out"> {/* Added hover effect */}
-                {/* Icon container */}
-                <div className="flex-shrink-0 w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center ring-2 ring-primary-200"> {/* Adjusted size/styling */}
+              <div key={index} className="flex items-start space-x-4 p-6 bg-gray-50 rounded-xl border border-gray-100 hover:shadow-lg hover:border-blue-200 transition-all duration-300">
+                <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
                    {step.icon}
                  </div>
-                {/* Text content */}
-                <div className="flex-1 pt-1"> {/* Added container div for potential future additions */}
-                    <p className="text-gray-700 font-medium"> {/* Slightly bolder text */}
-                        <span className="font-bold text-primary-700 mr-1">{index + 1}.</span> {/* Added step number */}
-                         {step.text}
+                <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        {index + 1}. {step.title}
+                    </h3>
+                    <p className="text-gray-600">
+                         {step.description}
                     </p>
                 </div>
               </div>
@@ -120,26 +138,54 @@ export default function RootPage() {
           </div>
         </section>
 
-        {/* Technology Section */}
-        <section className="mb-16">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6 text-center">
-            Technology Stack
+        {/* Why CVIc Section */}
+        <section className="mb-12">
+          <h2 className="text-3xl font-bold text-gray-900 mb-12 text-center">
+            Why Choose CVIc?
           </h2>
-           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {techStack.map((tech) => (
-              <div key={tech.name} className="flex items-center space-x-3 p-3 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
-                 <div className="flex-shrink-0 p-1.5 bg-gray-100 rounded-md">
-                   {tech.icon}
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {benefits.map((benefit, index) => (
+              <div key={index} className="text-center p-6 bg-white rounded-xl border border-gray-100 hover:shadow-lg transition-all duration-300">
+                 <div className="flex justify-center mb-4">
+                   {benefit.icon}
                  </div>
-                 <div>
-                   <p className="text-sm font-semibold text-gray-900">{tech.name}</p>
-                   <p className="text-xs text-gray-500">{tech.purpose}</p>
-                 </div>
+                 <h3 className="text-xl font-semibold text-gray-900 mb-3">{benefit.title}</h3>
+                 <p className="text-gray-600 leading-relaxed">{benefit.description}</p>
               </div>
             ))}
            </div>
         </section>
       </div>
+
+      {/* Footer - Sticky at bottom */}
+      <footer className="bg-gray-50 border-t border-gray-200 px-6 py-3">
+        <div className="max-w-6xl mx-auto text-center space-y-2">
+          <p className="text-gray-600 text-sm">
+            Coastal Vulnerability Index Compiler - Developed by <span className="font-medium">Alexandros Liaskos</span>
+          </p>
+          <p className="text-gray-500 text-xs">
+            Made within the{' '}
+            <a
+              href="https://eo-persist.eu/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-700 underline"
+            >
+              HORIZON EUROPE's EO-PERSIST project
+            </a>
+            {' • '}
+            <a
+              href="https://github.com/AlexandrosLiaskos/CVIc"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-700 underline"
+            >
+              GitHub
+            </a>
+            {' • MIT Licensed • © 2025'}
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
