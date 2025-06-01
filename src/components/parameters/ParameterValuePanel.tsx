@@ -10,11 +10,11 @@ interface ParameterOption {
 
 interface ParameterValuePanelProps {
   parameters: Parameter[];
-  activeParameter: Parameter | null; 
-  onParameterSelect: (parameterId: string) => void; 
-  selectedValue: string | null; 
+  activeParameter: Parameter | null;
+  onParameterSelect: (parameterId: string) => void;
+  selectedValue: string | null;
   selectedVulnerability: number;
-  onValueSelect: (value: string | null, vulnerability?: number) => void; 
+  onValueSelect: (value: string | null, vulnerability?: number) => void;
   onApplyValue: () => Promise<void>;
   selectedSegmentIds: string[];
 }
@@ -49,7 +49,7 @@ export const ParameterValuePanel: React.FC<ParameterValuePanelProps> = ({
     }
     else if (activeParameter.type === 'numerical' && activeParameter.vulnerabilityRanges) {
       const optionsFromRanges: ParameterOption[] = [];
-      const vulnAdded: Record<number, boolean> = {}; 
+      const vulnAdded: Record<number, boolean> = {};
 
       for (let vulnLevel = 1; vulnLevel <= 5; vulnLevel++) {
         const range = activeParameter.vulnerabilityRanges.find(r => r.value === vulnLevel);
@@ -67,7 +67,7 @@ export const ParameterValuePanel: React.FC<ParameterValuePanelProps> = ({
 
            optionsFromRanges.push({
              label: rangeLabel,
-             value: representativeValue, 
+             value: representativeValue,
              vulnerability: range.value
            });
            vulnAdded[range.value] = true;
@@ -95,12 +95,12 @@ export const ParameterValuePanel: React.FC<ParameterValuePanelProps> = ({
       const vulnLabels = ['Very Low', 'Low', 'Moderate', 'High', 'Very High'];
       return [1, 2, 3, 4, 5].map(i => ({
         label: `${vulnLabels[i - 1]} (Score: ${i})`,
-        value: i.toString(), 
+        value: i.toString(),
         vulnerability: i
       }));
     }
 
-    return []; 
+    return [];
   }, [activeParameter]);
 
   const handleValueChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -111,7 +111,7 @@ export const ParameterValuePanel: React.FC<ParameterValuePanelProps> = ({
     if (selectedOption) {
       onValueSelect(selectedOption.value, selectedOption.vulnerability);
     } else {
-      onValueSelect(null, 1); 
+      onValueSelect(null, 1);
     }
   };
 
@@ -123,7 +123,7 @@ export const ParameterValuePanel: React.FC<ParameterValuePanelProps> = ({
   }, [activeParameter, selectedValue, selectedSegmentIds]);
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow">
+    <div>
       <h3 className="text-lg font-medium mb-4">Parameter Values</h3>
       <p className="mb-4 text-sm text-gray-600">{selectedSegmentIds.length} selected</p>
 
@@ -156,7 +156,7 @@ export const ParameterValuePanel: React.FC<ParameterValuePanelProps> = ({
         <select
           id="value-select"
           value={selectedValue || ''}
-          onChange={handleValueChange} 
+          onChange={handleValueChange}
           className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
           disabled={!activeParameter || selectedSegmentIds.length === 0}
         >
@@ -170,7 +170,7 @@ export const ParameterValuePanel: React.FC<ParameterValuePanelProps> = ({
              <option value="" disabled>No values available</option>
            )}
         </select>
-        {(!activeParameter || selectedSegmentIds.length === 0) && selectedValue === null && ( 
+        {(!activeParameter || selectedSegmentIds.length === 0) && selectedValue === null && (
           <p className="mt-1 text-sm text-red-500">
             {!activeParameter ? 'Select a parameter first' : 'Select segments on the map first'}
           </p>
@@ -188,7 +188,7 @@ export const ParameterValuePanel: React.FC<ParameterValuePanelProps> = ({
           <span className="mx-4 text-gray-600">Vulnerability:</span>
           <span className={`inline-block w-6 h-6 rounded-full text-white text-center flex items-center justify-center text-xs font-medium ${
               (() => {
-                const rank = Math.round(selectedVulnerability); 
+                const rank = Math.round(selectedVulnerability);
                 switch (rank) {
                   case 1: return 'bg-green-600';
                   case 2: return 'bg-lime-500';

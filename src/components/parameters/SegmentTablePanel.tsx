@@ -29,7 +29,7 @@ const SEGMENTS_PER_PAGE = 10;
 
 export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
   segments,
-  parameters: enabledParameters, 
+  parameters: enabledParameters,
   selectedSegmentIds,
   onSegmentSelect,
   cviScores,
@@ -52,7 +52,7 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
       if (isSelectedA !== isSelectedB) {
         return isSelectedA ? -1 : 1;
       }
-      return compareSegmentIds(a.id, b.id); 
+      return compareSegmentIds(a.id, b.id);
     });
     return segmentsCopy;
   }, [segments, selectedSegmentIds]);
@@ -76,12 +76,12 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
 
   const getVulnerabilityClass = (vulnerability: number | null | undefined): string => {
     if (vulnerability === null || vulnerability === undefined) return 'bg-gray-300';
-    switch (Math.round(vulnerability)) { 
-      case 1: return 'bg-green-600'; 
-      case 2: return 'bg-lime-500';  
+    switch (Math.round(vulnerability)) {
+      case 1: return 'bg-green-600';
+      case 2: return 'bg-lime-500';
       case 3: return 'bg-yellow-400';
       case 4: return 'bg-orange-500';
-      case 5: return 'bg-red-600'; 
+      case 5: return 'bg-red-600';
       default: return 'bg-gray-400';
     }
   };
@@ -90,16 +90,16 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
      if (score === null || score === undefined || isNaN(score)) return 'bg-gray-400';
      const rank = Math.round(score);
      if (rank <= 1) return 'bg-green-600';
-     if (rank === 2) return 'bg-lime-500';  
+     if (rank === 2) return 'bg-lime-500';
      if (rank === 3) return 'bg-yellow-400';
      if (rank === 4) return 'bg-orange-500';
-     if (rank >= 5) return 'bg-red-600';   
-     return 'bg-gray-400'; 
+     if (rank >= 5) return 'bg-red-600';
+     return 'bg-gray-400';
    };
 
 
   return (
-    <div className="flex flex-col flex-grow h-full overflow-hidden"> {/* Added flex structure to allow internal scrolling */}
+    <div className="flex flex-col"> {/* Natural flow, no height constraints */}
       <h3 className="text-lg font-medium mb-4">Segment Values</h3>
 
       {/* CVI Statistics Display - Make it less tall */}
@@ -128,25 +128,25 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
       )}
 
       {/* Segment Table */}
-      <div className="flex-grow overflow-auto"> {/* Changed to overflow-auto for both axes scrolling within this div */}
-        <table className="min-w-full divide-y divide-gray-200">
+      <div> {/* No horizontal scroll - all columns always visible */}
+        <table className="w-full table-fixed divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
                 ID
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                 Length (m)
               </th>
               {/* Parameter Columns */}
               {enabledParameters.map(param => (
-                <th key={param.id} scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title={param.name}>
+                <th key={param.id} scope="col" className="px-1 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" title={param.name}>
                    {/* Truncate long names */}
-                  {param.name.length > 15 ? param.name.substring(0, 12) + '...' : param.name} (Vuln)
+                  {param.name.length > 10 ? param.name.substring(0, 8) + '...' : param.name}
                 </th>
               ))}
               {/* CVI Column */}
-              <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
                 CVI {selectedFormula && <span className="text-blue-500">({selectedFormula.name.substring(0, 10)}{selectedFormula.name.length > 10 ? '...' : ''})</span>}
               </th>
             </tr>
@@ -163,7 +163,7 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
                   style={{ cursor: 'pointer' }}
                 >
                   {/* ID and Checkbox Cell */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
                     <div className="flex items-center">
                       <input
                         type="checkbox"
@@ -172,25 +172,25 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
                           e.stopPropagation(); // Prevent row click handler
                           onSegmentSelect(segment.id);
                         }}
-                        className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        className="mr-1 h-3 w-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                         aria-label={`Select segment ${displayId}`}
                       />
-                      <span>{displayId}</span>
+                      <span className="text-xs">{displayId}</span>
                     </div>
                   </td>
                   {/* Length Cell */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {typeof segment.properties?.length === 'number' ? segment.properties.length.toFixed(2) : 'N/A'}
+                  <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900">
+                    {typeof segment.properties?.length === 'number' ? segment.properties.length.toFixed(0) : 'N/A'}
                   </td>
                   {/* Parameter Vulnerability Cells */}
                   {enabledParameters.map(param => {
                     const paramValue = segment.parameters?.[param.id];
                     const vulnerability = paramValue?.vulnerability ?? null;
                     return (
-                      <td key={param.id} className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                      <td key={param.id} className="px-1 py-2 whitespace-nowrap text-xs text-center">
                         {vulnerability !== null ? (
                           <div className="flex justify-center" title={`Value: ${paramValue?.value ?? 'N/A'}, Vulnerability: ${vulnerability}`}>
-                             <span title={`Vulnerability: ${vulnerability}`} className={`inline-block w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium ${getVulnerabilityClass(vulnerability)}`}>
+                             <span title={`Vulnerability: ${vulnerability}`} className={`inline-block w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-medium ${getVulnerabilityClass(vulnerability)}`}>
                               {vulnerability}
                             </span>
                           </div>
@@ -199,11 +199,11 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
                     );
                   })}
                   {/* CVI Score Cell */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center">
+                  <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-900 text-center">
                     {cviScores[segment.id] !== undefined ? (
                        <div className="flex flex-col items-center">
                          <span title={`CVI Score: ${cviScores[segment.id].toFixed(2)} (${getCviCategory(cviScores[segment.id])})`}
-                               className={`inline-block w-6 h-6 rounded-full text-white flex items-center justify-center text-xs font-medium ${getCviClass(cviScores[segment.id])}`}>
+                               className={`inline-block w-5 h-5 rounded-full text-white flex items-center justify-center text-xs font-medium ${getCviClass(cviScores[segment.id])}`}>
                            {Math.round(cviScores[segment.id])} {/* Show rounded value */}
                          </span>
                          <span className="text-xs mt-1">{cviScores[segment.id].toFixed(2)}</span>
@@ -215,7 +215,7 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
             })}
              {paginatedSegments.length === 0 && (
                  <tr>
-                    <td colSpan={enabledParameters.length + 3} className="px-6 py-4 text-center text-sm text-gray-500">
+                    <td colSpan={enabledParameters.length + 3} className="px-2 py-4 text-center text-xs text-gray-500">
                         No segments to display for the current page.
                     </td>
                  </tr>
@@ -226,7 +226,7 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-between flex-shrink-0 border-t pt-3"> {/* Added flex-shrink-0 and border */}
+        <div className="mt-4 flex items-center justify-between border-t pt-3"> {/* Natural flow pagination */}
           <div className="text-gray-500 text-sm">
             Showing {((currentPage - 1) * SEGMENTS_PER_PAGE) + 1} to {Math.min(currentPage * SEGMENTS_PER_PAGE, sortedSegments.length)} of {sortedSegments.length} segments
           </div>

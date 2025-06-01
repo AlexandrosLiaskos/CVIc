@@ -42,11 +42,11 @@ export const MapInteractionPanel: React.FC<Omit<MapInteractionPanelProps, 'onSel
     <div className="bg-white p-4 rounded-lg shadow h-full flex flex-col">
       {/* Map Controls - Conditionally render if not read-only */}
       {!isReadOnly && (
-        <div className="flex justify-between items-center mb-4 flex-shrink-0">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 flex-shrink-0 gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={onSelectAll}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md mr-2 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 whitespace-nowrap"
               title="Select all visible segments"
               disabled={segments.length === 0}
             >
@@ -54,14 +54,14 @@ export const MapInteractionPanel: React.FC<Omit<MapInteractionPanelProps, 'onSel
             </button>
             <button
               onClick={onClearSelection}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 whitespace-nowrap"
               title="Deselect all segments"
               disabled={selectedSegmentIds.length === 0}
             >
               Clear Selection
             </button>
           </div>
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-gray-600 hidden sm:block">
             Use drawing tools (polygon/rectangle) on map to select segments by area.
           </div>
         </div>
@@ -79,10 +79,10 @@ export const MapInteractionPanel: React.FC<Omit<MapInteractionPanelProps, 'onSel
             selectionPolygons={selectionPolygons}
             // Pass through onSegmentSelect only if not read-only, otherwise pass a no-op
             onSegmentSelect={!isReadOnly ? onSegmentSelect : () => {}}
-            onSelectionDelete={!isReadOnly ? onSelectionDelete : () => {}} 
+            onSelectionDelete={!isReadOnly ? onSelectionDelete : () => {}}
             onAreaSelect={!isReadOnly ? onAreaSelect : () => {}}
             // isEditing controls Leaflet.Draw initialization in the Map component
-            isEditing={!isReadOnly} 
+            isEditing={!isReadOnly}
             initialBounds={initialBounds}
           />
         ) : (

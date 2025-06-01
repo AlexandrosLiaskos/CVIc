@@ -17,7 +17,6 @@ import LoginPage from './pages/LoginPage';
 const ShorelineSelectionPage = lazy(() => import('./pages/ShorelineSelectionPage'));
 const ShorelineSourcePage = lazy(() => import('./pages/ShorelineSourcePage'));
 const SatelliteImageUploadPage = lazy(() => import('./pages/SatelliteImageUploadPage'));
-const ShorelineDigitizationPage = lazy(() => import('./pages/ShorelineDigitizationPage'));
 const EnhancedShorelineDigitizationPage = lazy(() => import('./pages/EnhancedShorelineDigitizationPage'));
 const AOISelectionPage = lazy(() => import('./pages/AOISelectionPage'));
 const ShorelinePage = lazy(() => import('./pages/ShorelinePage'));
@@ -92,14 +91,6 @@ const routes: RouteObject[] = [
         element: (
           <ProtectedRoute>
             <SatelliteImageUploadPage />
-          </ProtectedRoute>
-        )
-      },
-      {
-        path: 'shoreline-digitization',
-        element: (
-          <ProtectedRoute>
-            <ShorelineDigitizationPage />
           </ProtectedRoute>
         )
       },

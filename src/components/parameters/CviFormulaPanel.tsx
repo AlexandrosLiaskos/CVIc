@@ -62,7 +62,7 @@ export const CviFormulaPanel: React.FC<CviFormulaPanelProps> = ({
     });
 
     return {
-      min: min.toFixed(2), 
+      min: min.toFixed(2),
       max: max.toFixed(2),
       avg: avg.toFixed(2),
       count: scores.length,
@@ -74,11 +74,11 @@ export const CviFormulaPanel: React.FC<CviFormulaPanelProps> = ({
         veryHigh: veryHighCount
       }
     };
-  }, [cviScores]); 
+  }, [cviScores]);
 
   const canCalculate = useMemo(() => {
     return completionPercentage >= 100 && selectedFormula !== null && !calculatingCvi;
-  }, [completionPercentage, selectedFormula, calculatingCvi]); 
+  }, [completionPercentage, selectedFormula, calculatingCvi]);
 
   const handleFormulaChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const value = event.target.value;
@@ -86,7 +86,7 @@ export const CviFormulaPanel: React.FC<CviFormulaPanelProps> = ({
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow">
+    <div>
       <h3 className="text-lg font-medium mb-4">CVI Calculation</h3>
 
       {/* Formula Selection Section */}
@@ -96,10 +96,10 @@ export const CviFormulaPanel: React.FC<CviFormulaPanelProps> = ({
         </label>
         <select
           id="formula-select"
-          value={selectedFormula?.type || ''} 
+          value={selectedFormula?.type || ''}
           onChange={handleFormulaChange}
           className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-          disabled={calculatingCvi} 
+          disabled={calculatingCvi}
         >
           {/* Placeholder option */}
           <option value="">-- Select a Formula --</option>
@@ -119,8 +119,8 @@ export const CviFormulaPanel: React.FC<CviFormulaPanelProps> = ({
       {/* Calculate Button Section */}
        <div className="mb-4">
         <button
-            onClick={onCalculateCvi} 
-            disabled={!canCalculate} 
+            onClick={onCalculateCvi}
+            disabled={!canCalculate}
             className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
            {/* Icon: Shows spinner when calculating, calculator otherwise */}
@@ -160,7 +160,7 @@ export const CviFormulaPanel: React.FC<CviFormulaPanelProps> = ({
          <div className="flex items-center text-sm">
            <span className="mr-2 text-gray-600 w-28 flex-shrink-0">Segments w/ CVI:</span>
            <span className="font-medium">{Object.keys(cviScores).length}</span>
-           {segments.length > 0 && ( 
+           {segments.length > 0 && (
              <span className="ml-2 text-xs text-gray-500">
                ({Math.round((Object.keys(cviScores).length / segments.length) * 100)}% of {segments.length})
              </span>

@@ -40,6 +40,7 @@ export default function ParameterAssignmentPage() {
   const [cviScores, setCviScores] = useState<Record<string, number>>({});
   const [calculatingCvi, setCalculatingCvi] = useState<boolean>(false);
   const [pageError, setPageError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'parameters' | 'cvi'>('parameters');
 
   useEffect(() => {
     if (!dataLoading && parameters.length > 0 && !activeParameter) {
@@ -302,120 +303,148 @@ export default function ParameterAssignmentPage() {
    }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] p-4 space-y-4 bg-gray-50"> {/* Adjust height based on nav height */}
-      {/* Header - Takes its own space */}
-      <ParameterAssignmentHeader
-        title="5. Parameter Assignment & CVI Calculation"
-        completionPercentage={completionPercentage}
-      />
-
-      {/* Page-level Error Display - Takes its own space */}
-      <ErrorAlert message={pageError} onClose={() => handleError(null)} />
-
-      {/* Main Content Area: Use CSS Grid to allocate space */}
-      {/* Defines two rows: top takes flexible space (min 0), bottom takes min 250px, max 1 fraction */}
-      {/* Use flex-grow on this grid container to make it fill the remaining vertical space */}
-      {/* Give top row more weight (e.g., 2fr) and bottom row 1fr, respecting min height */}
-      {/* Equal fractional growth, respecting minimum heights */}
-      <div className="grid grid-rows-[minmax(400px,1fr)_minmax(250px,1fr)] gap-4 flex-grow overflow-hidden">
-
-        {/* Top Row: Map and Controls (takes remaining space, internal scrolling if needed) */}
-        {/* Apply overflow-hidden here to contain its children properly within the grid row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 overflow-hidden">
-
-          {/* Left Column: Map Interaction Panel */}
-          <div className="lg:col-span-2 flex flex-col h-full overflow-hidden"> {/* Ensures map panel fills its column space */}
-            {/* MapInteractionPanel itself should manage its internal layout/scrolling */}
-            <div className="flex-grow overflow-hidden"> {/* Let MapInteractionPanel fill this */}
-              <MapInteractionPanel
-                segments={segments}
-                parameters={parameters}
-                geoJSON={geoJSONForMap}
-                initialBounds={mapBounds}
-                selectionPolygons={selectionPolygons}
-                selectedSegmentIds={selectedSegments}
-                selectedParameterId={activeParameter?.id ?? null}
-                onSegmentSelect={handleSegmentSelect}
-                onSelectAll={handleSelectAll}
-                onClearSelection={handleClearSelection}
-                onSelectionDelete={handleSelectionDelete}
-                onAreaSelect={handleSelectionCreate}
-                mapContainerRef={mapContainerRef}
-              />
-            </div>
-          </div>
-
-          {/* Right Column: Control Panels (Scrollable) */}
-          {/* This column needs to scroll if its content overflows the space allocated by the grid row */}
-          <div className="lg:col-span-1 flex flex-col space-y-4 overflow-y-auto pr-2 custom-scrollbar">
-            {/* Parameter Value Assignment */}
-            <ParameterValuePanel
-              parameters={parameters}
-              activeParameter={activeParameter}
-              selectedValue={currentValueToApply}
-              selectedVulnerability={currentVulnerabilityToApply}
-              onParameterSelect={handleParameterSelect}
-              onValueSelect={handleValueSelect}
-              onApplyValue={handleApplyValue}
-              selectedSegmentIds={selectedSegments}
-            />
-            {/* CVI Formula Selection and Calculation */}
-            <CviFormulaPanel
-              selectedFormula={selectedFormula}
-              onFormulaSelect={handleFormulaSelect}
-              onCalculateCvi={handleCalculateCvi}
-              completionPercentage={completionPercentage}
-              calculatingCvi={calculatingCvi}
-              cviScores={cviScores}
-              segments={segments}
-            />
-            {/* Continue Button (Sticky at the bottom of this scrolling column) */}
-            {/* Use `mt-auto` to push the button down if content is short, */}
-            {/* `sticky bottom-0` keeps it visible when scrolling */}
-            <div className="bg-white p-4 rounded-lg shadow sticky bottom-0 border-t border-gray-200 mt-auto">
-              <button
-                onClick={handleContinue}
-                className="w-full px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity duration-200"
-                disabled={completionPercentage < 100 || Object.keys(cviScores).length !== segments.length || calculatingCvi}
-                title={
-                   completionPercentage < 100 ? `Complete parameter assignment (${completionPercentage}%) first`
-                   : Object.keys(cviScores).length !== segments.length ? `Calculate CVI for all ${segments.length} segments first (${Object.keys(cviScores).length} done)`
-                   : calculatingCvi ? 'Calculation in progress...'
-                   : 'Proceed to results visualization'
-                }
-              >
-                {calculatingCvi ? (
-                  <>
-                    <svg aria-hidden="true" role="status" className="inline w-4 h-4 mr-2 text-white animate-spin" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="#E5E7EB"/>
-                    <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentColor"/>
-                    </svg>
-                    Calculating...
-                  </>
-                ) : 'Continue to Results'}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Row: Segment Table */}
-        {/* Apply overflow-hidden to contain the table panel within the row's bounds */}
-        {/* The SegmentTablePanel component itself handles internal scrolling */}
-        <div className="bg-white p-4 rounded-lg shadow flex flex-col overflow-hidden">
-          {/* The SegmentTablePanel component needs flex-grow to fill this container */}
-          <SegmentTablePanel
-            segments={segments}
-            parameters={parameters}
-            selectedSegmentIds={selectedSegments}
-            onSegmentSelect={handleSegmentSelect}
-            cviScores={cviScores}
-            selectedFormula={selectedFormula}
-            cviStatistics={cviStatistics}
+    <div className="flex flex-col h-screen bg-gray-50"> {/* Use full screen height */}
+      <div className="max-w-5xl mx-auto w-full px-8 py-4 flex flex-col h-full"> {/* Much more white space with smaller max-width and larger padding */}
+        {/* Header - Compact */}
+        <div className="flex-shrink-0">
+          <ParameterAssignmentHeader
+            title="5. Parameter Assignment & CVI Calculation"
+            completionPercentage={completionPercentage}
           />
         </div>
 
-      </div> {/* End of main content grid */}
+        {/* Page-level Error Display - Compact */}
+        {pageError && (
+          <div className="flex-shrink-0">
+            <ErrorAlert message={pageError} onClose={() => handleError(null)} />
+          </div>
+        )}
+
+        {/* Main Content Area: Normal page flow for natural scrolling */}
+        {/* Map gets fixed height, table flows naturally with page scroll */}
+        <div className="flex flex-col gap-4 flex-grow">
+
+          {/* Map Section: Balanced height that doesn't dominate the screen */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-1 h-[500px] bg-transparent relative z-20">
+
+            {/* Left Column: Map Interaction Panel */}
+            <div className="lg:col-span-2 flex flex-col h-full overflow-hidden"> {/* Ensures map panel fills its column space */}
+              {/* MapInteractionPanel itself should manage its internal layout/scrolling */}
+              <div className="flex-grow overflow-hidden"> {/* Let MapInteractionPanel fill this */}
+                <MapInteractionPanel
+                  segments={segments}
+                  parameters={parameters}
+                  geoJSON={geoJSONForMap}
+                  initialBounds={mapBounds}
+                  selectionPolygons={selectionPolygons}
+                  selectedSegmentIds={selectedSegments}
+                  selectedParameterId={activeParameter?.id ?? null}
+                  onSegmentSelect={handleSegmentSelect}
+                  onSelectAll={handleSelectAll}
+                  onClearSelection={handleClearSelection}
+                  onSelectionDelete={handleSelectionDelete}
+                  onAreaSelect={handleSelectionCreate}
+                  mapContainerRef={mapContainerRef}
+                />
+              </div>
+            </div>
+
+            {/* Right Column: Tabbed Control Panels */}
+            <div className="lg:col-span-1 flex flex-col h-full">
+              {/* Tab Navigation */}
+              <div className="flex bg-gray-100 rounded-t-lg">
+                <button
+                  onClick={() => setActiveTab('parameters')}
+                  className={`flex-1 px-4 py-3 text-sm font-medium rounded-tl-lg transition-colors ${
+                    activeTab === 'parameters'
+                      ? 'bg-white text-blue-600 border-b-2 border-blue-600'
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                  }`}
+                >
+                  Parameter Assignment
+                </button>
+                <button
+                  onClick={() => setActiveTab('cvi')}
+                  className={`flex-1 px-4 py-3 text-sm font-medium rounded-tr-lg transition-colors ${
+                    activeTab === 'cvi'
+                      ? 'bg-white text-blue-600 border-b-2 border-blue-600'
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                  }`}
+                >
+                  CVI Calculation
+                </button>
+              </div>
+
+              {/* Tab Content */}
+              <div className="flex-grow bg-white rounded-b-lg overflow-y-auto p-4 relative">
+                {activeTab === 'parameters' ? (
+                  <ParameterValuePanel
+                    parameters={parameters}
+                    activeParameter={activeParameter}
+                    selectedValue={currentValueToApply}
+                    selectedVulnerability={currentVulnerabilityToApply}
+                    onParameterSelect={handleParameterSelect}
+                    onValueSelect={handleValueSelect}
+                    onApplyValue={handleApplyValue}
+                    selectedSegmentIds={selectedSegments}
+                  />
+                ) : (
+                  <CviFormulaPanel
+                    selectedFormula={selectedFormula}
+                    onFormulaSelect={handleFormulaSelect}
+                    onCalculateCvi={handleCalculateCvi}
+                    completionPercentage={completionPercentage}
+                    calculatingCvi={calculatingCvi}
+                    cviScores={cviScores}
+                    segments={segments}
+                  />
+                )}
+              </div>
+
+              {/* Continue Button - Only show in CVI tab when ready */}
+              {activeTab === 'cvi' && (
+                <div className="bg-white p-4 rounded-b-lg border-t border-gray-200">
+                  <button
+                    onClick={handleContinue}
+                    className="w-full px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity duration-200"
+                    disabled={completionPercentage < 100 || Object.keys(cviScores).length !== segments.length || calculatingCvi}
+                    title={
+                       completionPercentage < 100 ? `Complete parameter assignment (${completionPercentage}%) first`
+                       : Object.keys(cviScores).length !== segments.length ? `Calculate CVI for all ${segments.length} segments first (${Object.keys(cviScores).length} done)`
+                       : calculatingCvi ? 'Calculation in progress...'
+                       : 'Proceed to results visualization'
+                    }
+                  >
+                    {calculatingCvi ? (
+                      <>
+                        <svg aria-hidden="true" role="status" className="inline w-4 h-4 mr-2 text-white animate-spin" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C0 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="#E5E7EB"/>
+                        <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentColor"/>
+                        </svg>
+                        Calculating...
+                      </>
+                    ) : 'Continue to Results'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Table Section: Natural height, flows with page scroll - Properly separated */}
+          <div className="bg-white p-6 rounded-lg shadow mt-4 relative z-10 clear-both">
+            <SegmentTablePanel
+              segments={segments}
+              parameters={parameters}
+              selectedSegmentIds={selectedSegments}
+              onSegmentSelect={handleSegmentSelect}
+              cviScores={cviScores}
+              selectedFormula={selectedFormula}
+              cviStatistics={cviStatistics}
+            />
+          </div>
+
+        </div> {/* End of main content grid */}
+      </div> {/* End of max-width container */}
     </div>
   );
 }
-
