@@ -6,7 +6,7 @@
 
 // Import libraries
 // Import our custom proj4 implementation that guarantees the defs function
-import proj4 from '../lib/proj4-custom';
+import proj4 from '../lib/proj4-with-defs';
 import georaster from 'georaster';
 import GeoRasterLayer from 'georaster-layer-for-leaflet';
 
