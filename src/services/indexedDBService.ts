@@ -36,11 +36,57 @@ class IndexedDBService {
             db.createObjectStore(IMAGE_STORE, { keyPath: 'id' });
           }
         },
+        blocked() {
+          console.warn('Database upgrade blocked. Please close other tabs/windows using this application.');
+        },
+        blocking() {
+          console.warn('Database is blocking other connections. Closing current connection.');
+        },
       });
     } catch (error) {
       console.error('Failed to initialize IndexedDB:', error);
+      
+      // Handle version mismatch by deleting and recreating the database
+      if (error instanceof DOMException && 
+          (error.name === 'VersionError' || 
+           error.message.includes('higher version') ||
+           error.message.includes('version requested'))) {
+        console.warn('Database version mismatch detected. Recreating database...');
+        try {
+          await this.deleteDatabase();
+          // Wait a bit for the deletion to complete
+          await new Promise(resolve => setTimeout(resolve, 100));
+          return this.initialize();
+        } catch (deleteError) {
+          console.error('Failed to delete and recreate database:', deleteError);
+          throw new Error('Database version conflict. Please refresh the page or clear your browser data.');
+        }
+      }
+      
       throw new Error('Failed to initialize database storage. Please try again.');
     }
+  }
+
+  private async deleteDatabase(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
+      
+      deleteRequest.onsuccess = () => {
+        console.log('Database deleted successfully');
+        resolve();
+      };
+      
+      deleteRequest.onerror = () => {
+        console.error('Failed to delete database:', deleteRequest.error);
+        reject(deleteRequest.error);
+      };
+      
+      deleteRequest.onblocked = () => {
+        console.warn('Database deletion blocked. Please close other tabs/windows using this application.');
+        // Still resolve to allow retry
+        resolve();
+      };
+    });
   }
 
   // Shoreline data methods
@@ -193,6 +239,22 @@ class IndexedDBService {
     } catch (error) {
       console.error('Failed to clear all data:', error);
       throw new Error('Failed to clear all data. Please try again.');
+    }
+  }
+
+  // Development utility method to completely reset the database
+  async resetDatabase(): Promise<void> {
+    try {
+      if (this.db) {
+        this.db.close();
+        this.db = null;
+      }
+      await this.deleteDatabase();
+      await this.initialize();
+      console.log('Database reset successfully');
+    } catch (error) {
+      console.error('Failed to reset database:', error);
+      throw new Error('Failed to reset database. Please try again.');
     }
   }
 }

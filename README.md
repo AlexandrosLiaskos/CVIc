@@ -1,81 +1,218 @@
-# CVIc - Coastal Vulnerability Index Compiler
+```
+  ______      ___    ____      
+ / ____/     | |  \  / /| |     
+| |       __ | | \ \/ / | |  ___
+| |      / / | |  \  /  | | / __|
+| |___  | |  | |   \/   | || (__ 
+ \____| |_|  |_|        |_| \___|
 
-CVIc is a web-based tool designed to streamline the process of calculating a Coastal Vulnerability Index. It enables researchers, coastal managers, and environmental scientists to perform complete CVI calculations directly in the browser.
+```
 
-## 📋 Features
+**Coastal Vulnerability Index Calculator**
 
-- **Shoreline Management**: Upload existing shoreline data or digitize new shorelines from satellite imagery
-- **Shoreline Segmentation**: Automatically divide shorelines into analysis segments
-- **Parameter Selection**: Choose and weight vulnerability parameters based on research needs
-- **Value Assignment**: Assign vulnerability scores to shoreline segments through an interactive interface
-- **CVI Calculation**: Apply different formulas to calculate the vulnerability index
-- **Results Visualization**: View results on interactive maps with customizable symbology
-- **Data Export**: Export results as GeoJSON for use in GIS software or as HTML reports
+A professional web-based application for comprehensive coastal vulnerability assessment and analysis.
+
+---
+
+## 🌊 Overview
+
+**CVIc** (Coastal Vulnerability Index Calculator) is a sophisticated, browser-based tool designed for the scientific community to calculate and analyze coastal vulnerability indices. Developed as part of the [EO-PERSIST](https://eo-persist.eu/) project, CVIc provides researchers, coastal managers, and environmental scientists with a comprehensive platform for coastal vulnerability assessment.
+
+## ✨ Features
+
+- **🗺️ Shoreline Management**: Upload existing shoreline data or digitize new shorelines from high-resolution satellite imagery
+- **📐 Automated Segmentation**: Intelligent division of shorelines into analysis segments with customizable parameters
+- **🎯 CVI Selection**: Choose from multiple Coastal Vulnerability Index variants:
+  - **CVI** (Classical Coastal Vulnerability Index)
+  - **RCVI** (Relative Coastal Vulnerability Index)  
+  - **ICVI** (Integrated Coastal Vulnerability Index)
+- **⚡ Automated Formula Application**: Automatic CVI calculation based on selected index type with predefined formulas
+- **📊 Interactive Value Assignment**: Assign vulnerability scores to shoreline segments through an intuitive interface
+- **📈 Advanced Visualization**: View results on interactive maps with customizable symbology and statistical analysis
+- **💾 Data Export**: Export results as GeoJSON, Shapefile, or comprehensive HTML reports
+- **🔄 Real-time Processing**: Browser-based processing with no server dependencies
 
 ## 🔧 Technology Stack
 
-- **Frontend**: React, TypeScript, Vite
-- **Mapping**: Leaflet, OpenLayers, Turf.js
-- **Data Processing**: Proj4, ShpJS, GeoTIFF
-- **Storage**: IndexedDB (browser storage)
+- **Frontend Framework**: React 18 + TypeScript + Vite
+- **Mapping Libraries**: Leaflet, React-Leaflet
+- **Geospatial Processing**: Turf.js, Proj4, GeoTIFF
+- **Data Storage**: IndexedDB (client-side persistence)
 - **Authentication**: Firebase Authentication
-- **Visualization**: Recharts
+- **UI Components**: Material-UI, Heroicons
+- **Visualization**: Custom charting components
+- **File Processing**: ShpJS, DOM-to-Image
 
-## 📊 Workflow Overview
+## 🚀 Quick Start
 
-1. **Choose Shoreline Source**: Upload an existing shoreline or create a new one
-2. **Upload/Digitize Shoreline**: Process shoreline data or digitize from satellite imagery
-3. **Segment Shoreline**: Divide the shoreline into analysis segments
-4. **Select Parameters**: Choose vulnerability parameters and assign weights
-5. **Assign Values**: Assign parameter values to shoreline segments
-6. **Calculate CVI**: Apply a formula to calculate the vulnerability index
-7. **View Results**: Visualize and export the final results
+### Prerequisites
 
-## 📝 CVI Calculation
+- Node.js (v16 or higher)
+- npm or yarn package manager
+- Modern web browser with IndexedDB support
 
-CVIc offers several formulas for calculating the Coastal Vulnerability Index:
+### Installation
 
-1. **Geometric Mean**: Standard weighted geometric mean (Gornitz et al. (1994))
-   - Formula: `CVI = (∏(Vi^Wi))^(1/∑Wi)`
-2. **Arithmetic Mean**: Weighted arithmetic mean
-3. **Geometric Mean Normalized**: Normalized weighted geometric mean
-4. **Nonlinear Power**: Nonlinear power-based calculation
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/alexandrosliaskos/CVIc.git
+   cd CVIc
+   ```
 
-Where:
-- Vi = Vulnerability score for parameter i (1-5)
-- Wi = Weight assigned to parameter i (0-1)
-- ∏ = Product of all values
-- ∑ = Sum of all values
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-## 💾 Data Persistence
+3. **Configure environment variables**
+   Create a `.env` file in the root directory with your Firebase configuration:
+   ```env
+   VITE_FIREBASE_API_KEY="your-api-key"
+   VITE_FIREBASE_AUTH_DOMAIN="your-auth-domain"
+   VITE_FIREBASE_PROJECT_ID="your-project-id"
+   VITE_FIREBASE_STORAGE_BUCKET="your-storage-bucket"
+   VITE_FIREBASE_MESSAGING_SENDER_ID="your-sender-id"
+   VITE_FIREBASE_APP_ID="your-app-id"
+   ```
 
-The application automatically saves your progress at each step using IndexedDB (browser storage):
+4. **Start development server**
+   ```bash
+   npm run dev
+   ```
 
-1. As you progress through each step of the workflow, your data is automatically saved
-2. If you navigate away from the application and return later, you can continue by navigating to the appropriate step in the workflow
-3. The application will automatically load data from previous steps (shoreline, segments, parameters, etc.)
-4. You must use the same browser and device, as the data is stored locally in your browser's IndexedDB
+5. **Build for production**
+   ```bash
+   npm run build
+   ```
 
-## 🔜 Upcoming Features
+## � Scientific Workflow
 
-1. Cloud storage for project data and results
-2. Additional CVI calculation formulas
-3. Image acquisition from cloud-based services
-4. Existing parameter import as separate layers and CVI calculation
-5. Improved performance optimizations
-6. Enhanced user interface and experience
+### 1. Shoreline Source Selection
+Choose between uploading existing shoreline vector data or creating new shorelines through satellite image digitization.
 
-## 📚 Documentation
+### 2. Shoreline Processing
+- Upload and validate shoreline geometry
+- Digitize shorelines from satellite imagery using interactive tools
+- Automatic coordinate system detection and transformation
 
-For more detailed information, see the [User Guide](CVIc_User_Guide.md) and [Technical Paper](CVIc_Paper.md).
+### 3. Automated Segmentation
+- Configure segmentation parameters (length, spacing)
+- Generate analysis segments with unique identifiers
+- Quality control and manual adjustment capabilities
 
-## 🔗 Related Projects
+### 4. CVI Variant Selection
+Select the appropriate Coastal Vulnerability Index variant:
+- **CVI**: Traditional approach using geometric mean
+- **RCVI**: Relative assessment with normalized scoring
+- **ICVI**: Integrated approach incorporating additional parameters
 
-CVIc is part of the EO-PERSIST ecosystem, which aims to establish a cloud-based platform for managing and exploiting Earth Observation data. Upcoming companion tools include:
+### 5. Automated Formula Application
+Based on the selected CVI variant, the application automatically applies the corresponding mathematical formulation without manual parameter weighting.
 
-- **SatShor**: Automatic extraction of Satellite-derived Shorelines
-- **CVARs**: Coastal Vulnerability Assessment Parameter Sourcing
-- **CompCVA**: Computational Framework in Coastal Vulnerability Assessment
+### 6. Value Assignment
+- Interactive assignment of vulnerability scores (1-5 scale)
+- Batch processing capabilities for large datasets
+- Real-time validation and quality checks
 
-Together, these tools will automate the entire coastal-hazard workflow from satellite imagery to decision-support products.
-Introduction to CVIc: A Web-Based Tool for Coastal Vulnerability Index Calculation
+### 7. Results Analysis
+- Statistical analysis and visualization
+- Export capabilities for further analysis
+- Integration-ready outputs for GIS workflows
+
+## 🧮 CVI Calculation Methods
+
+The application implements scientifically validated formulas for each CVI variant:
+
+### Classical CVI (Gornitz et al., 1994)
+```
+CVI = √(V₁ × V₂ × V₃ × V₄ × V₅ × V₆)
+```
+
+### Relative CVI (RCVI)
+```
+RCVI = CVI_i / CVI_max × 100
+```
+
+### Integrated CVI (ICVI)
+```
+ICVI = Weighted geometric mean with normalized parameters
+```
+
+Where V₁, V₂, ..., V₆ represent standardized vulnerability parameters (1-5 scale).
+
+## 💾 Data Management
+
+- **Client-side Storage**: All data stored locally using IndexedDB
+- **Automatic Persistence**: Progress saved at each workflow step
+- **Cross-session Continuity**: Resume work across browser sessions
+- **Privacy-first**: No data transmitted to external servers during analysis
+
+## 🔬 Scientific Applications
+
+CVIc has been designed to support:
+- **Coastal vulnerability assessments** for climate change adaptation
+- **Risk mapping** for coastal management planning
+- **Research studies** requiring standardized CVI calculations
+- **Educational purposes** in coastal engineering and management courses
+- **Policy support** for coastal zone management decisions
+
+## 🌐 EO-PERSIST Project
+
+CVIc is developed as part of the [EO-PERSIST](https://eo-persist.eu/) project, which aims to establish a cloud-based platform for managing and exploiting Earth Observation data for coastal applications.
+
+### Related Tools (In Development)
+- **SatShor**: Automated satellite-derived shoreline extraction
+- **CVARs**: Coastal vulnerability parameter sourcing from EO data
+- **CompCVA**: Computational framework for coastal vulnerability assessment
+
+## 🤝 Contributing
+
+We welcome contributions from the scientific community! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details on:
+
+- Code style and standards
+- Scientific validation requirements
+- Documentation standards
+- Testing procedures
+- Peer review process
+
+### Development Setup
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/scientific-enhancement`)
+3. Commit your changes (`git commit -m 'Add new CVI variant'`)
+4. Push to the branch (`git push origin feature/scientific-enhancement`)
+5. Create a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📧 Contact
+
+**Project Lead**: Alexandros Liaskos  
+**Email**: [alexliaskosga@gmail.com](mailto:alexliaskosga@gmail.com)  
+**Project Website**: [https://eo-persist.eu/](https://eo-persist.eu/)
+
+## 📚 Citation
+
+If you use CVIc in your research, please cite:
+
+```bibtex
+@software{cvic2025,
+  title={CVIc: Coastal Vulnerability Index Calculator},
+  author={Liaskos, Alexandros},
+  year={2025},
+  url={https://github.com/alexandrosliaskos/CVIc},
+  note={EO-PERSIST Project}
+}
+```
+
+## 🙏 Acknowledgments
+
+- EO-PERSIST project consortium
+- European Space Agency (ESA) for satellite data access
+- Open-source geospatial community
+- Scientific reviewers and beta testers
+
+---
+
+**Made with 🌊 for the coastal science community**
