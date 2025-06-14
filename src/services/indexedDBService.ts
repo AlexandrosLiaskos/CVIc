@@ -45,10 +45,10 @@ class IndexedDBService {
       });
     } catch (error) {
       console.error('Failed to initialize IndexedDB:', error);
-      
+
       // Handle version mismatch by deleting and recreating the database
-      if (error instanceof DOMException && 
-          (error.name === 'VersionError' || 
+      if (error instanceof DOMException &&
+          (error.name === 'VersionError' ||
            error.message.includes('higher version') ||
            error.message.includes('version requested'))) {
         console.warn('Database version mismatch detected. Recreating database...');
@@ -62,7 +62,7 @@ class IndexedDBService {
           throw new Error('Database version conflict. Please refresh the page or clear your browser data.');
         }
       }
-      
+
       throw new Error('Failed to initialize database storage. Please try again.');
     }
   }
@@ -70,17 +70,17 @@ class IndexedDBService {
   private async deleteDatabase(): Promise<void> {
     return new Promise((resolve, reject) => {
       const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
-      
+
       deleteRequest.onsuccess = () => {
         console.log('Database deleted successfully');
         resolve();
       };
-      
+
       deleteRequest.onerror = () => {
         console.error('Failed to delete database:', deleteRequest.error);
         reject(deleteRequest.error);
       };
-      
+
       deleteRequest.onblocked = () => {
         console.warn('Database deletion blocked. Please close other tabs/windows using this application.');
         // Still resolve to allow retry
