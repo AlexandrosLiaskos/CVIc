@@ -103,9 +103,9 @@ npm run deploy
 
 | Format | Import | Export | Notes |
 |--------|--------|--------|-------|
-| GeoJSON | ✅ | ✅ | Preferred format |
 | Shapefile | ✅ | ❌ | Zipped .shp files |
 | GeoTIFF | ✅ | ❌ | Satellite imagery |
+| GeoJSON | ❌ | ✅ | Shoreline data |
 | HTML | ❌ | ✅ | Report Export |
 
 ## ✨ Features
