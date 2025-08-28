@@ -13,7 +13,7 @@ export default defineConfig({
   ],
   server: {
     port: 3000,
-    open: true,
+    open: false, // Disable auto-opening to avoid browser spawn errors
     hmr: {
       port: 24678, // Use a different port for HMR WebSocket
     },
@@ -32,22 +32,15 @@ export default defineConfig({
       transformMixedEsModules: true
     },
     rollupOptions: {
-      // Make sure proj4-fully-loaded is properly handled
       external: [],
       output: {
-        manualChunks: {
-          // Group proj4 and proj4-fully-loaded together to avoid initialization issues
-          'proj4-bundle': ['proj4', 'proj4-fully-loaded']
-        }
+manualChunks: {}
       }
     }
   },
   resolve: {
     dedupe: ['react', 'react-dom'],
-    alias: {
-      // Alias proj4-fully-loaded to our custom implementation
-      'proj4-fully-loaded': path.resolve(__dirname, 'src/lib/proj4-with-defs.js')
-    }
+alias: {}
   },
   optimizeDeps: {
     include: [
@@ -56,8 +49,6 @@ export default defineConfig({
       'react-router-dom',
       'leaflet',
       'leaflet-draw',
-      'proj4',
-      'proj4-fully-loaded',
       'georaster',
       'georaster-layer-for-leaflet',
       'firebase/app',

@@ -6,7 +6,7 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
-  const { signIn } = useAuth()
+  const { signIn, signInAsGuest } = useAuth()
 
   const handleGoogleSignIn = async () => {
     setError('')
@@ -22,6 +22,20 @@ export default function LoginPage() {
     }
   }
 
+  const handleGuestSignIn = async () => {
+    setError('')
+    setLoading(true)
+
+    try {
+      await signInAsGuest()
+      navigate('/')
+    } catch (err) {
+      setError('Failed to start demo mode. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="max-w-md mx-auto mt-8">
       <h2 className="text-2xl font-bold text-center mb-8">Sign In</h2>
@@ -32,7 +46,7 @@ export default function LoginPage() {
         </div>
       )}
 
-      <div className="bg-white shadow rounded-lg p-6">
+      <div className="bg-white shadow rounded-lg p-6 space-y-4">
         <button
           onClick={handleGoogleSignIn}
           disabled={loading}
@@ -64,6 +78,41 @@ export default function LoginPage() {
             </>
           )}
         </button>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-gray-500">or</span>
+          </div>
+        </div>
+
+        <button
+          onClick={handleGuestSignIn}
+          disabled={loading}
+          className="w-full btn bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200 flex items-center justify-center space-x-2"
+        >
+          {loading ? (
+            'Starting demo...'
+          ) : (
+            <>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              <span>Continue as Guest (Demo)</span>
+            </>
+          )}
+        </button>
+
+        <div className="text-center">
+          <p className="text-xs text-gray-500">
+            Demo mode includes sample data and full functionality.
+            <br />
+            Data will not be saved permanently.
+          </p>
+        </div>
       </div>
     </div>
   )

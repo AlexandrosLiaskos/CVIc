@@ -53,7 +53,8 @@ export async function signInWithGoogle(): Promise<User> {
       id: user.uid,
       email: user.email || '',
       displayName: user.displayName || null,
-      photoURL: user.photoURL || null
+      photoURL: user.photoURL || null,
+      isGuest: false
     }
   } catch (error) {
     console.error('Error signing in with Google:', error)
@@ -61,7 +62,43 @@ export async function signInWithGoogle(): Promise<User> {
   }
 }
 
-export async function signOut(): Promise<void> {
+export async function signInAsGuest(): Promise<User> {
+  try {
+    // Create a guest user with a unique ID
+    const guestUser: User = {
+      id: `guest-${Date.now()}`,
+      email: null,
+      displayName: 'Demo User',
+      photoURL: null,
+      isGuest: true
+    }
+
+    // Initialize demo data for the guest user
+    const { initializeDemoData } = await import('./demoData');
+    await initializeDemoData();
+
+    console.log('Guest user signed in successfully');
+    return guestUser;
+  } catch (error) {
+    console.error('Error signing in as guest:', error);
+    throw new Error('Failed to start demo mode. Please try again.');
+  }
+}
+
+export async function signOut(currentUser?: User | null): Promise<void> {
+  // If it's a guest user, clear demo data
+  if (currentUser?.isGuest) {
+    try {
+      const { clearDemoData } = await import('./demoData');
+      await clearDemoData();
+      console.log('Guest user signed out and demo data cleared');
+      return;
+    } catch (error) {
+      console.error('Error clearing demo data:', error);
+      // Continue with sign out even if demo data clearing fails
+    }
+  }
+
   // Check if Firebase is initialized
   if (!isFirebaseInitialized) {
     console.warn('Firebase not initialized. Cannot sign out.');
@@ -101,7 +138,8 @@ export function onAuthStateChanged(callback: (user: User | null) => void): () =>
           id: firebaseUser.uid,
           email: firebaseUser.email || '',
           displayName: firebaseUser.displayName || null,
-          photoURL: firebaseUser.photoURL || null
+          photoURL: firebaseUser.photoURL || null,
+          isGuest: false
         }
         callback(user)
       } else {
@@ -130,7 +168,8 @@ export function getCurrentUser(): User | null {
     id: firebaseUser.uid,
     email: firebaseUser.email || '',
     displayName: firebaseUser.displayName || null,
-    photoURL: firebaseUser.photoURL || null
+    photoURL: firebaseUser.photoURL || null,
+    isGuest: false
   }
 }
 

@@ -4,9 +4,6 @@
  * This file initializes the React application.
  */
 
-// Import our custom proj4 implementation first
-import './lib/proj4-with-defs';
-
 // Import map libraries to ensure proper initialization
 import './utils/mapLibraries';
 

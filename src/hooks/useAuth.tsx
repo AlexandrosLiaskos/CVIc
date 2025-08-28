@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import type { User } from '../types'
 import {
   signInWithGoogle as firebaseSignInWithGoogle,
+  signInAsGuest as firebaseSignInAsGuest,
   signOut as firebaseSignOut,
   onAuthStateChanged
 } from '../services/auth'
@@ -11,6 +12,7 @@ interface AuthContextType {
   loading: boolean
   error: string | null
   signIn: () => Promise<void>
+  signInAsGuest: () => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -29,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [guestUser, setGuestUser] = useState<User | null>(null)
 
   useEffect(() => {
     console.log('AuthProvider: Setting up auth state listener');
@@ -41,7 +44,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const unsubscribe = onAuthStateChanged((authUser) => {
       console.log('AuthProvider: Auth state changed, user:', authUser ? 'logged in' : 'not logged in');
-      setUser(authUser)
+      // Only update user if it's not a guest user (guest users are managed separately)
+      if (!guestUser) {
+        setUser(authUser)
+      }
       setLoading(false)
       setError(null)
 
@@ -59,10 +65,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true)
     setError(null)
     try {
-      await firebaseSignInWithGoogle()
+      const user = await firebaseSignInWithGoogle()
+      setUser(user)
+      setGuestUser(null) // Clear any guest user
     } catch (err) {
       console.error("Sign in error:", err)
       setError(err instanceof Error ? err.message : 'Failed to sign in.')
+      setLoading(false)
+    }
+  }
+
+  const signInAsGuest = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const guest = await firebaseSignInAsGuest()
+      setGuestUser(guest)
+      setUser(guest) // Set as current user
+      setLoading(false)
+    } catch (err) {
+      console.error("Guest sign in error:", err)
+      setError(err instanceof Error ? err.message : 'Failed to start demo mode.')
       setLoading(false)
     }
   }
@@ -71,7 +94,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(true)
     setError(null)
     try {
-      await firebaseSignOut()
+      const currentUser = user || guestUser
+      await firebaseSignOut(currentUser)
+      setUser(null)
+      setGuestUser(null)
+      setLoading(false)
     } catch (err) {
       console.error("Sign out error:", err)
       setError(err instanceof Error ? err.message : 'Failed to sign out.')
@@ -80,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, error, signIn, signInAsGuest, signOut }}>
       {children}
     </AuthContext.Provider>
   )

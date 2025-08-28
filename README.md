@@ -127,20 +127,18 @@ npm run deploy
 ### Frontend
 - **Framework**: React 18 with TypeScript
 - **Build Tool**: Vite with HMR
-- **UI Library**: Material-UI (MUI) v7
 - **Styling**: Tailwind CSS + PostCSS
 - **State Management**: React Context + Hooks
 
 ### Mapping & Geospatial
 - **Mapping**: Leaflet + React-Leaflet
 - **Geospatial Processing**: Turf.js
-- **Projections**: Proj4.js
 - **Raster Processing**: GeoTIFF.js, GeoRaster
 
 ### Data & Storage
 - **Client Storage**: IndexedDB (via idb)
 - **File Processing**: ShpJS for Shapefiles
-- **Authentication**: Firebase Auth
+- **Authentication**: Google OAuth
 
 ### Development & Build
 ```json
@@ -180,13 +178,6 @@ style: format code with prettier
 refactor: improve geospatial processing
 test: add unit tests for CVI calculations
 ```
-
-### Code Standards
-
-- **TypeScript**: Strict mode enabled
-- **ESLint**: Airbnb configuration
-- **Prettier**: Automatic code formatting
-- **Testing**: Jest + React Testing Library
 
 ### Local Development
 
@@ -272,7 +263,7 @@ If you use CVIc in your research, please cite:
 
 ```bibtex
 @software{cvic2025,
-  title={CVIc: Coastal Vulnerability Index Calculator},
+  title={CVIc: Coastal Vulnerability Index Compiler},
   author={Liaskos, Alexandros},
   year={2025},
   url={https://github.com/alexandrosliaskos/CVIc},
