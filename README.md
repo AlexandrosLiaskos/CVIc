@@ -7,7 +7,7 @@
                                   ╚═════╝   ╚═══╝   ╚═╝ ╚═════╝
 ```
 
-# CVIc - Coastal Vulnerability Index Calculator
+# CVIc - Coastal Vulnerability Index Compiler
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
