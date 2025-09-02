@@ -202,11 +202,6 @@ npm run deploy:github
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 📧 Contact
-
-**Project Lead**: Alexandros Liaskos
-**Email**: [alexliaskosga@gmail.com](mailto:alexliaskosga@gmail.com)
-
 ## 📚 Citation
 
 If you use CVIc in your research, please cite:
@@ -221,3 +216,7 @@ If you use CVIc in your research, please cite:
 }
 ```
 
+## 📧 Contact
+
+**Project Lead**: Alexandros Liaskos
+**Email**: [alexliaskosga@gmail.com](mailto:alexliaskosga@gmail.com)
