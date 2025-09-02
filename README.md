@@ -18,17 +18,17 @@
 
 ## 📋 Table of Contents
 
-- [Live Application](#-live-application)
-- [Installation](#-installation)
-- [Usage](#-usage)
-- [Features](#-features)
-- [Technology Stack](#-technology-stack)
-- [Contributing](#-contributing)
-- [License](#-license)
-- [Citation](#-citation)
-- [Contact](#-contact)
+- [🌐 Live Application](#-live-application)
+- [🚀 Installation](#-installation)
+- [📖 Usage](#-usage)
+- [✨ Features](#-features)
+- [🔧 Technology Stack](#-technology-stack)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+- [📚 Citation](#-citation)
+- [📧 Contact](#-contact)
 
-## 🚀 Live Application
+## 🌐 Live Application
 
 🔗 **Live Application (v0.1.0)**: [https://alexandrosliaskos.github.io/CVIc/](https://alexandrosliaskos.github.io/CVIc/)
 
