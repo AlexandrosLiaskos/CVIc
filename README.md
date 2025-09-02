@@ -28,11 +28,9 @@
 - [Citation](#-citation)
 - [Contact](#-contact)
 
-## 🚀 Demo
+## 🚀 Live Application
 
-🔗 **Live Application (v1.0.0)**: [https://cvic-456409.web.app/](https://cvic-456409.web.app/)
-
-> **Note**: This is a client-side application. All data processing happens in your browser for privacy and performance.
+🔗 **Live Application (v0.1.0)**: [https://alexandrosliaskos.github.io/CVIc/](https://alexandrosliaskos.github.io/CVIc/)
 
 ## 🚀 Installation
 
