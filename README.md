@@ -191,15 +191,9 @@ npm run type-check
 # Run linting
 npm run lint
 
-## 📦 Build & Deployment
-
 ### Production Build
-```bash
 npm run build
-```
 
-### GitHub Pages Deployment
-```bash
 # Deploy to GitHub Pages
 npm run deploy:github
 ```
