@@ -8,7 +8,7 @@ export const RouterDebug: React.FC = () => {
     pathname: '',
     hash: '',
     search: '',
-    state: null as any,
+    state: null as unknown,
     key: ''
   });
 

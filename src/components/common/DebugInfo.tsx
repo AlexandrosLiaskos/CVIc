@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { isFirebaseInitialized } from '../../lib/firebase';
 
 interface DebugInfoProps {
   showByDefault?: boolean;
@@ -74,7 +73,7 @@ export const DebugInfo: React.FC<DebugInfoProps> = ({ showByDefault = false }) =
             <div className="bg-gray-50 p-3 rounded">
               <p><strong>User Agent:</strong> {navigator.userAgent}</p>
               <p><strong>Window Size:</strong> {windowSize.width} x {windowSize.height}</p>
-              <p><strong>Firebase Initialized:</strong> {isFirebaseInitialized ? 'Yes' : 'No'}</p>
+              <p><strong>Firebase:</strong> Disabled (Local-only mode)</p>
               <p><strong>Base URL:</strong> {window.location.origin}</p>
               <p><strong>Current Path:</strong> {window.location.pathname}</p>
               <p><strong>Hash:</strong> {window.location.hash}</p>

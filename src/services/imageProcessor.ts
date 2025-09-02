@@ -553,9 +553,9 @@ async function createGeoRaster(arrayBuffer: ArrayBuffer, filename?: string): Pro
       console.error('Local fromArrays is not a function!', typeof fromArraysFunction);
 
       // Try to get it from the window object
-      if (typeof window !== 'undefined' && typeof window.fromArrays === 'function') {
+      if (typeof window !== 'undefined' && typeof (window as any).fromArrays === 'function') {
         console.log('Using window.fromArrays instead');
-        fromArraysFunction = window.fromArrays;
+        fromArraysFunction = (window as any).fromArrays;
       } else {
         console.error('Failed to get fromArrays function');
         throw new Error('GeoRaster library not properly loaded. fromArrays is not a function.');
@@ -620,7 +620,7 @@ export async function processSatelliteImage(file: File): Promise<ProcessedImage>
     let isSentinel = false;
 
     // Check if this is a COG (Cloud Optimized GeoTIFF) file
-    let isCOG = file.name.includes('COG') ||
+    const isCOG = file.name.includes('COG') ||
                 file.name.includes('cog') ||
                 file.name.includes('cloud_optimized') ||
                 file.name.includes('cloud-optimized');
@@ -683,9 +683,9 @@ export async function processSatelliteImage(file: File): Promise<ProcessedImage>
                 console.error('Local fromArrays is not a function in Copernicus handling!', typeof fromArraysFunction);
 
                 // Try to get it from the window object
-                if (typeof window !== 'undefined' && typeof window.fromArrays === 'function') {
+                if (typeof window !== 'undefined' && typeof (window as any).fromArrays === 'function') {
                   console.log('Using window.fromArrays instead for Copernicus image');
-                  fromArraysFunction = window.fromArrays;
+                  fromArraysFunction = (window as any).fromArrays;
                 } else {
                   console.error('Failed to get fromArrays function for Copernicus image');
                   throw new Error('GeoRaster library not properly loaded for Copernicus image. fromArrays is not a function.');
@@ -770,9 +770,9 @@ export async function processSatelliteImage(file: File): Promise<ProcessedImage>
                 console.error('Local fromArrays is not a function in alternative approach!', typeof fromArraysFunction);
 
                 // Try to get it from the window object
-                if (typeof window !== 'undefined' && typeof window.fromArrays === 'function') {
+                if (typeof window !== 'undefined' && typeof (window as any).fromArrays === 'function') {
                   console.log('Using window.fromArrays instead for alternative approach');
-                  fromArraysFunction = window.fromArrays;
+                  fromArraysFunction = (window as any).fromArrays;
                 } else {
                   console.error('Failed to get fromArrays function for alternative approach');
                   throw new Error('GeoRaster library not properly loaded for alternative approach. fromArrays is not a function.');

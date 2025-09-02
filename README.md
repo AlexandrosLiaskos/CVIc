@@ -114,7 +114,6 @@ npm run deploy
 - **📐 Automated Segmentation**: Intelligent division of shorelines into analysis segments with customizable parameters
 - **🎯 CVI Selection**: Choose from multiple Coastal Vulnerability Index variants:
   - **CVI** (Classical Coastal Vulnerability Index)
-  - **RCVI** (Relative Coastal Vulnerability Index)
   - **ICVI** (Integrated Coastal Vulnerability Index)
 - **⚡ Automated Formula Application**: Automatic CVI calculation based on selected index type with predefined formulas
 - **📊 Interactive Value Assignment**: Assign vulnerability scores to shoreline segments through an intuitive interface
@@ -128,7 +127,6 @@ npm run deploy
 - **Framework**: React 18 with TypeScript
 - **Build Tool**: Vite with HMR
 - **Styling**: Tailwind CSS + PostCSS
-- **State Management**: React Context + Hooks
 
 ### Mapping & Geospatial
 - **Mapping**: Leaflet + React-Leaflet
@@ -137,8 +135,7 @@ npm run deploy
 
 ### Data & Storage
 - **Client Storage**: IndexedDB (via idb)
-- **File Processing**: ShpJS for Shapefiles
-- **Authentication**: Google OAuth
+- **File Processing**: Shapefile.js for Shapefiles
 
 ### Development & Build
 ```json
@@ -149,7 +146,7 @@ npm run deploy
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx",
     "type-check": "tsc --noEmit",
-    "deploy": "npm run build && firebase deploy"
+    "deploy:github": "npm run build && gh-pages -d dist"
   }
 }
 ```
@@ -194,31 +191,6 @@ npm run type-check
 # Run linting
 npm run lint
 
-# Run tests
-npm test
-```
-
-### Architecture Guidelines
-
-- **Components**: Use functional components with hooks
-- **State**: Prefer Context API for global state
-- **Types**: Define interfaces in `src/types/`
-- **Services**: Business logic in `src/services/`
-- **Utils**: Pure functions in `src/utils/`
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Generate coverage report
-npm run test:coverage
-```
-
 ## 📦 Build & Deployment
 
 ### Production Build
@@ -226,25 +198,10 @@ npm run test:coverage
 npm run build
 ```
 
-### Firebase Deployment
+### GitHub Pages Deployment
 ```bash
-# Deploy to Firebase Hosting
-npm run deploy
-
-# Deploy with custom message
-firebase deploy --only hosting -m "Deploy version 1.2.0"
-```
-
-### Docker Support
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-RUN npm run build
-EXPOSE 3000
-CMD ["npm", "run", "preview"]
+# Deploy to GitHub Pages
+npm run deploy:github
 ```
 
 ## 📄 License
@@ -255,7 +212,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Project Lead**: Alexandros Liaskos
 **Email**: [alexliaskosga@gmail.com](mailto:alexliaskosga@gmail.com)
-**Project Website**: [https://eo-persist.eu/](https://eo-persist.eu/)
 
 ## 📚 Citation
 

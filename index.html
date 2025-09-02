@@ -8,9 +8,11 @@
     <meta name="description" content="A tool for assessing shoreline vulnerability to coastal hazards" />
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
 
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" crossorigin="" />
+    <!-- Leaflet CSS - Load asynchronously to prevent blocking -->
+    <link rel="preload" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" as="style" onload="this.onload=null;this.rel='stylesheet'" crossorigin="" />
+    <noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" /></noscript>
+    <link rel="preload" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" as="style" onload="this.onload=null;this.rel='stylesheet'" crossorigin="" />
+    <noscript><link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" crossorigin="" /></noscript>
 
     <!-- Error handling for asset loading -->
     <script>

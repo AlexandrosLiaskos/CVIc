@@ -17,7 +17,7 @@ export function safeGetElementById(
   retryCount: number = 3,
   retryDelay: number = 100
 ): HTMLElement | null {
-  let element = document.getElementById(id);
+  const element = document.getElementById(id);
 
   if (!element && retryCount > 0) {
     console.warn(`Element with ID "${id}" not found, retrying (${retryCount} attempts left)...`);
@@ -40,10 +40,10 @@ export function safeGetElementById(
  * @param fallback Fallback value if property is null/undefined
  * @returns The property value or fallback
  */
-export function safeAccess<T>(obj: any, propPath: string, fallback: T): T {
+export function safeAccess<T>(obj: unknown, propPath: string, fallback: T): T {
   try {
     const props = propPath.split('.');
-    let result = obj;
+    let result: any = obj;
 
     for (const prop of props) {
       if (result === null || result === undefined) {
@@ -52,7 +52,7 @@ export function safeAccess<T>(obj: any, propPath: string, fallback: T): T {
       result = result[prop];
     }
 
-    return (result === null || result === undefined) ? fallback : result;
+    return (result === null || result === undefined) ? fallback : result as T;
   } catch (error) {
     console.warn(`Error accessing property "${propPath}":`, error);
     return fallback;

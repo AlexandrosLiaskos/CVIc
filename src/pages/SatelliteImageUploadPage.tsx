@@ -33,7 +33,7 @@ export default function SatelliteImageUploadPage() {
         releaseProcessedImage(image);
       });
     };
-  }, []);
+  }, [images]);
 
   const handleFileProcess = useCallback(async (file: File | null) => {
     if (!file) return;

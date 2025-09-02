@@ -1,13 +1,10 @@
 // ---- File: src/pages/RootPage.tsx ----
-import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
 import { ChevronRightIcon, MapIcon, ChartBarIcon, ShieldCheckIcon, ClockIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
 
 export default function RootPage() {
   console.log('RootPage component rendering');
-  const { user, loading } = useAuth();
-  console.log('Auth state:', { user, loading });
+
   const workflowSteps = [
     {
       title: "Upload Shoreline",
@@ -49,33 +46,6 @@ export default function RootPage() {
     }
   ];
 
-
-
-  // Only show loading spinner for a maximum of 2 seconds
-  const [showLoading, setShowLoading] = useState(loading);
-
-  useEffect(() => {
-    // If loading is true, set a timeout to force it to false after 2 seconds
-    if (loading) {
-      const timeoutId = setTimeout(() => {
-        console.log('RootPage: Force ending loading state after timeout');
-        setShowLoading(false);
-      }, 2000);
-
-      return () => clearTimeout(timeoutId);
-    } else {
-      setShowLoading(false);
-    }
-  }, [loading]);
-
-  if (showLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="bg-gradient-to-br from-gray-50 to-white min-h-screen flex flex-col">
       <div className="flex-1 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -95,23 +65,13 @@ export default function RootPage() {
 
         {/* Call to Action Section */}
         <section className="text-center mb-20">
-          {user ? (
-            <Link
-              to="/shoreline-selection"
-              className="inline-flex items-center justify-center bg-blue-600 text-white font-semibold px-8 py-4 text-lg rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50"
-            >
-              Start New Analysis
-              <ChevronRightIcon className="ml-2 h-5 w-5" />
-            </Link>
-          ) : (
-            <Link
-              to="/login"
-              className="inline-flex items-center justify-center bg-blue-600 text-white font-semibold px-8 py-4 text-lg rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50"
-            >
-              Get Started
-              <ChevronRightIcon className="ml-2 h-5 w-5" />
-            </Link>
-          )}
+          <Link
+            to="/shoreline-selection"
+            className="inline-flex items-center justify-center bg-blue-600 text-white font-semibold px-8 py-4 text-lg rounded-xl shadow-lg hover:bg-blue-700 hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50"
+          >
+            Start New Analysis
+            <ChevronRightIcon className="ml-2 h-5 w-5" />
+          </Link>
         </section>
 
         {/* How It Works Section */}
@@ -157,35 +117,7 @@ export default function RootPage() {
         </section>
       </div>
 
-      {/* Footer - Sticky at bottom */}
-      <footer className="bg-gray-50 border-t border-gray-200 px-6 py-3">
-        <div className="max-w-6xl mx-auto text-center space-y-2">
-          <p className="text-gray-600 text-sm">
-            Coastal Vulnerability Index Compiler - Developed by <span className="font-medium">Alexandros Liaskos</span>
-          </p>
-          <p className="text-gray-500 text-xs">
-            Made within the{' '}
-            <a
-              href="https://eo-persist.eu/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-700 underline"
-            >
-              HORIZON EUROPE's EO-PERSIST project
-            </a>
-            {' • '}
-            <a
-              href="https://github.com/AlexandrosLiaskos/CVIc"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-700 underline"
-            >
-              GitHub
-            </a>
-            {' • MIT Licensed • © 2025'}
-          </p>
-        </div>
-      </footer>
+
     </div>
   );
 }

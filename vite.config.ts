@@ -1,13 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
-import { resolve } from 'path'
-import fs from 'fs'
-import path from 'path'
+
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  // Use root path for production
-  base: '/',
+  // Use correct base path for GitHub Pages
+  base: '/CVIc/',
   plugins: [
     react()
   ],
@@ -51,9 +49,7 @@ alias: {}
       'leaflet-draw',
       'georaster',
       'georaster-layer-for-leaflet',
-      'firebase/app',
-      'firebase/auth',
-      'firebase/storage',
+
       'idb',
       'shpjs',
       'geotiff',

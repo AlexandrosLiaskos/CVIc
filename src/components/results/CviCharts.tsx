@@ -182,10 +182,10 @@ const CviCharts: React.FC<CviChartsProps> = ({
                 />
                 {isUsingICVI ? (
                   <>
-                    <ReferenceLine y={0.2} stroke="#4caf50" strokeDasharray="3 3" />
-                    <ReferenceLine y={0.4} stroke="#ffeb3b" strokeDasharray="3 3" />
-                    <ReferenceLine y={0.6} stroke="#ff9800" strokeDasharray="3 3" />
-                    <ReferenceLine y={0.8} stroke="#f44336" strokeDasharray="3 3" />
+                    <ReferenceLine y={0.26} stroke="#4caf50" strokeDasharray="3 3" />
+                    <ReferenceLine y={0.42} stroke="#ffeb3b" strokeDasharray="3 3" />
+                    <ReferenceLine y={0.58} stroke="#ff9800" strokeDasharray="3 3" />
+                    <ReferenceLine y={0.74} stroke="#f44336" strokeDasharray="3 3" />
                   </>
                 ) : (
                   <>

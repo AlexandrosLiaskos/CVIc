@@ -10,9 +10,10 @@ import { SegmentTablePanel } from '../components/parameters/SegmentTablePanel';
 import * as turf from '@turf/turf';
 import { useParameterAssignmentData } from '../hooks/useParameterAssignmentData';
 import { applyParameterValueToSegments } from '../logic/valueAssignmentLogic';
-import { calculateAndSaveCVI } from '../utils/cviCalculations';
+import { calculateAndSaveIndex } from '../utils/indexCalculations';
 import { ParameterAssignmentHeader } from '../components/parameters/ParameterAssignmentHeader';
 import { ErrorAlert } from '../components/common/ErrorAlert';
+import { getCviRank } from '../utils/vulnerabilityMapping';
 
 
 export default function ParameterAssignmentPage() {
@@ -150,12 +151,20 @@ export default function ParameterAssignmentPage() {
 
 
   const handleCalculateCvi = useCallback(async () => {
-    if (!selectedFormula) { handleError('Please select a CVI formula before calculating.'); return; }
+    if (!selectedFormula) { 
+      handleError('Please select a formula before calculating.'); 
+      return; 
+    }
+    
+    // More robust validation
+    const relevantParameters = parameters.filter(p => p.weight === undefined || p.weight > 0);
+    
     const allValuesAssigned = segments.every(segment =>
-        parameters.every(param => segment.parameters && segment.parameters[param.id] !== undefined)
+        relevantParameters.every(param => segment.parameters && segment.parameters[param.id] !== undefined)
     );
-     if (!allValuesAssigned || completionPercentage < 100) {
-       handleError(`Cannot calculate CVI: Assign values for all parameters to all segments first. (${completionPercentage}% complete)`);
+    
+    if (!allValuesAssigned) {
+       handleError(`Cannot calculate: Assign values for all parameters to all segments first. (${completionPercentage}% complete)`);
        return;
      }
 
@@ -164,7 +173,7 @@ export default function ParameterAssignmentPage() {
     console.log(`Calculating CVI using: ${selectedFormula.name}`);
 
     try {
-      await calculateAndSaveCVI(
+      await calculateAndSaveIndex(
         segments,
         parameters,
         selectedFormula,
@@ -257,7 +266,8 @@ export default function ParameterAssignmentPage() {
 
     let veryLowCount = 0, lowCount = 0, moderateCount = 0, highCount = 0, veryHighCount = 0;
     scores.forEach(score => {
-        const rank = Math.round(score);
+        // Use the proper getCviRank function that handles ICVI formulas correctly
+        const rank = getCviRank(score, selectedFormula?.type);
         if (rank <= 1) veryLowCount++;
         else if (rank === 2) lowCount++;
         else if (rank === 3) moderateCount++;
@@ -274,7 +284,7 @@ export default function ParameterAssignmentPage() {
         veryLow: veryLowCount, low: lowCount, moderate: moderateCount, high: highCount, veryHigh: veryHighCount
       }
     };
-  }, [cviScores]);
+  }, [cviScores, selectedFormula]);
 
   if (dataLoading) {
     return (
@@ -297,8 +307,8 @@ export default function ParameterAssignmentPage() {
    }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50"> {/* Use full screen height */}
-      <div className="max-w-5xl mx-auto w-full px-8 py-4 flex flex-col h-full"> {/* Much more white space with smaller max-width and larger padding */}
+    <div className="flex flex-col h-full"> {/* Use full height within Layout */}
+      <div className="max-w-5xl mx-auto w-full px-8 py-4 flex flex-col h-full"> {/* Full height container */}
         {/* Header - Compact */}
         <div className="flex-shrink-0">
           <ParameterAssignmentHeader
@@ -316,7 +326,7 @@ export default function ParameterAssignmentPage() {
 
         {/* Main Content Area: Normal page flow for natural scrolling */}
         {/* Map gets fixed height, table flows naturally with page scroll */}
-        <div className="flex flex-col space-y-8 flex-grow">
+        <div className="flex flex-col space-y-8 flex-1">
 
           {/* Map Section: Balanced height that doesn't dominate the screen */}
           <section className="w-full">

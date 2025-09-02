@@ -214,7 +214,7 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
                           <div className="flex justify-center" title={`Value: ${paramValue?.value ?? 'N/A'}, Vulnerability: ${vulnerability}`}>
                              <span
                                title={`Vulnerability: ${vulnerability}`}
-                               className="inline-block w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-medium"
+                               className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-medium"
                                style={{ backgroundColor: getVulnerabilityColor(vulnerability) }}
                              >
                               {vulnerability}
@@ -229,7 +229,7 @@ export const SegmentTablePanel: React.FC<SegmentTablePanelProps> = ({
                     {cviScores[segment.id] !== undefined ? (
                        <span
                          title={`CVI Score: ${cviScores[segment.id].toFixed(2)} (${getCviCategory(cviScores[segment.id], segment.properties.vulnerabilityFormula)})`}
-                         className="inline-block w-6 h-6 rounded-full text-white flex items-center justify-center text-xs font-medium"
+                         className="w-6 h-6 rounded-full text-white flex items-center justify-center text-xs font-medium"
                          style={{ backgroundColor: getCviColor(cviScores[segment.id], segment.properties.vulnerabilityFormula) }}
                        >
                          {segment.properties.vulnerabilityFormula?.includes('icvi')

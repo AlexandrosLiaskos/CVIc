@@ -6,7 +6,7 @@ import L from 'leaflet';
 import Map from '../components/maps/Map';
 import { segmentShoreline } from '../utils/geometry';
 import { indexedDBService } from '../services/indexedDBService';
-import type { FeatureCollection, LineString, MultiLineString } from 'geojson';
+import type { FeatureCollection, LineString, MultiLineString, Feature } from 'geojson';
 import type { ShorelineSegment } from '../types';
 import { ErrorAlert } from '../components/common/ErrorAlert';
 import {
@@ -52,7 +52,7 @@ export default function SegmentationPage() {
           setOriginalGeoJSON(validGeoJSON);
 
           let totalLengthKm = 0;
-          validGeoJSON.features.forEach((feature: any) => {
+          validGeoJSON.features.forEach((feature: Feature<LineString | MultiLineString>) => {
             try { totalLengthKm += turf.length(turf.feature(feature.geometry), { units: 'kilometers' }); }
             catch (err) { console.warn('Error calculating length for a feature:', err); }
           });
@@ -126,7 +126,7 @@ export default function SegmentationPage() {
             setProcessing(false);
         }
     }, 10);
-  }, [originalGeoJSON, resolution, estimatedSegments]);
+  }, [originalGeoJSON, resolution]);
 
   const handleContinue = useCallback(async () => {
     if (!isPreviewDone || segmentsPreview.length === 0) {
@@ -152,7 +152,7 @@ export default function SegmentationPage() {
     } finally {
       setProcessing(false);
     }
-  }, [isPreviewDone, segmentsPreview, navigate, estimatedSegments]);
+  }, [isPreviewDone, segmentsPreview, navigate]);
 
   const handleBack = useCallback(() => { navigate('/shoreline'); }, [navigate]);
   const geoJSONForMap = useMemo(() => {

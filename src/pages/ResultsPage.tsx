@@ -15,7 +15,7 @@ import { getCviCategory } from '../utils/vulnerabilityMapping';
 import { availableFormulas } from '../config/formulas';
 import { generateHtmlReport } from '../utils/reportGenerator';
 import { captureMap } from '../utils/mapCapture';
-import { getStandardizedIndexById } from '../config/standardizedIndices';
+import { getStandardizedIndexById } from '../config/indices';
 import type { StandardizedCoastalIndex } from '../types/indexSpecificTypes';
 
 export default function ResultsPage() {
@@ -259,14 +259,18 @@ export default function ResultsPage() {
       console.log("Preparing map for capture...");
 
       // Get the Leaflet map instance if available
-      const mapInstance = (window as any).L?.Maps?.[0];
+      const mapInstance = (window as any).L?.Maps?.[0] as any;
       if (mapInstance) {
         try {
           // Stop any ongoing animations or movements
-          mapInstance.stop();
+          if (mapInstance.stop) {
+            mapInstance.stop();
+          }
 
           // Force a map redraw to ensure all layers are properly rendered
-          mapInstance.invalidateSize({ animate: false });
+          if (mapInstance.invalidateSize) {
+            mapInstance.invalidateSize({ animate: false });
+          }
 
           // Make sure all tiles are loaded
           const tileLoadPromise = new Promise<void>((resolve) => {

@@ -10,11 +10,28 @@
   "parser": "@typescript-eslint/parser",
   "plugins": ["react-refresh"],
   "rules": {
-    "react-refresh/only-export-components": [
-      "warn",
-      { "allowConstantExports": true }
-    ],
+    "react-refresh/only-export-components": "warn",
     "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
     "@typescript-eslint/no-explicit-any": "warn"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["**/*.d.ts"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": [
+        "src/components/maps/**/*.tsx",
+        "src/services/**/*.ts",
+        "src/utils/mapCapture.ts",
+        "src/utils/turfHelpers.ts",
+        "src/utils/reportGenerator.ts"
+      ],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off"
+      }
+    }
+  ]
 } 

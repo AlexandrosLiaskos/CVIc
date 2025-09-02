@@ -321,6 +321,313 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
     };
   }, []);
 
+  // Fallback function for simple image overlay or COG handling
+  const fallbackToImageOverlay = async (image: any, mapInstance: any, bounds: any, newLayers: any[]) => {
+    console.log('Using fallback image overlay or COG handling for:', image.name);
+
+    // Calculate appropriate bounds
+    let imageBounds;
+
+    // Check if this is a Copernicus image or COG
+    const isCopernicus = image.name.includes('Copernicus') ||
+                        image.name.includes('copernicus') ||
+                        image.metadata?.type === 'image/tiff' ||
+                        image.metadata?.type === 'image/geotiff';
+
+    const isCOG = image.name.includes('COG') ||
+                  image.name.includes('cog') ||
+                  image.metadata?.isCOG;
+
+    // Try to load as COG if it's a Copernicus image or explicitly marked as COG
+    if (isCOG || isCopernicus) {
+      console.log('Attempting to load as Cloud Optimized GeoTIFF (COG):', image.name);
+
+      try {
+        // For COG files, we need to use the URL directly with parseGeoRaster
+        console.log('Loading COG from URL:', image.url);
+        console.log('COG file details:', {
+          name: image.name,
+          size: image.metadata?.size,
+          type: image.metadata?.type,
+          bounds: image.bounds
+        });
+
+        // Use parseGeoRaster to load the COG directly from URL
+        const georaster = await parseGeoRaster(image.url);
+        console.log('Successfully parsed COG:', {
+          dimensions: georaster.dimensions,
+          pixelWidth: georaster.pixelWidth,
+          pixelHeight: georaster.pixelHeight,
+          noDataValue: georaster.noDataValue,
+          projection: georaster.projection,
+          numberOfRasters: georaster.numberOfRasters,
+          bounds: [georaster.xmin, georaster.ymin, georaster.xmax, georaster.ymax]
+        });
+
+        // Calculate appropriate resolution based on image size and current zoom
+        // Make sure mapInstance is not null
+        if (!mapInstance) {
+          console.error('Map instance is null when trying to get zoom level');
+          return null;
+        }
+
+        const currentZoom = mapInstance.getZoom();
+
+        // Calculate optimal resolution based on zoom level
+        // Use a more sophisticated algorithm for resolution calculation
+        // Lower zoom levels (overview): use lower resolution for performance
+        // Higher zoom levels (detail): use higher resolution for clarity
+        const baseResolution = 256;
+
+        // Exponential scaling for better performance at different zoom levels
+        // This provides better low-res overview at low zoom and high detail at high zoom
+        const zoomFactor = Math.pow(1.2, Math.min(currentZoom - 10, 8));
+        const zoomAdjustedFactor = Math.max(0.5, Math.min(2.5, zoomFactor));
+        const resolution = Math.round(baseResolution * zoomAdjustedFactor);
+
+        // Limit resolution to reasonable bounds based on screen size
+        const maxScreenDimension = Math.max(window.innerWidth, window.innerHeight);
+        const maxResolution = Math.min(512, Math.round(maxScreenDimension / 2));
+        const finalResolution = Math.min(resolution, maxResolution);
+
+        if (Math.random() < 0.1) { // Reduce logging frequency
+            console.log(`Using optimized resolution for COG: ${finalResolution} at zoom level ${currentZoom}`);
+        }
+
+        // Create the GeoRasterLayer with advanced settings optimized for performance
+        const geoRasterLayer = new GeoRasterLayer({
+          georaster: georaster,
+          opacity: 0.9,
+          // Use a moderate resolution that balances quality and performance
+          resolution: 256, // Reduced from 512 for better performance during zooming
+          // Enable caching for better performance during zoom/pan
+          debugLevel: 0,
+          // Set a shorter render timeout for faster response
+          renderTimeout: 2000,
+          // Optimize buffer and update settings for better zooming performance
+          keepBuffer: 4, // Reduced buffer size for better performance
+          updateWhenIdle: true, // Only update when idle for better performance
+          updateWhenZooming: false, // Don't update during zoom for better performance
+          resampleMethod: 'nearest', // Faster than bilinear for most cases
+          pixelValuesToColorFn: values => {
+            // For false color images or multi-band images
+            if (values.length >= 3) {
+              // Get the first three bands for RGB visualization
+              let r = values[0];
+              let g = values[1];
+              let b = values[2];
+
+              // Check if values are very small (near zero) or very large
+              const maxVal = Math.max(...[r, g, b].filter(v => isFinite(v)));
+
+              // If values are very large (likely 16-bit data)
+              if (maxVal > 255) {
+                // Scale down to 8-bit range
+                const scaleFactor = 255 / maxVal;
+                r = Math.round(r * scaleFactor);
+                g = Math.round(g * scaleFactor);
+                b = Math.round(b * scaleFactor);
+              }
+              // If values are very small (likely normalized data)
+              else if (maxVal <= 1 && maxVal > 0) {
+                // Scale up to 0-255 range
+                r = Math.round(r * 255);
+                g = Math.round(g * 255);
+                b = Math.round(b * 255);
+              }
+
+              // Ensure values are in valid range
+              r = Math.min(255, Math.max(0, r || 0));
+              g = Math.min(255, Math.max(0, g || 0));
+              b = Math.min(255, Math.max(0, b || 0));
+
+              return `rgb(${r}, ${g}, ${b})`;
+            }
+            // For single-band data (grayscale)
+            else if (values.length === 1) {
+              let val = values[0];
+
+              // Check if value is very small or very large
+              if (val > 255) {
+                // Scale down to 8-bit
+                val = Math.round(val * (255 / Math.max(val, 1)));
+              } else if (val <= 1 && val > 0) {
+                // Scale up from 0-1 to 0-255
+                val = Math.round(val * 255);
+              }
+
+              val = Math.min(255, Math.max(0, val || 0));
+              return `rgb(${val}, ${val}, ${val})`;
+            }
+            // For multi-band data beyond 3 bands (false color)
+            else if (values.length > 3) {
+              // Use the first three bands for visualization
+              let r = values[0];
+              let g = values[1];
+              let b = values[2];
+
+              // Apply scaling as needed
+              const maxVal = Math.max(...[r, g, b].filter(v => isFinite(v)));
+              if (maxVal > 255) {
+                const scaleFactor = 255 / maxVal;
+                r = Math.round(r * scaleFactor);
+                g = Math.round(g * scaleFactor);
+                b = Math.round(b * scaleFactor);
+              }
+
+              r = Math.min(255, Math.max(0, r || 0));
+              g = Math.min(255, Math.max(0, g || 0));
+              b = Math.min(255, Math.max(0, b || 0));
+
+              return `rgb(${r}, ${g}, ${b})`;
+            }
+
+            // Default fallback
+            return 'rgb(128, 128, 128)'; // Gray as fallback
+          }
+        });
+
+        if (mapInstance) {
+          geoRasterLayer.addTo(mapInstance);
+        }
+        const layer = geoRasterLayer;
+
+        // Get bounds from the georaster
+        const georasterBounds = L.latLngBounds([
+          [georaster.ymin, georaster.xmin],
+          [georaster.ymax, georaster.xmax]
+        ]);
+
+        bounds.extend(georasterBounds);
+        console.log('Added COG layer with bounds:', georasterBounds);
+        return layer;
+      } catch (cogError) {
+        console.warn('Failed to load COG, falling back to simple image overlay:', cogError);
+      }
+    }
+
+    // Fallback to simple image overlay
+    if (image.bounds && image.bounds.length === 4) {
+      imageBounds = L.latLngBounds(
+        [image.bounds[1], image.bounds[0]], // Southwest corner [lat, lng]
+        [image.bounds[3], image.bounds[2]]  // Northeast corner [lat, lng]
+      );
+    } else {
+      console.warn('No valid bounds found for image, using default bounds');
+      imageBounds = L.latLngBounds([[-90, -180], [90, 180]]);
+    }
+
+    // Pre-load the image to check if it loads successfully
+    const img = new Image();
+    img.onload = () => {
+      console.log(`Image loaded successfully: ${image.name}`);
+    };
+    img.onerror = (e) => {
+      console.error(`Error loading image: ${image.name}`, e);
+
+      // Add a warning rectangle with text instead of showing a placeholder image
+      const warningRectangle = L.rectangle(imageBounds, {
+        color: "#ff0000",
+        weight: 2,
+        opacity: 0.8,
+        fillColor: "#ffcccc",
+        fillOpacity: 0.3
+      });
+
+      if (mapInstance) {
+        warningRectangle.addTo(mapInstance);
+      }
+
+      // Check if this is a Copernicus image for a more specific error message
+      const isCopernicus = image.name.includes('Copernicus') ||
+                          image.name.includes('copernicus') ||
+                          image.metadata?.type === 'image/tiff' ||
+                          image.metadata?.type === 'image/geotiff';
+
+      let errorMessage = "Image failed to load properly. Try converting to a different GeoTIFF format.";
+
+      if (isCopernicus) {
+        // Check if it's already a COG
+        if (image.name.includes('COG') || image.name.includes('cog') || image.metadata?.isCOG) {
+          errorMessage = "COG file failed to load. This might be due to CORS issues or an incompatible COG format. Try a different viewer or convert to a standard GeoTIFF.";
+        } else {
+          errorMessage = "Copernicus GeoTIFF failed to load. Try downloading as COG (Cloud Optimized GeoTIFF) format.";
+        }
+      }
+
+      // Add a warning tooltip with more detailed error message
+      warningRectangle.bindTooltip(errorMessage, {
+        permanent: true,
+        direction: 'center',
+        className: 'image-error-tooltip'
+      }).openTooltip();
+
+      // Add to layers for cleanup
+      newLayers.push(warningRectangle);
+    };
+    // Add CORS attributes to help with cross-origin issues
+    img.crossOrigin = "anonymous";
+    img.src = image.url;
+
+    // Create the image overlay with improved error handling
+    const imageOverlay = L.imageOverlay(image.url, imageBounds, {
+      opacity: 1.0, // Full opacity for better visibility
+      interactive: true,
+      crossOrigin: 'anonymous',
+      className: 'satellite-image-overlay', // Add a class for potential CSS styling
+      // Add error handling directly to the imageOverlay
+      errorOverlayUrl: '', // Empty string to prevent default error image
+      zIndex: 10, // Ensure image is above base map
+    });
+
+    // Add the overlay to the map
+    if (mapInstance) {
+      imageOverlay.addTo(mapInstance);
+    }
+    const layer = imageOverlay;
+
+    // Add popup with image info
+    imageOverlay.bindPopup(`
+      <div style="max-width: 300px;">
+        <h3 style="font-weight: bold; margin-bottom: 5px;">${image.name}</h3>
+        <p>Uploaded: ${new Date(image.timestamp).toLocaleString()}</p>
+        ${image.metadata?.isSentinel ?
+          `<p>Sentinel Image${image.metadata?.sentinelInfo?.utmZone ? ` (UTM Zone ${image.metadata.sentinelInfo.utmZone})` : ''}</p>` :
+          ''}
+        <p>Bounds: [${image.bounds.map((b: number) => b.toFixed(2)).join(', ')}]</p>
+      </div>
+    `);
+
+    // Extend bounds
+    bounds.extend(imageBounds);
+    console.log('Added image overlay with bounds:', imageBounds);
+
+    // Add a rectangle to show the bounds (helpful for debugging)
+    const boundsRectangle = L.rectangle(imageBounds, {
+      color: "#ff7800",
+      weight: 1,
+      opacity: 0.8,
+      fillOpacity: 0.1
+    });
+
+    if (mapInstance) {
+      boundsRectangle.addTo(mapInstance);
+    }
+
+    newLayers.push(boundsRectangle);
+
+    // Force a redraw of the map to ensure the image is displayed
+    setTimeout(() => {
+      if (mapInstance) {
+        mapInstance.invalidateSize();
+        // Ensure the image is within view
+        mapInstance.fitBounds(imageBounds, { padding: [50, 50] });
+      }
+    }, 100);
+
+    return layer;
+  };
+
   // Add satellite images to the map
   useEffect(() => {
     const mapInstance = mapRef.current;
@@ -826,480 +1133,12 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
             } catch (error) {
               console.error('Error creating georaster from arrayBuffer:', error);
               // Fall back to simple image overlay
-              fallbackToImageOverlay();
+              layer = await fallbackToImageOverlay(image, mapInstance, bounds, newLayers);
             }
           }
           // For JP2 or other files, use simple image overlay
           else {
-            fallbackToImageOverlay();
-          }
-
-          // Fallback function for simple image overlay or COG handling
-          async function fallbackToImageOverlay() {
-            console.log('Using fallback image overlay or COG handling for:', image.name);
-
-            // Calculate appropriate bounds
-            let imageBounds;
-
-            // Check if this is a Copernicus image or COG
-            const isCopernicus = image.name.includes('Copernicus') ||
-                                image.name.includes('copernicus') ||
-                                image.metadata?.type === 'image/tiff' ||
-                                image.metadata?.type === 'image/geotiff';
-
-            const isCOG = image.name.includes('COG') ||
-                          image.name.includes('cog') ||
-                          image.metadata?.isCOG;
-
-            // Try to load as COG if it's a Copernicus image or explicitly marked as COG
-            if (isCOG || isCopernicus) {
-              console.log('Attempting to load as Cloud Optimized GeoTIFF (COG):', image.name);
-
-              try {
-                // For COG files, we need to use the URL directly with parseGeoRaster
-                console.log('Loading COG from URL:', image.url);
-                console.log('COG file details:', {
-                  name: image.name,
-                  size: image.metadata?.size,
-                  type: image.metadata?.type,
-                  bounds: image.bounds
-                });
-
-                // Use parseGeoRaster to load the COG directly from URL
-                const georaster = await parseGeoRaster(image.url);
-                console.log('Successfully parsed COG:', {
-                  dimensions: georaster.dimensions,
-                  pixelWidth: georaster.pixelWidth,
-                  pixelHeight: georaster.pixelHeight,
-                  noDataValue: georaster.noDataValue,
-                  projection: georaster.projection,
-                  numberOfRasters: georaster.numberOfRasters,
-                  bounds: [georaster.xmin, georaster.ymin, georaster.xmax, georaster.ymax]
-                });
-
-                // Calculate appropriate resolution based on image size and current zoom
-                // Make sure mapInstance is not null
-                if (!mapInstance) {
-                  console.error('Map instance is null when trying to get zoom level');
-                  return;
-                }
-
-                const currentZoom = mapInstance.getZoom();
-
-                // Calculate optimal resolution based on zoom level
-                // Use a more sophisticated algorithm for resolution calculation
-                // Lower zoom levels (overview): use lower resolution for performance
-                // Higher zoom levels (detail): use higher resolution for clarity
-                const baseResolution = 256;
-
-                // Exponential scaling for better performance at different zoom levels
-                // This provides better low-res overview at low zoom and high detail at high zoom
-                const zoomFactor = Math.pow(1.2, Math.min(currentZoom - 10, 8));
-                const zoomAdjustedFactor = Math.max(0.5, Math.min(2.5, zoomFactor));
-                const resolution = Math.round(baseResolution * zoomAdjustedFactor);
-
-                // Limit resolution to reasonable bounds based on screen size
-                const maxScreenDimension = Math.max(window.innerWidth, window.innerHeight);
-                const maxResolution = Math.min(512, Math.round(maxScreenDimension / 2));
-                const finalResolution = Math.min(resolution, maxResolution);
-
-                if (Math.random() < 0.1) { // Reduce logging frequency
-                    console.log(`Using optimized resolution for COG: ${finalResolution} at zoom level ${currentZoom}`);
-                }
-
-                // Create the GeoRasterLayer with advanced settings optimized for performance
-                const geoRasterLayer = new GeoRasterLayer({
-                  georaster: georaster,
-                  opacity: 0.9,
-                  // Use a moderate resolution that balances quality and performance
-                  resolution: 256, // Reduced from 512 for better performance during zooming
-                  // Enable caching for better performance during zoom/pan
-                  debugLevel: 0,
-                  // Set a shorter render timeout for faster response
-                  renderTimeout: 2000,
-                  // Optimize buffer and update settings for better zooming performance
-                  keepBuffer: 4, // Reduced buffer size for better performance
-                  updateWhenIdle: true, // Only update when idle for better performance
-                  updateWhenZooming: false, // Don't update during zoom for better performance
-                  resampleMethod: 'nearest', // Faster than bilinear for most cases
-                  pixelValuesToColorFn: values => {
-                    // Reduce logging frequency for better performance
-                    if (Math.random() < 0.01) { // Only log ~1% of pixel values
-                      console.log('Sample pixel values for COG:', values);
-                    }
-
-                    // For false color images or multi-band images
-                    if (values.length >= 3) {
-                      // Get the first three bands for RGB visualization
-                      let r = values[0];
-                      let g = values[1];
-                      let b = values[2];
-
-                      // Check if values are very small (near zero) or very large
-                      const maxVal = Math.max(...[r, g, b].filter(v => isFinite(v)));
-
-                      // If values are very large (likely 16-bit data)
-                      if (maxVal > 255) {
-                        // Scale down to 8-bit range
-                        const scaleFactor = 255 / maxVal;
-                        r = Math.round(r * scaleFactor);
-                        g = Math.round(g * scaleFactor);
-                        b = Math.round(b * scaleFactor);
-                      }
-                      // If values are very small (likely normalized data)
-                      else if (maxVal <= 1 && maxVal > 0) {
-                        // Scale up to 0-255 range
-                        r = Math.round(r * 255);
-                        g = Math.round(g * 255);
-                        b = Math.round(b * 255);
-                      }
-
-                      // Ensure values are in valid range
-                      r = Math.min(255, Math.max(0, r || 0));
-                      g = Math.min(255, Math.max(0, g || 0));
-                      b = Math.min(255, Math.max(0, b || 0));
-
-                      return `rgb(${r}, ${g}, ${b})`;
-                    }
-                    // For single-band data (grayscale)
-                    else if (values.length === 1) {
-                      let val = values[0];
-
-                      // Check if value is very small or very large
-                      if (val > 255) {
-                        // Scale down to 8-bit
-                        val = Math.round(val * (255 / Math.max(val, 1)));
-                      } else if (val <= 1 && val > 0) {
-                        // Scale up from 0-1 to 0-255
-                        val = Math.round(val * 255);
-                      }
-
-                      val = Math.min(255, Math.max(0, val || 0));
-                      return `rgb(${val}, ${val}, ${val})`;
-                    }
-                    // For multi-band data beyond 3 bands (false color)
-                    else if (values.length > 3) {
-                      // Use the first three bands for visualization
-                      let r = values[0];
-                      let g = values[1];
-                      let b = values[2];
-
-                      // Apply scaling as needed
-                      const maxVal = Math.max(...[r, g, b].filter(v => isFinite(v)));
-                      if (maxVal > 255) {
-                        const scaleFactor = 255 / maxVal;
-                        r = Math.round(r * scaleFactor);
-                        g = Math.round(g * scaleFactor);
-                        b = Math.round(b * scaleFactor);
-                      }
-
-                      r = Math.min(255, Math.max(0, r || 0));
-                      g = Math.min(255, Math.max(0, g || 0));
-                      b = Math.min(255, Math.max(0, b || 0));
-
-                      return `rgb(${r}, ${g}, ${b})`;
-                    }
-
-                    // Default fallback
-                    return 'rgb(128, 128, 128)'; // Gray as fallback
-                  }
-                });
-
-                if (mapInstance) {
-                  geoRasterLayer.addTo(mapInstance);
-                }
-                layer = geoRasterLayer;
-
-                // Get bounds from the georaster
-                const georasterBounds = L.latLngBounds([
-                  [georaster.ymin, georaster.xmin],
-                  [georaster.ymax, georaster.xmax]
-                ]);
-
-                bounds.extend(georasterBounds);
-                console.log('Added COG layer with bounds:', georasterBounds);
-
-                // Create a loading indicator
-                const loadingIndicator = new L.Control({ position: 'topright' });
-                loadingIndicator.onAdd = function() {
-                  const div = L.DomUtil.create('div', 'loading-indicator');
-                  div.innerHTML = '<div class="spinner">Loading...</div>';
-                  div.style.display = 'none';
-                  div.style.padding = '5px 10px';
-                  div.style.background = 'rgba(255, 255, 255, 0.8)';
-                  div.style.borderRadius = '4px';
-                  div.style.margin = '10px';
-                  div.style.fontWeight = 'bold';
-                  return div;
-                };
-
-                if (mapInstance) {
-                  loadingIndicator.addTo(mapInstance);
-                }
-
-                // Use a performance-optimized approach for zooming
-                // that prioritizes responsiveness over quality during zoom operations
-
-                // Calculate a moderate resolution that balances quality and performance
-                // Lower resolution for better performance, especially during zooming
-                const optimalBaseResolution = 256; // Reduced for better performance
-
-                // Apply optimized settings to the GeoRasterLayer
-                (geoRasterLayer.options as any).resolution = optimalBaseResolution;
-
-                // Optimize rendering settings for better performance
-                (geoRasterLayer.options as any).updateWhenZooming = false; // Don't update during zoom for better performance
-                (geoRasterLayer.options as any).keepBuffer = 4; // Reduced buffer size for better performance
-                (geoRasterLayer.options as any).renderTimeout = 2000; // Shorter timeout for faster response
-
-                // Create a throttled zoom handler to prevent excessive rendering
-                // This helps reduce the number of times the loading indicator is shown/hidden
-                let zoomThrottleTimer: number | null = null;
-                const throttleDelay = 300; // ms between zoom handler executions
-
-                // Add a subtle loading indicator during zoom without changing resolution
-                const zoomStartHandler = () => {
-                  if (!mapInstance) return;
-
-                  // Clear any existing timer
-                  if (zoomThrottleTimer !== null) {
-                    window.clearTimeout(zoomThrottleTimer);
-                    zoomThrottleTimer = null;
-                  }
-
-                  // Show loading indicator with throttling
-                  zoomThrottleTimer = window.setTimeout(() => {
-                    const loadingElement = document.querySelector('.loading-indicator') as HTMLElement;
-                    if (loadingElement) {
-                      loadingElement.style.display = 'block';
-                      loadingElement.style.opacity = '0.5'; // Make it subtle
-                    }
-                  }, 100); // Short delay before showing indicator
-                };
-
-                // Hide the loading indicator when zoom ends, but don't redraw the layer
-                const zoomEndHandler = () => {
-                  if (!mapInstance) return;
-
-                  // Clear any existing timer
-                  if (zoomThrottleTimer !== null) {
-                    window.clearTimeout(zoomThrottleTimer);
-                    zoomThrottleTimer = null;
-                  }
-
-                  // Hide loading indicator with throttling
-                  zoomThrottleTimer = window.setTimeout(() => {
-                    const loadingElement = document.querySelector('.loading-indicator') as HTMLElement;
-                    if (loadingElement) {
-                      loadingElement.style.display = 'none';
-                    }
-                    // Force a single redraw after zoom completes for better quality
-                    mapInstance.invalidateSize({ pan: false });
-                  }, throttleDelay);
-                };
-
-                // Add the zoom handlers (with null check)
-                if (mapInstance) {
-                  // Register both zoomstart and zoomend events
-                  mapInstance.on('zoomstart', zoomStartHandler);
-                  mapInstance.on('zoomend', zoomEndHandler);
-
-                  // Store the handlers for cleanup
-                  const cleanupHandler = () => {
-                    if (mapInstance) {
-                      mapInstance.off('zoomstart', zoomStartHandler);
-                      mapInstance.off('zoomend', zoomEndHandler);
-                    }
-                  };
-
-                  // Add to cleanup list (with type safety)
-                  if (!mapInstance._cleanupHandlers) {
-                    mapInstance._cleanupHandlers = [];
-                  }
-                  mapInstance._cleanupHandlers.push(cleanupHandler);
-                }
-
-                // Successfully loaded as COG, return early
-                return;
-              } catch (cogError) {
-                console.error('Failed to load as COG, falling back to standard image overlay:', cogError);
-
-                // Log more detailed error information
-                console.error('COG loading error details:', {
-                  errorName: cogError instanceof Error ? cogError.name : 'Unknown',
-                  errorMessage: cogError instanceof Error ? cogError.message : String(cogError),
-                  fileName: image.name,
-                  fileType: image.metadata?.type,
-                  fileSize: image.metadata?.size,
-                  isCOG: image.metadata?.isCOG
-                });
-
-                // If this is explicitly marked as a COG, show a more helpful error message
-                if (image.name.includes('COG') || image.name.includes('cog') || image.metadata?.isCOG) {
-                  console.warn('This file appears to be a COG but failed to load. Possible issues:');
-                  console.warn('1. CORS restrictions - The server hosting the COG must allow cross-origin requests');
-                  console.warn('2. Invalid COG format - The file might not be a properly formatted COG');
-                  console.warn('3. Browser limitations - Some browsers have limitations with large files');
-                  console.warn('4. Network issues - The file might be too large or the connection too slow');
-                }
-
-                // Continue with standard image overlay approach
-              }
-            }
-
-            if (image.metadata?.isJP2 && image.metadata?.isSentinel) {
-              // For Sentinel JP2 files, use the full UTM zone bounds
-              // This ensures the image is displayed in the correct geographic area
-              console.log('Using UTM zone bounds for Sentinel JP2 file');
-
-              // Create bounds with correct order: southwest corner, northeast corner
-              imageBounds = L.latLngBounds(
-                [image.bounds[1], image.bounds[0]], // Southwest corner [lat, lng]
-                [image.bounds[3], image.bounds[2]]  // Northeast corner [lat, lng]
-              );
-
-              console.log('Original bounds:', image.bounds);
-              console.log('Leaflet bounds:', imageBounds);
-            } else if (isCopernicus) {
-              // Special handling for Copernicus GeoTIFF files
-              console.log('Using special bounds handling for Copernicus image');
-
-              // Create bounds with correct order and ensure they're valid
-              imageBounds = L.latLngBounds(
-                [image.bounds[1], image.bounds[0]], // Southwest corner [lat, lng]
-                [image.bounds[3], image.bounds[2]]  // Northeast corner [lat, lng]
-              );
-
-              // If the bounds are invalid or too small, use a default area
-              if (!imageBounds.isValid() ||
-                  Math.abs(image.bounds[2] - image.bounds[0]) < 0.001 ||
-                  Math.abs(image.bounds[3] - image.bounds[1]) < 0.001) {
-                console.warn('Invalid or too small bounds for Copernicus image, using default area');
-                // Use a default area (Europe)
-                imageBounds = L.latLngBounds(
-                  [35, -10], // Southwest corner [lat, lng]
-                  [60, 30]   // Northeast corner [lat, lng]
-                );
-              }
-
-              console.log('Copernicus image bounds:', imageBounds);
-            } else {
-              // For other images, use the full bounds
-              imageBounds = L.latLngBounds(
-                [image.bounds[1], image.bounds[0]], // Southwest corner [lat, lng]
-                [image.bounds[3], image.bounds[2]]  // Northeast corner [lat, lng]
-              );
-            }
-
-            console.log('Image overlay bounds:', imageBounds);
-
-            // Create a DOM Image element to check if the image loads properly
-            const img = new Image();
-            img.onload = () => {
-              console.log(`Image loaded successfully: ${image.name}`, img.width, img.height);
-            };
-            img.onerror = (e) => {
-              console.error(`Error loading image: ${image.name}`, e);
-
-              // Add a warning rectangle with text instead of showing a placeholder image
-              const warningRectangle = L.rectangle(imageBounds, {
-                color: "#ff0000",
-                weight: 2,
-                opacity: 0.8,
-                fillColor: "#ffcccc",
-                fillOpacity: 0.3
-              });
-
-              if (mapInstance) {
-                warningRectangle.addTo(mapInstance);
-              }
-
-              // Check if this is a Copernicus image for a more specific error message
-              const isCopernicus = image.name.includes('Copernicus') ||
-                                  image.name.includes('copernicus') ||
-                                  image.metadata?.type === 'image/tiff' ||
-                                  image.metadata?.type === 'image/geotiff';
-
-              let errorMessage = "Image failed to load properly. Try converting to a different GeoTIFF format.";
-
-              if (isCopernicus) {
-                // Check if it's already a COG
-                if (image.name.includes('COG') || image.name.includes('cog') || image.metadata?.isCOG) {
-                  errorMessage = "COG file failed to load. This might be due to CORS issues or an incompatible COG format. Try a different viewer or convert to a standard GeoTIFF.";
-                } else {
-                  errorMessage = "Copernicus GeoTIFF failed to load. Try downloading as COG (Cloud Optimized GeoTIFF) format.";
-                }
-              }
-
-              // Add a warning tooltip with more detailed error message
-              warningRectangle.bindTooltip(errorMessage, {
-                permanent: true,
-                direction: 'center',
-                className: 'image-error-tooltip'
-              }).openTooltip();
-
-              // Add to layers for cleanup
-              newLayers.push(warningRectangle);
-            };
-            // Add CORS attributes to help with cross-origin issues
-            img.crossOrigin = "anonymous";
-            img.src = image.url;
-
-            // Create the image overlay with improved error handling
-            const imageOverlay = L.imageOverlay(image.url, imageBounds, {
-              opacity: 1.0, // Full opacity for better visibility
-              interactive: true,
-              crossOrigin: 'anonymous',
-              className: 'satellite-image-overlay', // Add a class for potential CSS styling
-              // Add error handling directly to the imageOverlay
-              errorOverlayUrl: '', // Empty string to prevent default error image
-              zIndex: 10, // Ensure image is above base map
-            });
-
-            // Add the overlay to the map
-            if (mapInstance) {
-              imageOverlay.addTo(mapInstance);
-            }
-            layer = imageOverlay;
-
-            // Add popup with image info
-            imageOverlay.bindPopup(`
-              <div style="max-width: 300px;">
-                <h3 style="font-weight: bold; margin-bottom: 5px;">${image.name}</h3>
-                <p>Uploaded: ${new Date(image.timestamp).toLocaleString()}</p>
-                ${image.metadata?.isSentinel ?
-                  `<p>Sentinel Image${image.metadata?.sentinelInfo?.utmZone ? ` (UTM Zone ${image.metadata.sentinelInfo.utmZone})` : ''}</p>` :
-                  ''}
-                <p>Bounds: [${image.bounds.map(b => b.toFixed(2)).join(', ')}]</p>
-              </div>
-            `);
-
-            // Extend bounds
-            bounds.extend(imageBounds);
-            console.log('Added image overlay with bounds:', imageBounds);
-
-            // Add a rectangle to show the bounds (helpful for debugging)
-            const boundsRectangle = L.rectangle(imageBounds, {
-              color: "#ff7800",
-              weight: 1,
-              opacity: 0.8,
-              fillOpacity: 0.1
-            });
-
-            if (mapInstance) {
-              boundsRectangle.addTo(mapInstance);
-            }
-
-            newLayers.push(boundsRectangle);
-
-            // Force a redraw of the map to ensure the image is displayed
-            setTimeout(() => {
-              if (mapInstance) {
-                mapInstance.invalidateSize();
-                // Ensure the image is within view
-                mapInstance.fitBounds(imageBounds, { padding: [50, 50] });
-              }
-            }, 100);
+            layer = await fallbackToImageOverlay(image, mapInstance, bounds, newLayers);
           }
 
           if (layer) {

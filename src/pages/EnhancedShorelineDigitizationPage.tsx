@@ -64,8 +64,8 @@ export default function EnhancedShorelineDigitizationPage() {
   // Handle deletion of a LineString
   const handleLineStringDelete = useCallback((id: string) => {
     setLineStrings(prevLineStrings =>
-      prevLineStrings.filter(ls =>
-        (ls as any).properties?.id !== id
+      prevLineStrings.filter((ls, index) =>
+        (ls as any).properties?.id !== id && `line-${index + 1}` !== id
       )
     );
   }, []);

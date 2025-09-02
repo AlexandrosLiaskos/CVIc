@@ -52,7 +52,7 @@ export const ParameterValuePanel: React.FC<ParameterValuePanelProps> = ({
       const rangesToUse = activeParameter.indexSpecificRankingTable || activeParameter.vulnerabilityRanges;
       const optionsFromRanges: ParameterOption[] = [];
 
-      rangesToUse.forEach(range => {
+      rangesToUse.forEach((range: any) => {
         // For index-specific ranking tables, use the exact criteria
         let rangeLabel = `${range.label}`;
         if (range.criteria) {
@@ -173,7 +173,7 @@ export const ParameterValuePanel: React.FC<ParameterValuePanelProps> = ({
           <span className="font-medium">{selectedValue || '-'}</span>
           <span className="mx-4 text-gray-600">Vulnerability:</span>
           <span
-            className="inline-block w-6 h-6 rounded-full text-white text-center flex items-center justify-center text-xs font-medium"
+            className="w-6 h-6 rounded-full text-white text-center flex items-center justify-center text-xs font-medium"
             style={{
               backgroundColor: (() => {
                 // For ICVI parameters, use the result classification colors

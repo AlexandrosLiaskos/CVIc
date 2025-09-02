@@ -31,7 +31,7 @@ export function safeJsonParse<T>(jsonString: string | null | undefined, fallback
  * @param fallback Optional fallback string if stringification fails
  * @returns The stringified JSON or fallback string
  */
-export function safeJsonStringify(value: any, fallback: string = '{}'): string {
+export function safeJsonStringify(value: unknown, fallback: string = '{}'): string {
   try {
     return JSON.stringify(value);
   } catch (error) {

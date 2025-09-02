@@ -8,7 +8,7 @@ export interface ShorelineSegmentProperties {
   parameters?: Record<string, ParameterValue>;
   vulnerabilityIndex?: number;
   vulnerabilityFormula?: Formula['type'];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ShorelineSegment {
@@ -82,7 +82,7 @@ export interface Parameter {
   standardId?: string
   indexId?: string
   indexSpecificName?: string
-  indexSpecificRankingTable?: any[] // Index-specific ranking table from research papers
+  indexSpecificRankingTable?: unknown[] // Index-specific ranking table from research papers
   vulnerabilityValue?: number // Dynamically added during calculations
 }
 
@@ -113,7 +113,7 @@ export interface MapFeatureProperties {
   id: string;
   cviScore?: number;
   name?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface MapFeature extends Feature {
@@ -132,7 +132,7 @@ export interface Formula {
         'icvi-evi' | 'icvi-svi' | 'icvi-composite' | 'icvi-arithmetic' | 'icvi-geometric' |
         'pcvi' | 'ecvi' | 'ccvi-composite' |
         'cvi-se' | 'sovi' | 'sevi' | 'lvi' | 'integrated-cvi' |
-        'gcvi-composite' | 'gcvi-component';
+        'gcvi-composite' | 'gcvi-component' | 'cvi-geometric';
   name: string;
   description: string;
 }
@@ -152,3 +152,11 @@ export interface CategoricalParameterValue extends BaseParameterValue {
 }
 
 export type ParameterValue = NumericalParameterValue | CategoricalParameterValue;
+
+// Re-export types from indexSpecificTypes
+export type {
+  StandardizedCoastalIndex,
+  IndexSpecificParameter,
+  ValidationRule,
+  StandardParameterNames
+} from './indexSpecificTypes';

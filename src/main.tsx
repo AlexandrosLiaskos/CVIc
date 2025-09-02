@@ -12,21 +12,54 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 import './index.css';
-import { AuthProvider } from './hooks/useAuth';
 import { router } from './router';
 
-// Setup error handling
-const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
-  console.error('Application Error:', error);
-  console.error('Component Stack:', errorInfo.componentStack);
+// Error Boundary Component
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
 
-  // You could send this to an error tracking service
-};
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Application Error:', error);
+    console.error('Component Stack:', errorInfo.componentStack);
+    // You could send this to an error tracking service
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '20px', textAlign: 'center', fontFamily: 'sans-serif' }}>
+          <h1>CVIc - Coastal Vulnerability Index Compiler</h1>
+          <p>Something went wrong. Please try refreshing the page.</p>
+          <button
+            onClick={() => window.location.reload()}
+            style={{ padding: '10px 20px', marginTop: '20px', cursor: 'pointer' }}
+          >
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 // Check if we're in development or production
 const isDev = import.meta.env.DEV;
 console.log(`Running in ${isDev ? 'development' : 'production'} mode`);
 console.log(`Base URL: ${import.meta.env.BASE_URL}`);
+console.log(`Current URL: ${window.location.href}`);
+console.log(`Current pathname: ${window.location.pathname}`);
 
 // Initialize the app
 console.log('Initializing React application');
@@ -38,9 +71,9 @@ if (rootElement) {
     const root = ReactDOM.createRoot(rootElement);
     root.render(
       <React.StrictMode>
-        <AuthProvider>
+        <ErrorBoundary>
           <RouterProvider router={router} />
-        </AuthProvider>
+        </ErrorBoundary>
       </React.StrictMode>,
     );
   } catch (error) {

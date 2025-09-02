@@ -5,7 +5,9 @@ export enum ParameterCategory {
   HYDROCLIMATE = 'hydroclimate',
   ENVIRONMENTAL = 'environmental',
   SOCIOECONOMIC = 'socioeconomic',
-  SHORELINE = 'shoreline'
+  SHORELINE = 'shoreline',
+  INFRASTRUCTURE = 'infrastructure',
+  PHYSICAL_GEOLOGICAL = 'physical_geological'
 }
 
 export const PARAMETER_CATEGORY_LABELS: Record<ParameterCategory, string> = {
@@ -13,7 +15,9 @@ export const PARAMETER_CATEGORY_LABELS: Record<ParameterCategory, string> = {
   [ParameterCategory.HYDROCLIMATE]: 'Hydroclimate',
   [ParameterCategory.ENVIRONMENTAL]: 'Environmental',
   [ParameterCategory.SOCIOECONOMIC]: 'Socioeconomic',
-  [ParameterCategory.SHORELINE]: 'Shoreline'
+  [ParameterCategory.SHORELINE]: 'Shoreline',
+  [ParameterCategory.INFRASTRUCTURE]: 'Infrastructure',
+  [ParameterCategory.PHYSICAL_GEOLOGICAL]: 'Physical Geological'
 };
 
 export interface StandardParameter extends Parameter {
@@ -27,6 +31,7 @@ export const COASTAL_GEOMORPHOLOGY: StandardParameter = {
   id: 'coastal_geomorphology',
   standardId: 'coastal_geomorphology',
   name: 'Coastal Geomorphology',
+  description: 'Coastal landform type and geomorphological characteristics',
   category: ParameterCategory.PHYSICAL,
   type: 'categorical',
   weight: 1/6,
@@ -45,6 +50,7 @@ export const COASTAL_SLOPE: StandardParameter = {
   id: 'coastal_slope',
   standardId: 'coastal_slope',
   name: 'Coastal Slope',
+  description: 'Regional coastal slope percentage',
   category: ParameterCategory.PHYSICAL,
   type: 'numerical',
   weight: 1/6,
@@ -64,6 +70,7 @@ export const ROCK_TYPE: StandardParameter = {
   id: 'rock_type',
   standardId: 'rock_type',
   name: 'Rock Type / Geology',
+  description: 'Geological composition and rock type of coastal area',
   category: ParameterCategory.PHYSICAL,
   type: 'categorical',
   weight: 1/9,
@@ -83,18 +90,19 @@ export const SEA_LEVEL_CHANGE: StandardParameter = {
   id: 'sea_level_change',
   standardId: 'sea_level_change',
   name: 'Relative Sea-level Change',
+  description: 'Rate of relative sea level change',
   category: ParameterCategory.HYDROCLIMATE,
   type: 'numerical',
   weight: 1/6,
   enabled: false,
-  unit: 'mm/yr',
-  aliases: ['relative_sea_level_rise', 'sea_level_rise', 'slr_rate', 'relative_slr'],
+  unit: 'mm/year',
+  aliases: ['sea_level_rise', 'slr', 'relative_slr', 'sea_level_trend'],
   vulnerabilityRanges: [
-    { value: 1, min: null, max: 1.8, label: 'Very Low', color: '#1a9850' },
-    { value: 2, min: 1.8, max: 2.5, label: 'Low', color: '#91cf60' },
-    { value: 3, min: 2.5, max: 3.0, label: 'Moderate', color: '#fee08b' },
-    { value: 4, min: 3.0, max: 3.4, label: 'High', color: '#fc8d59' },
-    { value: 5, min: 3.4, max: null, label: 'Very High', color: '#d73027' }
+    { value: 1, min: null, max: -1.1, label: 'Very Low', color: '#1a9850' },
+    { value: 2, min: -1.1, max: 2.4, label: 'Low', color: '#91cf60' },
+    { value: 3, min: 2.4, max: 4.4, label: 'Moderate', color: '#fee08b' },
+    { value: 4, min: 4.4, max: 6.4, label: 'High', color: '#fc8d59' },
+    { value: 5, min: 6.4, max: null, label: 'Very High', color: '#d73027' }
   ]
 };
 
@@ -102,12 +110,13 @@ export const MEAN_TIDE_RANGE: StandardParameter = {
   id: 'mean_tide_range',
   standardId: 'mean_tide_range',
   name: 'Mean Tide Range',
+  description: 'Average tidal range between high and low tide',
   category: ParameterCategory.HYDROCLIMATE,
   type: 'numerical',
   weight: 1/6,
   enabled: false,
   unit: 'm',
-  aliases: ['tidal_range', 'tide_range', 'mean_tidal_range'],
+  aliases: ['tidal_range', 'tide_range', 'tidal_amplitude'],
   vulnerabilityRanges: [
     { value: 1, min: 6.0, max: null, label: 'Very Low', color: '#1a9850' },
     { value: 2, min: 4.0, max: 6.0, label: 'Low', color: '#91cf60' },
@@ -121,18 +130,19 @@ export const MEAN_WAVE_HEIGHT: StandardParameter = {
   id: 'mean_wave_height',
   standardId: 'mean_wave_height',
   name: 'Mean Wave Height',
+  description: 'Average significant wave height',
   category: ParameterCategory.HYDROCLIMATE,
   type: 'numerical',
   weight: 1/6,
   enabled: false,
   unit: 'm',
-  aliases: ['wave_height', 'significant_wave_height', 'mean_wave_height'],
+  aliases: ['wave_height', 'significant_wave_height', 'hs', 'wave_energy'],
   vulnerabilityRanges: [
     { value: 1, min: null, max: 0.55, label: 'Very Low', color: '#1a9850' },
     { value: 2, min: 0.55, max: 0.85, label: 'Low', color: '#91cf60' },
-    { value: 3, min: 0.85, max: 1.05, label: 'Moderate', color: '#fee08b' },
-    { value: 4, min: 1.05, max: 1.25, label: 'High', color: '#fc8d59' },
-    { value: 5, min: 1.25, max: null, label: 'Very High', color: '#d73027' }
+    { value: 3, min: 0.85, max: 1.25, label: 'Moderate', color: '#fee08b' },
+    { value: 4, min: 1.25, max: 1.75, label: 'High', color: '#fc8d59' },
+    { value: 5, min: 1.75, max: null, label: 'Very High', color: '#d73027' }
   ]
 };
 
@@ -141,17 +151,18 @@ export const SHORELINE_CHANGE: StandardParameter = {
   id: 'shoreline_change',
   standardId: 'shoreline_change',
   name: 'Shoreline Change Rate',
+  description: 'Historical rate of shoreline erosion or accretion',
   category: ParameterCategory.SHORELINE,
   type: 'numerical',
   weight: 1/6,
   enabled: false,
-  unit: 'm/yr',
-  aliases: ['shoreline_erosion', 'erosion_rate', 'shoreline_migration', 'coastal_erosion'],
+  unit: 'm/year',
+  aliases: ['erosion_rate', 'shoreline_erosion', 'coastal_erosion', 'shoreline_retreat'],
   vulnerabilityRanges: [
     { value: 1, min: 2.0, max: null, label: 'Very Low', color: '#1a9850' },
     { value: 2, min: 1.0, max: 2.0, label: 'Low', color: '#91cf60' },
     { value: 3, min: -1.0, max: 1.0, label: 'Moderate', color: '#fee08b' },
-    { value: 4, min: -1.1, max: -2.0, label: 'High', color: '#fc8d59' },
+    { value: 4, min: -2.0, max: -1.0, label: 'High', color: '#fc8d59' },
     { value: 5, min: null, max: -2.0, label: 'Very High', color: '#d73027' }
   ]
 };
@@ -161,6 +172,7 @@ export const BARRIER_TYPE: StandardParameter = {
   id: 'barrier_type',
   standardId: 'barrier_type',
   name: 'Barrier Type',
+  description: 'Type of coastal protection or barrier system',
   category: ParameterCategory.SHORELINE,
   type: 'categorical',
   weight: 1/9,
@@ -168,10 +180,10 @@ export const BARRIER_TYPE: StandardParameter = {
   aliases: ['coastal_protection', 'protection_type', 'barrier_system'],
   options: [
     { type: 'categorical', value: 'hard_protection', label: 'Hard coastal protection structures', color: '#1a9850', vulnerability: 1 },
-    { type: 'categorical', value: 'natural_barrier', label: 'Natural barriers (reefs, islands)', color: '#91cf60', vulnerability: 2 },
-    { type: 'categorical', value: 'vegetation', label: 'Vegetation barriers (mangroves)', color: '#fee08b', vulnerability: 3 },
-    { type: 'categorical', value: 'soft_protection', label: 'Soft protection (beach nourishment)', color: '#fc8d59', vulnerability: 4 },
-    { type: 'categorical', value: 'no_protection', label: 'No protection/barriers', color: '#d73027', vulnerability: 5 }
+    { type: 'categorical', value: 'natural_barriers', label: 'Natural barriers (reefs, islands)', color: '#91cf60', vulnerability: 2 },
+    { type: 'categorical', value: 'soft_protection', label: 'Soft protection (beach nourishment)', color: '#fee08b', vulnerability: 3 },
+    { type: 'categorical', value: 'limited_protection', label: 'Limited or degraded protection', color: '#fc8d59', vulnerability: 4 },
+    { type: 'categorical', value: 'no_protection', label: 'No coastal protection', color: '#d73027', vulnerability: 5 }
   ]
 };
 
@@ -179,6 +191,7 @@ export const SHORELINE_EXPOSURE: StandardParameter = {
   id: 'shoreline_exposure',
   standardId: 'shoreline_exposure',
   name: 'Shoreline Exposure',
+  description: 'Degree of shoreline exposure to wave energy and storms',
   category: ParameterCategory.SHORELINE,
   type: 'categorical',
   weight: 1/9,
@@ -186,9 +199,9 @@ export const SHORELINE_EXPOSURE: StandardParameter = {
   aliases: ['wave_exposure', 'coastal_exposure', 'fetch'],
   options: [
     { type: 'categorical', value: 'very_sheltered', label: 'Very sheltered (enclosed bays)', color: '#1a9850', vulnerability: 1 },
-    { type: 'categorical', value: 'sheltered', label: 'Sheltered (partial protection)', color: '#91cf60', vulnerability: 2 },
-    { type: 'categorical', value: 'semi_exposed', label: 'Semi-exposed', color: '#fee08b', vulnerability: 3 },
-    { type: 'categorical', value: 'exposed', label: 'Exposed to open ocean', color: '#fc8d59', vulnerability: 4 },
+    { type: 'categorical', value: 'sheltered', label: 'Sheltered (semi-enclosed bays)', color: '#91cf60', vulnerability: 2 },
+    { type: 'categorical', value: 'semi_exposed', label: 'Semi-exposed (open bays)', color: '#fee08b', vulnerability: 3 },
+    { type: 'categorical', value: 'exposed', label: 'Exposed (open coast)', color: '#fc8d59', vulnerability: 4 },
     { type: 'categorical', value: 'very_exposed', label: 'Very exposed (headlands)', color: '#d73027', vulnerability: 5 }
   ]
 };
@@ -590,6 +603,7 @@ export const NATURAL_PROTECTION: StandardParameter = {
   id: 'natural_protection',
   standardId: 'natural_protection',
   name: 'Natural Protection',
+  description: 'Natural coastal protection features and their effectiveness',
   category: ParameterCategory.ENVIRONMENTAL,
   type: 'categorical',
   weight: 1/7,
@@ -597,10 +611,10 @@ export const NATURAL_PROTECTION: StandardParameter = {
   aliases: ['beach_protection', 'natural_defenses', 'coastal_protection_features'],
   options: [
     { type: 'categorical', value: 'submerged_hard', label: 'Submerged hard features (beachrocks, platforms)', color: '#1a9850', vulnerability: 1 },
-    { type: 'categorical', value: 'stabilized_dunes', label: 'Stabilized sand dunes, coastal lagoons, wetlands', color: '#91cf60', vulnerability: 2 },
-    { type: 'categorical', value: 'unstabilized_dunes', label: 'Unstabilized sand dunes, uplifted reefs (beachrocks)', color: '#fee08b', vulnerability: 3 },
-    { type: 'categorical', value: 'gravel_berms', label: 'Beaches with gravels, berms', color: '#fc8d59', vulnerability: 4 },
-    { type: 'categorical', value: 'sandy_low', label: 'Sandy low lying beaches', color: '#d73027', vulnerability: 5 }
+    { type: 'categorical', value: 'emerged_hard', label: 'Emerged hard features (rocky outcrops)', color: '#91cf60', vulnerability: 2 },
+    { type: 'categorical', value: 'vegetation', label: 'Coastal vegetation (dunes, mangroves)', color: '#fee08b', vulnerability: 3 },
+    { type: 'categorical', value: 'limited', label: 'Limited natural protection', color: '#fc8d59', vulnerability: 4 },
+    { type: 'categorical', value: 'none', label: 'No natural protection', color: '#d73027', vulnerability: 5 }
   ]
 };
 
@@ -609,6 +623,7 @@ export const ECOSYSTEM_TYPE: StandardParameter = {
   id: 'ecosystem_type',
   standardId: 'ecosystem_type',
   name: 'Ecosystem Type',
+  description: 'Type of coastal ecosystem and its vulnerability',
   category: ParameterCategory.ENVIRONMENTAL,
   type: 'categorical',
   weight: 1/6,
@@ -616,10 +631,10 @@ export const ECOSYSTEM_TYPE: StandardParameter = {
   aliases: ['habitat_type', 'coastal_ecosystem', 'ecosystem_classification'],
   options: [
     { type: 'categorical', value: 'rocky_reef', label: 'Rocky reef systems', color: '#1a9850', vulnerability: 0.0 },
-    { type: 'categorical', value: 'coral_reef', label: 'Coral reef systems', color: '#91cf60', vulnerability: 0.25 },
-    { type: 'categorical', value: 'seagrass', label: 'Seagrass beds', color: '#fee08b', vulnerability: 0.5 },
-    { type: 'categorical', value: 'mangrove', label: 'Mangrove forests', color: '#fc8d59', vulnerability: 0.75 },
-    { type: 'categorical', value: 'sandy_beach', label: 'Sandy beach systems', color: '#d73027', vulnerability: 1.0 }
+    { type: 'categorical', value: 'seagrass', label: 'Seagrass beds', color: '#91cf60', vulnerability: 0.2 },
+    { type: 'categorical', value: 'mangrove', label: 'Mangrove forests', color: '#fee08b', vulnerability: 0.4 },
+    { type: 'categorical', value: 'salt_marsh', label: 'Salt marshes', color: '#fc8d59', vulnerability: 0.6 },
+    { type: 'categorical', value: 'coral_reef', label: 'Coral reefs', color: '#d73027', vulnerability: 0.8 }
   ]
 };
 
@@ -627,6 +642,7 @@ export const ENVIRONMENTAL_CONSERVANCY: StandardParameter = {
   id: 'environmental_conservancy',
   standardId: 'environmental_conservancy',
   name: 'Environmental Conservancy Measures',
+  description: 'Level of environmental protection and conservation measures',
   category: ParameterCategory.ENVIRONMENTAL,
   type: 'categorical',
   weight: 1/6,
@@ -634,10 +650,10 @@ export const ENVIRONMENTAL_CONSERVANCY: StandardParameter = {
   aliases: ['conservation_measures', 'protection_status', 'environmental_protection'],
   options: [
     { type: 'categorical', value: 'strict_protection', label: 'Strict nature reserves', color: '#1a9850', vulnerability: 0.0 },
-    { type: 'categorical', value: 'national_park', label: 'National parks', color: '#91cf60', vulnerability: 0.25 },
-    { type: 'categorical', value: 'managed_reserve', label: 'Managed nature reserves', color: '#fee08b', vulnerability: 0.5 },
-    { type: 'categorical', value: 'limited_protection', label: 'Limited protection areas', color: '#fc8d59', vulnerability: 0.75 },
-    { type: 'categorical', value: 'no_protection', label: 'No environmental protection', color: '#d73027', vulnerability: 1.0 }
+    { type: 'categorical', value: 'national_park', label: 'National parks', color: '#91cf60', vulnerability: 0.2 },
+    { type: 'categorical', value: 'protected_area', label: 'Protected landscape areas', color: '#fee08b', vulnerability: 0.4 },
+    { type: 'categorical', value: 'managed_use', label: 'Sustainable use areas', color: '#fc8d59', vulnerability: 0.6 },
+    { type: 'categorical', value: 'no_protection', label: 'No protection measures', color: '#d73027', vulnerability: 0.8 }
   ]
 };
 
@@ -645,6 +661,7 @@ export const INTEREST_SPECIES: StandardParameter = {
   id: 'interest_species',
   standardId: 'interest_species',
   name: 'Presence of Interest Species',
+  description: 'Presence of endangered or ecologically important species',
   category: ParameterCategory.ENVIRONMENTAL,
   type: 'categorical',
   weight: 1/6,
@@ -652,10 +669,10 @@ export const INTEREST_SPECIES: StandardParameter = {
   aliases: ['endangered_species', 'species_of_interest', 'biodiversity_value'],
   options: [
     { type: 'categorical', value: 'high_biodiversity', label: 'High biodiversity with endemic species', color: '#1a9850', vulnerability: 0.0 },
-    { type: 'categorical', value: 'moderate_biodiversity', label: 'Moderate biodiversity', color: '#91cf60', vulnerability: 0.25 },
-    { type: 'categorical', value: 'common_species', label: 'Common species only', color: '#fee08b', vulnerability: 0.5 },
-    { type: 'categorical', value: 'low_biodiversity', label: 'Low biodiversity', color: '#fc8d59', vulnerability: 0.75 },
-    { type: 'categorical', value: 'degraded_habitat', label: 'Degraded habitat', color: '#d73027', vulnerability: 1.0 }
+    { type: 'categorical', value: 'moderate_biodiversity', label: 'Moderate biodiversity', color: '#91cf60', vulnerability: 0.2 },
+    { type: 'categorical', value: 'some_species', label: 'Some species of interest', color: '#fee08b', vulnerability: 0.4 },
+    { type: 'categorical', value: 'few_species', label: 'Few species of interest', color: '#fc8d59', vulnerability: 0.6 },
+    { type: 'categorical', value: 'no_species', label: 'No significant species', color: '#d73027', vulnerability: 0.8 }
   ]
 };
 
@@ -664,6 +681,7 @@ export const USE_OF_TERRITORY: StandardParameter = {
   id: 'use_of_territory',
   standardId: 'use_of_territory',
   name: 'Use of Territory',
+  description: 'Type and intensity of territorial use in coastal areas',
   category: ParameterCategory.SOCIOECONOMIC,
   type: 'categorical',
   weight: 1/6,
@@ -671,10 +689,10 @@ export const USE_OF_TERRITORY: StandardParameter = {
   aliases: ['territory_use', 'land_utilization', 'territorial_use'],
   options: [
     { type: 'categorical', value: 'natural_protected', label: 'Natural protected areas', color: '#1a9850', vulnerability: 0.0 },
-    { type: 'categorical', value: 'extensive_agriculture', label: 'Extensive agriculture', color: '#91cf60', vulnerability: 0.25 },
-    { type: 'categorical', value: 'intensive_agriculture', label: 'Intensive agriculture', color: '#fee08b', vulnerability: 0.5 },
-    { type: 'categorical', value: 'urban_residential', label: 'Urban residential', color: '#fc8d59', vulnerability: 0.75 },
-    { type: 'categorical', value: 'industrial_commercial', label: 'Industrial/Commercial', color: '#d73027', vulnerability: 1.0 }
+    { type: 'categorical', value: 'rural_low', label: 'Rural areas with low development', color: '#91cf60', vulnerability: 0.2 },
+    { type: 'categorical', value: 'semi_urban', label: 'Semi-urban development', color: '#fee08b', vulnerability: 0.4 },
+    { type: 'categorical', value: 'urban', label: 'Urban areas', color: '#fc8d59', vulnerability: 0.6 },
+    { type: 'categorical', value: 'industrial', label: 'Industrial and high-density areas', color: '#d73027', vulnerability: 0.8 }
   ]
 };
 
@@ -682,18 +700,19 @@ export const BUILDING_COAST_RATIO: StandardParameter = {
   id: 'building_coast_ratio',
   standardId: 'building_coast_ratio',
   name: 'Building Coast Ratio',
+  description: 'Ratio of built structures to coastline length',
   category: ParameterCategory.INFRASTRUCTURE,
   type: 'numerical',
   weight: 1/6,
   enabled: false,
-  unit: 'ratio',
-  aliases: ['built_coast_ratio', 'construction_ratio', 'development_ratio'],
+  unit: 'buildings/km',
+  aliases: ['building_density_coast', 'coastal_building_ratio', 'structures_per_coastline'],
   vulnerabilityRanges: [
-    { value: 0.0, min: null, max: 0.1, label: 'Very Low', color: '#1a9850' },
-    { value: 0.25, min: 0.1, max: 0.3, label: 'Low', color: '#91cf60' },
-    { value: 0.5, min: 0.3, max: 0.5, label: 'Moderate', color: '#fee08b' },
-    { value: 0.75, min: 0.5, max: 0.7, label: 'High', color: '#fc8d59' },
-    { value: 1.0, min: 0.7, max: null, label: 'Very High', color: '#d73027' }
+    { value: 0.0, min: null, max: 5, label: 'Very Low', color: '#1a9850' },
+    { value: 0.2, min: 5, max: 15, label: 'Low', color: '#91cf60' },
+    { value: 0.4, min: 15, max: 30, label: 'Moderate', color: '#fee08b' },
+    { value: 0.6, min: 30, max: 50, label: 'High', color: '#fc8d59' },
+    { value: 0.8, min: 50, max: null, label: 'Very High', color: '#d73027' }
   ]
 };
 
@@ -701,6 +720,7 @@ export const SOCIOCULTURAL_HERITAGE: StandardParameter = {
   id: 'sociocultural_heritage',
   standardId: 'sociocultural_heritage',
   name: 'Sociocultural Heritage',
+  description: 'Value and significance of sociocultural heritage assets',
   category: ParameterCategory.SOCIOECONOMIC,
   type: 'categorical',
   weight: 1/6,
@@ -708,10 +728,10 @@ export const SOCIOCULTURAL_HERITAGE: StandardParameter = {
   aliases: ['cultural_heritage_value', 'heritage_significance', 'cultural_importance'],
   options: [
     { type: 'categorical', value: 'world_heritage', label: 'World Heritage Sites', color: '#1a9850', vulnerability: 0.0 },
-    { type: 'categorical', value: 'national_heritage', label: 'National Heritage Sites', color: '#91cf60', vulnerability: 0.25 },
-    { type: 'categorical', value: 'regional_heritage', label: 'Regional Heritage Sites', color: '#fee08b', vulnerability: 0.5 },
-    { type: 'categorical', value: 'local_heritage', label: 'Local Heritage Sites', color: '#fc8d59', vulnerability: 0.75 },
-    { type: 'categorical', value: 'no_heritage', label: 'No Heritage Significance', color: '#d73027', vulnerability: 1.0 }
+    { type: 'categorical', value: 'national_heritage', label: 'National heritage sites', color: '#91cf60', vulnerability: 0.2 },
+    { type: 'categorical', value: 'regional_heritage', label: 'Regional heritage value', color: '#fee08b', vulnerability: 0.4 },
+    { type: 'categorical', value: 'local_heritage', label: 'Local heritage significance', color: '#fc8d59', vulnerability: 0.6 },
+    { type: 'categorical', value: 'no_heritage', label: 'No significant heritage value', color: '#d73027', vulnerability: 0.8 }
   ]
 };
 
@@ -720,18 +740,19 @@ export const DISTANCE_BUILT_STRUCTURES: StandardParameter = {
   id: 'distance_built_structures',
   standardId: 'distance_built_structures',
   name: 'Distance of Built Structures behind Back Beach',
+  description: 'Distance of built structures from the back beach area',
   category: ParameterCategory.INFRASTRUCTURE,
   type: 'numerical',
   weight: 1/6,
   enabled: false,
   unit: 'm',
-  aliases: ['built_structure_distance', 'development_distance', 'structure_setback'],
+  aliases: ['setback_distance', 'building_setback', 'structure_distance'],
   vulnerabilityRanges: [
-    { value: 1, min: 500, max: null, label: 'Very Low', color: '#1a9850' },
-    { value: 2, min: 200, max: 500, label: 'Low', color: '#91cf60' },
-    { value: 3, min: 100, max: 200, label: 'Moderate', color: '#fee08b' },
-    { value: 4, min: 50, max: 100, label: 'High', color: '#fc8d59' },
-    { value: 5, min: null, max: 50, label: 'Very High', color: '#d73027' }
+    { value: 0.0, min: 200, max: null, label: 'Very Low', color: '#1a9850' },
+    { value: 0.2, min: 100, max: 200, label: 'Low', color: '#91cf60' },
+    { value: 0.4, min: 50, max: 100, label: 'Moderate', color: '#fee08b' },
+    { value: 0.6, min: 20, max: 50, label: 'High', color: '#fc8d59' },
+    { value: 0.8, min: null, max: 20, label: 'Very High', color: '#d73027' }
   ]
 };
 
@@ -739,18 +760,19 @@ export const COMMERCIAL_PROPERTIES: StandardParameter = {
   id: 'commercial_properties',
   standardId: 'commercial_properties',
   name: 'Commercial Properties',
+  description: 'Density of commercial properties and businesses',
   category: ParameterCategory.SOCIOECONOMIC,
   type: 'numerical',
   weight: 1/4,
   enabled: false,
   unit: 'count/km²',
-  aliases: ['commercial_density', 'business_properties', 'commercial_buildings'],
+  aliases: ['commercial_density', 'business_density', 'commercial_buildings'],
   vulnerabilityRanges: [
-    { value: 1, min: null, max: 5, label: 'Very Low', color: '#1a9850' },
-    { value: 2, min: 5, max: 15, label: 'Low', color: '#91cf60' },
-    { value: 3, min: 15, max: 30, label: 'Moderate', color: '#fee08b' },
-    { value: 4, min: 30, max: 50, label: 'High', color: '#fc8d59' },
-    { value: 5, min: 50, max: null, label: 'Very High', color: '#d73027' }
+    { value: 1, min: null, max: 10, label: 'Very Low', color: '#1a9850' },
+    { value: 2, min: 10, max: 25, label: 'Low', color: '#91cf60' },
+    { value: 3, min: 25, max: 50, label: 'Moderate', color: '#fee08b' },
+    { value: 4, min: 50, max: 100, label: 'High', color: '#fc8d59' },
+    { value: 5, min: 100, max: null, label: 'Very High', color: '#d73027' }
   ]
 };
 
@@ -758,6 +780,7 @@ export const RESIDENTIAL_PROPERTIES: StandardParameter = {
   id: 'residential_properties',
   standardId: 'residential_properties',
   name: 'Residential Properties',
+  description: 'Density of residential properties and housing',
   category: ParameterCategory.SOCIOECONOMIC,
   type: 'numerical',
   weight: 1/4,
@@ -778,18 +801,19 @@ export const MEDIAN_GRAIN_SIZE: StandardParameter = {
   id: 'median_grain_size',
   standardId: 'median_grain_size',
   name: 'Median Grain Size (D50)',
+  description: 'Median grain size of beach sediments',
   category: ParameterCategory.PHYSICAL_GEOLOGICAL,
   type: 'numerical',
   weight: 1/7,
   enabled: false,
   unit: 'mm',
-  aliases: ['d50', 'grain_size', 'sediment_size'],
+  aliases: ['d50', 'grain_size', 'sediment_size', 'particle_size'],
   vulnerabilityRanges: [
-    { value: 1, min: 2.0, max: null, label: 'Very Coarse', color: '#1a9850' },
-    { value: 2, min: 0.5, max: 2.0, label: 'Coarse', color: '#91cf60' },
-    { value: 3, min: 0.25, max: 0.5, label: 'Medium', color: '#fee08b' },
-    { value: 4, min: 0.125, max: 0.25, label: 'Fine', color: '#fc8d59' },
-    { value: 5, min: null, max: 0.125, label: 'Very Fine', color: '#d73027' }
+    { value: 1, min: 2.0, max: null, label: 'Very Low', color: '#1a9850' },
+    { value: 2, min: 1.0, max: 2.0, label: 'Low', color: '#91cf60' },
+    { value: 3, min: 0.5, max: 1.0, label: 'Moderate', color: '#fee08b' },
+    { value: 4, min: 0.25, max: 0.5, label: 'High', color: '#fc8d59' },
+    { value: 5, min: null, max: 0.25, label: 'Very High', color: '#d73027' }
   ]
 };
 
@@ -797,6 +821,7 @@ export const POSIDONIA_OCEANICA: StandardParameter = {
   id: 'posidonia_oceanica',
   standardId: 'posidonia_oceanica',
   name: 'Posidonia Oceanica',
+  description: 'Coverage and health of Posidonia oceanica seagrass beds',
   category: ParameterCategory.ENVIRONMENTAL,
   type: 'categorical',
   weight: 1/7,
@@ -806,8 +831,8 @@ export const POSIDONIA_OCEANICA: StandardParameter = {
     { type: 'categorical', value: 'dense_coverage', label: 'Dense Posidonia coverage', color: '#1a9850', vulnerability: 1 },
     { type: 'categorical', value: 'moderate_coverage', label: 'Moderate coverage', color: '#91cf60', vulnerability: 2 },
     { type: 'categorical', value: 'sparse_coverage', label: 'Sparse coverage', color: '#fee08b', vulnerability: 3 },
-    { type: 'categorical', value: 'degraded_coverage', label: 'Degraded coverage', color: '#fc8d59', vulnerability: 4 },
-    { type: 'categorical', value: 'no_coverage', label: 'No Posidonia coverage', color: '#d73027', vulnerability: 5 }
+    { type: 'categorical', value: 'degraded', label: 'Degraded seagrass beds', color: '#fc8d59', vulnerability: 4 },
+    { type: 'categorical', value: 'absent', label: 'No Posidonia present', color: '#d73027', vulnerability: 5 }
   ]
 };
 
@@ -815,6 +840,7 @@ export const COASTAL_GEOTECHNICAL_MAP: StandardParameter = {
   id: 'coastal_geotechnical_map',
   standardId: 'coastal_geotechnical_map',
   name: 'Coastal Geotechnical Map',
+  description: 'Geotechnical classification and soil properties of coastal area',
   category: ParameterCategory.PHYSICAL_GEOLOGICAL,
   type: 'categorical',
   weight: 1/7,
@@ -824,8 +850,8 @@ export const COASTAL_GEOTECHNICAL_MAP: StandardParameter = {
     { type: 'categorical', value: 'hard_rock', label: 'Hard rock formations', color: '#1a9850', vulnerability: 1 },
     { type: 'categorical', value: 'soft_rock', label: 'Soft rock formations', color: '#91cf60', vulnerability: 2 },
     { type: 'categorical', value: 'dense_soil', label: 'Dense cohesive soils', color: '#fee08b', vulnerability: 3 },
-    { type: 'categorical', value: 'loose_soil', label: 'Loose cohesive soils', color: '#fc8d59', vulnerability: 4 },
-    { type: 'categorical', value: 'very_loose', label: 'Very loose/unconsolidated', color: '#d73027', vulnerability: 5 }
+    { type: 'categorical', value: 'loose_soil', label: 'Loose granular soils', color: '#fc8d59', vulnerability: 4 },
+    { type: 'categorical', value: 'very_soft', label: 'Very soft/organic soils', color: '#d73027', vulnerability: 5 }
   ]
 };
 

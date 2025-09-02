@@ -49,10 +49,10 @@ export const useParameterAssignmentData = () => {
         console.log('Loaded saved index:', savedIndex);
 
         // Map index formula to Formula object
-        if (savedIndex.formula) {
+        if (savedIndex && savedIndex.formula) {
           const formulaType = savedIndex.formula;
-          let formulaName = savedIndex.shortName || savedIndex.name || 'Unknown Index';
-          let formulaDescription = `${formulaName} formula`;
+          const formulaName = savedIndex.shortName || savedIndex.name || 'Unknown Index';
+          const formulaDescription = `${formulaName} formula`;
 
           // Create the formula object based on the index
           indexFormula = {

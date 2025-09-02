@@ -1,6 +1,7 @@
 // ---- File: src/router.tsx ----
-import { createHashRouter, Navigate, RouteObject } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+import { createHashRouter, RouteObject } from 'react-router-dom';
+import { lazy } from 'react';
+import { LazyWrapper } from './components/common/LoadingComponents';
 
 // Use hash router for better compatibility with static hosting
 // This avoids the need for server-side configuration
@@ -8,12 +9,9 @@ import { lazy, Suspense } from 'react';
 
 import { Layout } from './components/layout/Layout';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { useAuth } from './hooks/useAuth';
 
 // Import RootPage directly to ensure it's always available
 import RootPage from './pages/RootPage';
-// Import LoginPage directly as well to avoid lazy loading issues
-import LoginPage from './pages/LoginPage';
 const ShorelineSelectionPage = lazy(() => import('./pages/ShorelineSelectionPage'));
 const ShorelineSourcePage = lazy(() => import('./pages/ShorelineSourcePage'));
 const SatelliteImageUploadPage = lazy(() => import('./pages/SatelliteImageUploadPage'));
@@ -26,26 +24,7 @@ const ParameterSelectionPage = lazy(() => import('./pages/ParameterSelectionPage
 const ParameterAssignmentPage = lazy(() => import('./pages/ParameterAssignmentPage'));
 const ResultsPage = lazy(() => import('./pages/ResultsPage'));
 
-// Loading component for lazy-loaded routes
-const LoadingComponent = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600"></div>
-  </div>
-);
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return <LoadingComponent />;
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <Suspense fallback={<LoadingComponent />}>{children}</Suspense>;
-}
 
 // Define routes as a separate array for better organization
 const routes: RouteObject[] = [
@@ -67,95 +46,91 @@ const routes: RouteObject[] = [
         element: <RootPage />
       },
       {
-        path: 'login',
-        element: <LoginPage />
-      },
-      {
         path: 'shoreline-selection',
         element: (
-          <ProtectedRoute>
+          <LazyWrapper>
             <ShorelineSelectionPage />
-          </ProtectedRoute>
+          </LazyWrapper>
         )
       },
       {
         path: 'shoreline-source',
         element: (
-          <ProtectedRoute>
+          <LazyWrapper>
             <ShorelineSourcePage />
-          </ProtectedRoute>
+          </LazyWrapper>
         )
       },
       {
         path: 'satellite-upload',
         element: (
-          <ProtectedRoute>
+          <LazyWrapper>
             <SatelliteImageUploadPage />
-          </ProtectedRoute>
+          </LazyWrapper>
         )
       },
       {
         path: 'enhanced-shoreline-digitization',
         element: (
-          <ProtectedRoute>
+          <LazyWrapper>
             <EnhancedShorelineDigitizationPage />
-          </ProtectedRoute>
+          </LazyWrapper>
         )
       },
       {
         path: 'aoi-selection',
         element: (
-          <ProtectedRoute>
+          <LazyWrapper>
             <AOISelectionPage />
-          </ProtectedRoute>
+          </LazyWrapper>
         )
       },
       {
         path: 'shoreline',
         element: (
-          <ProtectedRoute>
+          <LazyWrapper>
             <ShorelinePage />
-          </ProtectedRoute>
+          </LazyWrapper>
         )
       },
       {
         path: 'segmentation',
         element: (
-          <ProtectedRoute>
+          <LazyWrapper>
             <SegmentationPage />
-          </ProtectedRoute>
+          </LazyWrapper>
         )
       },
       {
         path: 'segment-table',
         element: (
-          <ProtectedRoute>
+          <LazyWrapper>
             <SegmentTablePage />
-          </ProtectedRoute>
+          </LazyWrapper>
         )
       },
       {
         path: 'parameter-selection',
         element: (
-          <ProtectedRoute>
+          <LazyWrapper>
             <ParameterSelectionPage />
-          </ProtectedRoute>
+          </LazyWrapper>
         )
       },
       {
         path: 'parameter-assignment',
         element: (
-          <ProtectedRoute>
+          <LazyWrapper>
             <ParameterAssignmentPage />
-          </ProtectedRoute>
+          </LazyWrapper>
         )
       },
       {
         path: 'results',
         element: (
-          <ProtectedRoute>
+          <LazyWrapper>
             <ResultsPage />
-          </ProtectedRoute>
+          </LazyWrapper>
         )
       }
     ]
@@ -163,4 +138,6 @@ const routes: RouteObject[] = [
 ];
 
 // Create the router with the routes
+console.log('Creating hash router with routes:', routes);
 export const router = createHashRouter(routes);
+console.log('Hash router created successfully');

@@ -7,13 +7,11 @@ import {
   STANDARDIZED_COASTAL_INDICES,
   getStandardizedIndexById,
   validateIndexParameters
-} from '../config/standardizedIndices'
+} from '../config/indices'
 import {
-  getParameterById,
-  getParameterByAlias,
-  PARAMETER_CATEGORY_LABELS,
-  type ParameterCategory
-} from '../config/standardParameters'
+  getParameterCategory,
+  getParameterCategoryCounts
+} from '../utils/parameterUtils'
 
 export default function ParameterSelectionPage() {
   const navigate = useNavigate()
@@ -44,38 +42,10 @@ export default function ParameterSelectionPage() {
   // Get the effective formula (selected formula or default)
   const effectiveFormula = selectedFormula || (currentIndex?.formula ?? '')
 
-  // Helper function to get parameter category counts
-  const getParameterCategoryCounts = () => {
-    const counts: Record<string, number> = {}
-    selectedParameters.forEach(param => {
-      const categoryInfo = getParameterCategory(param.standardName)
-      counts[categoryInfo.label] = (counts[categoryInfo.label] || 0) + 1
-    })
-    return counts
-  }
-
-  // Helper function to get parameter category
-  const getParameterCategory = (standardName: string): { category: ParameterCategory; label: string } => {
-    // Try to find by standard ID first
-    let standardParam = getParameterById(standardName)
-
-    // If not found, try by alias
-    if (!standardParam) {
-      standardParam = getParameterByAlias(standardName)
-    }
-
-    if (standardParam) {
-      return {
-        category: standardParam.category,
-        label: PARAMETER_CATEGORY_LABELS[standardParam.category]
-      }
-    }
-
-    // Default fallback - most CVI parameters are physical
-    return {
-      category: 'physical' as ParameterCategory,
-      label: 'Physical'
-    }
+  // Helper function to get parameter category counts for selected parameters
+  const getSelectedParameterCategoryCounts = () => {
+    const standardNames = selectedParameters.map(param => param.standardName)
+    return getParameterCategoryCounts(standardNames)
   }
 
 
@@ -291,7 +261,7 @@ export default function ParameterSelectionPage() {
               <div className="mb-4">
                 <h6 className="font-semibold text-gray-800 mb-2">Parameter Categories:</h6>
                 <div className="flex flex-wrap gap-3 items-center">
-                  {Object.entries(getParameterCategoryCounts()).map(([category, count]) => (
+                  {Object.entries(getSelectedParameterCategoryCounts()).map(([category, count]) => (
                     <span key={category} className="text-sm text-gray-700">
                       {count} × <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         {category}
