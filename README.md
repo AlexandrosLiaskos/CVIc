@@ -18,7 +18,7 @@
 
 ## 📋 Table of Contents
 
-- [Demo](#-demo)
+- [Live Application](#-live-application)
 - [Installation](#-installation)
 - [Usage](#-usage)
 - [Features](#-features)
