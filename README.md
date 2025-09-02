@@ -221,11 +221,3 @@ If you use CVIc in your research, please cite:
 }
 ```
 
-## 🙏 Acknowledgments
-
-- EO-PERSIST project consortium
-- European Space Agency (ESA) for satellite data access
-- Open-source geospatial community
-- Scientific reviewers and beta testers
-
----
