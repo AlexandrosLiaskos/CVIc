@@ -5,17 +5,11 @@
  */
 
 // Import libraries
-import georaster from 'georaster';
+import georaster, { parse, fromArrays } from 'georaster';
 import GeoRasterLayer from 'georaster-layer-for-leaflet';
-
-// Extract georaster functions
-const fromArrays = (georaster as { fromArrays?: unknown }).fromArrays;
-const parse = (georaster as { parse?: unknown }).parse;
 
 // Make libraries available globally for compatibility
 if (typeof window !== 'undefined') {
-  (window as any).fromArrays = fromArrays;
-
   console.log('Map libraries initialized:', {
     georaster: typeof georaster,
     GeoRasterLayer: typeof GeoRasterLayer
@@ -23,7 +17,8 @@ if (typeof window !== 'undefined') {
 }
 
 // Export everything for use in the application
-export {  georaster,
+export {
+  georaster,
   fromArrays,
   parse,
   GeoRasterLayer
