@@ -21,37 +21,6 @@
       }, true);
     </script>
 
-    <!-- Fixes for SVG namespace - must be loaded before the main bundle -->
-    <script>
-      // Create SVG namespace helper
-      const svgNS = "http://www.w3.org/2000/svg";
-
-      // Define QO with all required methods
-      window.QO = {
-        defs: function() { return document.createElementNS(svgNS, 'defs'); },
-        svg: function() { return document.createElementNS(svgNS, 'svg'); },
-        path: function() { return document.createElementNS(svgNS, 'path'); },
-        circle: function() { return document.createElementNS(svgNS, 'circle'); },
-        rect: function() { return document.createElementNS(svgNS, 'rect'); },
-        line: function() { return document.createElementNS(svgNS, 'line'); },
-        polyline: function() { return document.createElementNS(svgNS, 'polyline'); },
-        polygon: function() { return document.createElementNS(svgNS, 'polygon'); },
-        g: function() { return document.createElementNS(svgNS, 'g'); },
-        use: function() { return document.createElementNS(svgNS, 'use'); },
-        symbol: function() { return document.createElementNS(svgNS, 'symbol'); },
-        clipPath: function() { return document.createElementNS(svgNS, 'clipPath'); },
-        mask: function() { return document.createElementNS(svgNS, 'mask'); },
-        setAttr: function(el, attrs) {
-          for (var key in attrs) { el.setAttribute(key, attrs[key]); }
-          return el;
-        }
-      };
-
-      // Also define QI for good measure
-      window.QI = window.QO;
-
-      console.log('SVG namespace fixes applied');
-    </script>
   </head>
   <body>
     <div id="root">
