@@ -534,7 +534,7 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
       warningRectangle.addTo(mapInstance);
     }
 
-    let errorMessage = "Could not process GeoTIFF image. The file may be corrupted or in an unsupported format.";
+    const errorMessage = "Could not process GeoTIFF image. The file may be corrupted or in an unsupported format.";
 
     // Add a warning tooltip with error message
     warningRectangle.bindTooltip(errorMessage, {
@@ -598,8 +598,44 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
 
           let layer;
 
-          // Check if we have a georaster already
-          if (image.georaster) {
+          // Check if this is a stored image with processed blob (no heavy processing needed)
+          if ((image as any).processedBlob || (image.url && !image.georaster && !image.arrayBuffer)) {
+            console.log('Using stored processed image with URL:', image.url);
+            
+            if (image.url && image.bounds && image.bounds.length === 4) {
+              // Create simple image overlay for stored processed images
+              const imageBounds = L.latLngBounds(
+                [image.bounds[1], image.bounds[0]], // Southwest corner [lat, lng]
+                [image.bounds[3], image.bounds[2]]  // Northeast corner [lat, lng]
+              );
+              
+              const imageOverlay = L.imageOverlay(image.url, imageBounds, {
+                opacity: 0.8,
+                interactive: true
+              });
+              
+              if (mapInstance) {
+                imageOverlay.addTo(mapInstance);
+              }
+              
+              // Add popup with image info
+              imageOverlay.bindPopup(`
+                <div style="text-align: center;">
+                  <h4>${image.name}</h4>
+                  <p>Processed satellite image</p>
+                  <p>Uploaded: ${new Date(image.timestamp).toLocaleString()}</p>
+                </div>
+              `);
+              
+              layer = imageOverlay;
+              bounds.extend(imageBounds);
+              console.log('Added stored image overlay with bounds:', imageBounds);
+            } else {
+              console.warn('Stored image missing URL or bounds:', image);
+            }
+          }
+          // Check if we have a georaster already (freshly processed images)
+          else if (image.georaster) {
             console.log('Using existing georaster');
 
             // Create a GeoRasterLayer with the existing georaster

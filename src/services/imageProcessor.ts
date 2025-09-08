@@ -163,6 +163,32 @@ export interface ProcessedImage {
   };
   georaster?: any; // GeoRaster object for use with georaster-layer-for-leaflet
   arrayBuffer?: ArrayBuffer; // Original array buffer for use with OpenLayers
+  blob?: Blob; // Blob version for IndexedDB storage
+  processedBlob?: Blob; // Processed raster data as blob for web display
+}
+
+// Serializable version for IndexedDB storage (excludes non-serializable properties)
+export interface SerializableProcessedImage {
+  id: string;
+  name: string;
+  url: string | null;
+  bounds: [number, number, number, number]; // [west, south, east, north]
+  timestamp: number;
+  metadata?: {
+    size?: number;
+    type?: string;
+    isSentinel?: boolean;
+    isCOG?: boolean;
+    sentinelInfo?: {
+      utmZone?: string;
+      date?: string;
+      band?: string;
+      satellite?: string;
+      productType?: string;
+    };
+    [key: string]: any;
+  };
+  arrayBuffer?: ArrayBuffer; // Keep the array buffer for recreating georaster
 }
 
 /**
@@ -435,7 +461,6 @@ async function createGeoRaster(arrayBuffer: ArrayBuffer, filename?: string): Pro
     }
 
     // For Sentinel-2 false color images, we need special handling
-    let dataScale = 1;
     // let isSentinel2FalseColor = false; // Not used
 
     if (filename && filename.includes('False_color')) {
@@ -444,7 +469,6 @@ async function createGeoRaster(arrayBuffer: ArrayBuffer, filename?: string): Pro
 
       // For Sentinel-2 data, we'll keep the original values
       // The scaling will be done in the pixelValuesToColorFn function
-      dataScale = 1;
 
       // Log some sample values from the first few pixels
       const sampleValues = [];
@@ -510,24 +534,12 @@ async function createGeoRaster(arrayBuffer: ArrayBuffer, filename?: string): Pro
 
     console.log('Calculated min/max values for bands:', mins, maxs);
 
-    // Process the arrays if needed (e.g., scaling values)
-    const processedArrays = Array.from({ length: rasters.length }, (_, i) => {
-      const band = rasters[i];
-      if (dataScale !== 1) {
-        // Create a new array with scaled values
-        const typedBand = band as TypedArray;
-        const newArray = new Float32Array(typedBand.length);
-        for (let j = 0; j < typedBand.length; j++) {
-          newArray[j] = typedBand[j] === noDataValue ? noDataValue : typedBand[j] * dataScale;
-        }
-        return newArray;
-      }
-      return band;
-    });
+    // Skip expensive array processing for large images to prevent browser freezing
+    console.log('Skipping array processing to improve performance for large images');
 
     // Create a GeoRaster object with improved configuration
-    // Use the directly imported fromArrays function
-    console.log('Creating GeoRaster with fromArrays using these parameters:', {
+    // Use the directly imported parseGeoraster function
+    console.log('Creating GeoRaster using arrayBuffer directly with these parameters:', {
       noDataValue,
       projection: 4326,
       xmin: xMin,
@@ -536,34 +548,16 @@ async function createGeoRaster(arrayBuffer: ArrayBuffer, filename?: string): Pro
       ymax: yMax,
       pixelWidth: (xMax - xMin) / width,
       pixelHeight: (yMax - yMin) / height,
-      arraysLength: processedArrays.length,
+      arrayBufferSize: arrayBuffer.byteLength,
       minsLength: mins.length,
       maxsLength: maxs.length
     });
 
-    // Validate arrays before passing to fromArrays
-    if (!processedArrays || !Array.isArray(processedArrays) || processedArrays.length === 0) {
-      throw new Error('Invalid or empty arrays provided to fromArrays');
-    }
+    // For large images, skip the expensive 3D array conversion that freezes the browser
+    // Instead, use the original arrayBuffer directly with parseGeoraster
+    console.log('Using arrayBuffer directly to avoid memory issues with large images');
 
-    // Convert processedArrays to the format expected by georaster
-    // georaster expects values as [band][row][col] format
-    const values = processedArrays.map(band => {
-      const bandArray = Array.from(band as ArrayLike<number>);
-      const rows = [];
-      for (let row = 0; row < height; row++) {
-        const rowData = [];
-        for (let col = 0; col < width; col++) {
-          const index = row * width + col;
-          rowData.push(bandArray[index]);
-        }
-        rows.push(rowData);
-      }
-      return rows;
-    });
-
-    // Use parseGeoraster with values and metadata
-    const georasterResult = await parseGeoraster(values, {
+    const georasterResult = await parseGeoraster(arrayBuffer, {
       noDataValue: noDataValue,
       projection: 4326, // WGS84
       xmin: xMin,
@@ -607,6 +601,11 @@ async function createGeoRaster(arrayBuffer: ArrayBuffer, filename?: string): Pro
 export async function processSatelliteImage(file: File): Promise<ProcessedImage> {
   try {
     validateImageFile(file);
+
+    // Add additional check for very large files that could freeze the browser
+    if (file.size > 500 * 1024 * 1024) { // 500MB
+      console.warn('Large file detected, processing with reduced functionality to prevent browser freeze');
+    }
 
     // Read the file as an ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
@@ -668,14 +667,15 @@ export async function processSatelliteImage(file: File): Promise<ProcessedImage>
               const [xMin, yMin, xMax, yMax] = image.getBoundingBox();
 
               // Read the raster data with specific options for Copernicus
-              const rasters = await image.readRasters({
-                interleave: true,
-                pool: null,
-                window: [0, 0, width, height]
-              });
+              // const rasters = await image.readRasters({
+              //   interleave: true,
+              //   pool: null,
+              //   window: [0, 0, width, height]
+              // });
 
-              // Create a GeoRaster object using georaster.fromArrays
-              georaster = await georaster.fromArrays({
+              // Create a GeoRaster object using parseGeoraster with the original arrayBuffer
+              // This follows the working approach: parse the arrayBuffer directly
+              georaster = await parseGeoraster(arrayBuffer, {
                 noDataValue: 0,
                 projection: 4326, // WGS84
                 xmin: xMin,
@@ -684,7 +684,6 @@ export async function processSatelliteImage(file: File): Promise<ProcessedImage>
                 ymax: yMax,
                 pixelWidth: (xMax - xMin) / width,
                 pixelHeight: (yMax - yMin) / height,
-                arrays: Array.from({ length: rasters.length }, (_, i) => rasters[i]),
               });
 
               console.log('Copernicus GeoRaster created successfully:', georaster);
@@ -746,8 +745,9 @@ export async function processSatelliteImage(file: File): Promise<ProcessedImage>
 
               console.log('Alternative min/max values for bands:', altMins, altMaxs);
 
-              // Create a GeoRaster object with improved configuration using georaster.fromArrays
-              const alternativeGeoraster = await georaster.fromArrays({
+              // Create a GeoRaster object with improved configuration using parseGeoraster
+              // Use the original arrayBuffer approach
+              const alternativeGeoraster = await parseGeoraster(arrayBuffer, {
                 noDataValue: 0,
                 projection: 4326, // WGS84
                 xmin: xMin,
@@ -756,9 +756,8 @@ export async function processSatelliteImage(file: File): Promise<ProcessedImage>
                 ymax: yMax,
                 pixelWidth: (xMax - xMin) / width,
                 pixelHeight: (yMax - yMin) / height,
-                arrays: Array.from({ length: rasters.length }, (_, i) => rasters[i]), // Use arrays instead of values
-                mins: altMins.length > 0 ? altMins : undefined,
-                maxs: altMaxs.length > 0 ? altMaxs : undefined,
+                // mins: altMins.length > 0 ? altMins : undefined,
+                // maxs: altMaxs.length > 0 ? altMaxs : undefined,
               });
 
               console.log('Alternative GeoRaster created successfully:', alternativeGeoraster);
@@ -817,6 +816,50 @@ export async function processSatelliteImage(file: File): Promise<ProcessedImage>
   } catch (error) {
     console.error('Error processing satellite image:', error);
     throw new Error(error instanceof Error ? error.message : 'Failed to process satellite image');
+  }
+}
+
+/**
+ * Recreates a georaster object from stored ArrayBuffer data
+ * This is used when retrieving images from IndexedDB where the georaster was excluded
+ */
+/**
+ * Recreates a georaster object from stored Blob data
+ * This is used when retrieving images from IndexedDB where the georaster was excluded
+ */
+export async function recreateGeoRaster(blob: Blob, bounds: [number, number, number, number]): Promise<any> {
+  try {
+    if (!blob || !(blob instanceof Blob)) {
+      throw new Error('Invalid blob provided to recreateGeoRaster');
+    }
+
+    // Convert Blob back to ArrayBuffer
+    const arrayBuffer = await blob.arrayBuffer();
+    const [xMin, yMin, xMax, yMax] = bounds;
+    
+    // Parse the GeoTIFF to get dimensions
+    const tiff = await fromArrayBuffer(arrayBuffer);
+    const image = await tiff.getImage();
+    const width = image.getWidth();
+    const height = image.getHeight();
+
+    // Recreate the georaster using the same approach as in processSatelliteImage
+    const georasterResult = await parseGeoraster(arrayBuffer, {
+      noDataValue: 0,
+      projection: 4326, // WGS84
+      xmin: xMin,
+      ymin: yMin,
+      xmax: xMax,
+      ymax: yMax,
+      pixelWidth: (xMax - xMin) / width,
+      pixelHeight: (yMax - yMin) / height
+    });
+
+    console.log('GeoRaster recreated successfully from stored blob data');
+    return georasterResult;
+  } catch (error) {
+    console.error('Error recreating GeoRaster:', error);
+    throw new Error('Failed to recreate GeoRaster from stored data.');
   }
 }
 
