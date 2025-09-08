@@ -32,7 +32,12 @@ export default defineConfig({
     rollupOptions: {
       external: [],
       output: {
-manualChunks: {}
+        manualChunks: {
+          'georaster': ['georaster'],
+          'geotiff': ['geotiff'],
+          'leaflet': ['leaflet', 'leaflet-draw', 'react-leaflet'],
+          'turf': ['@turf/turf']
+        }
       }
     }
   },
@@ -42,6 +47,7 @@ alias: {}
   },
   optimizeDeps: {
     include: [
+      'proj4',
       'react',
       'react-dom',
       'react-router-dom',
@@ -49,7 +55,6 @@ alias: {}
       'leaflet-draw',
       'georaster',
       'georaster-layer-for-leaflet',
-
       'idb',
       'shpjs',
       'geotiff',
