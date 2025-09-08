@@ -33,8 +33,6 @@ export default defineConfig({
       external: [],
       output: {
         manualChunks: {
-          // Bundle proj4 with georaster-layer to ensure proper initialization order
-          'georaster-layer': ['proj4', 'georaster-layer-for-leaflet'],
           'georaster': ['georaster'],
           'geotiff': ['geotiff'],
           'leaflet': ['leaflet', 'leaflet-draw', 'react-leaflet'],
