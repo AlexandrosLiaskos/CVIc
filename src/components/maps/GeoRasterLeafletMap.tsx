@@ -4,9 +4,8 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw';
 import 'leaflet-draw/dist/leaflet.draw.css';
 import GeoRasterLayer from 'georaster-layer-for-leaflet';
-import { parse } from 'georaster';
-// Import parseGeoRaster as a default import
-import parseGeoRaster from 'georaster';
+// Import georaster as default export
+import parseGeoraster from 'georaster';
 import type { FeatureCollection, LineString, GeoJsonObject } from 'geojson';
 import type { ProcessedImage } from '../../services/imageProcessor';
 
@@ -352,16 +351,19 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
           bounds: image.bounds
         });
 
-        // Use parseGeoRaster to load the COG directly from URL
-        const georaster = await parseGeoRaster(image.url);
+        // Use georaster to load the COG directly from arrayBuffer if available
+        const georasterResult = image.arrayBuffer ? await parseGeoraster(image.arrayBuffer) : null;
+        if (!georasterResult) {
+          throw new Error('No arrayBuffer available for COG processing');
+        }
         console.log('Successfully parsed COG:', {
-          dimensions: georaster.dimensions,
-          pixelWidth: georaster.pixelWidth,
-          pixelHeight: georaster.pixelHeight,
-          noDataValue: georaster.noDataValue,
-          projection: georaster.projection,
-          numberOfRasters: georaster.numberOfRasters,
-          bounds: [georaster.xmin, georaster.ymin, georaster.xmax, georaster.ymax]
+          dimensions: georasterResult.dimensions,
+          pixelWidth: georasterResult.pixelWidth,
+          pixelHeight: georasterResult.pixelHeight,
+          noDataValue: georasterResult.noDataValue,
+          projection: georasterResult.projection,
+          numberOfRasters: georasterResult.numberOfRasters,
+          bounds: [georasterResult.xmin, georasterResult.ymin, georasterResult.xmax, georasterResult.ymax]
         });
 
         // Calculate appropriate resolution based on image size and current zoom
@@ -396,7 +398,7 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
 
         // Create the GeoRasterLayer with advanced settings optimized for performance
         const geoRasterLayer = new GeoRasterLayer({
-          georaster: georaster,
+          georaster: georasterResult,
           opacity: 0.9,
           // Use a moderate resolution that balances quality and performance
           resolution: 256, // Reduced from 512 for better performance during zooming
@@ -494,8 +496,8 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
 
         // Get bounds from the georaster
         const georasterBounds = L.latLngBounds([
-          [georaster.ymin, georaster.xmin],
-          [georaster.ymax, georaster.xmax]
+          [georasterResult.ymin, georasterResult.xmin],
+          [georasterResult.ymax, georasterResult.xmax]
         ]);
 
         bounds.extend(georasterBounds);
@@ -506,7 +508,9 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
       }
     }
 
-    // Fallback to simple image overlay
+    // If we reach here, we couldn't create a georaster, so show an error
+    console.warn('Could not create georaster for image, showing error bounds');
+
     if (image.bounds && image.bounds.length === 4) {
       imageBounds = L.latLngBounds(
         [image.bounds[1], image.bounds[0]], // Southwest corner [lat, lng]
@@ -517,115 +521,31 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
       imageBounds = L.latLngBounds([[-90, -180], [90, 180]]);
     }
 
-    // Pre-load the image to check if it loads successfully
-    const img = new Image();
-    img.onload = () => {
-      console.log(`Image loaded successfully: ${image.name}`);
-    };
-    img.onerror = (e) => {
-      console.error(`Error loading image: ${image.name}`, e);
-
-      // Add a warning rectangle with text instead of showing a placeholder image
-      const warningRectangle = L.rectangle(imageBounds, {
-        color: "#ff0000",
-        weight: 2,
-        opacity: 0.8,
-        fillColor: "#ffcccc",
-        fillOpacity: 0.3
-      });
-
-      if (mapInstance) {
-        warningRectangle.addTo(mapInstance);
-      }
-
-      // Check if this is a Copernicus image for a more specific error message
-      const isCopernicus = image.name.includes('Copernicus') ||
-                          image.name.includes('copernicus') ||
-                          image.metadata?.type === 'image/tiff' ||
-                          image.metadata?.type === 'image/geotiff';
-
-      let errorMessage = "Image failed to load properly. Try converting to a different GeoTIFF format.";
-
-      if (isCopernicus) {
-        // Check if it's already a COG
-        if (image.name.includes('COG') || image.name.includes('cog') || image.metadata?.isCOG) {
-          errorMessage = "COG file failed to load. This might be due to CORS issues or an incompatible COG format. Try a different viewer or convert to a standard GeoTIFF.";
-        } else {
-          errorMessage = "Copernicus GeoTIFF failed to load. Try downloading as COG (Cloud Optimized GeoTIFF) format.";
-        }
-      }
-
-      // Add a warning tooltip with more detailed error message
-      warningRectangle.bindTooltip(errorMessage, {
-        permanent: true,
-        direction: 'center',
-        className: 'image-error-tooltip'
-      }).openTooltip();
-
-      // Add to layers for cleanup
-      newLayers.push(warningRectangle);
-    };
-    // Add CORS attributes to help with cross-origin issues
-    img.crossOrigin = "anonymous";
-    img.src = image.url;
-
-    // Create the image overlay with improved error handling
-    const imageOverlay = L.imageOverlay(image.url, imageBounds, {
-      opacity: 1.0, // Full opacity for better visibility
-      interactive: true,
-      crossOrigin: 'anonymous',
-      className: 'satellite-image-overlay', // Add a class for potential CSS styling
-      // Add error handling directly to the imageOverlay
-      errorOverlayUrl: '', // Empty string to prevent default error image
-      zIndex: 10, // Ensure image is above base map
-    });
-
-    // Add the overlay to the map
-    if (mapInstance) {
-      imageOverlay.addTo(mapInstance);
-    }
-    const layer = imageOverlay;
-
-    // Add popup with image info
-    imageOverlay.bindPopup(`
-      <div style="max-width: 300px;">
-        <h3 style="font-weight: bold; margin-bottom: 5px;">${image.name}</h3>
-        <p>Uploaded: ${new Date(image.timestamp).toLocaleString()}</p>
-        ${image.metadata?.isSentinel ?
-          `<p>Sentinel Image${image.metadata?.sentinelInfo?.utmZone ? ` (UTM Zone ${image.metadata.sentinelInfo.utmZone})` : ''}</p>` :
-          ''}
-        <p>Bounds: [${image.bounds.map((b: number) => b.toFixed(2)).join(', ')}]</p>
-      </div>
-    `);
-
-    // Extend bounds
-    bounds.extend(imageBounds);
-    console.log('Added image overlay with bounds:', imageBounds);
-
-    // Add a rectangle to show the bounds (helpful for debugging)
-    const boundsRectangle = L.rectangle(imageBounds, {
-      color: "#ff7800",
-      weight: 1,
+    // Add a warning rectangle with text instead of trying to show the image
+    const warningRectangle = L.rectangle(imageBounds, {
+      color: "#ff0000",
+      weight: 2,
       opacity: 0.8,
-      fillOpacity: 0.1
+      fillColor: "#ffcccc",
+      fillOpacity: 0.3
     });
 
     if (mapInstance) {
-      boundsRectangle.addTo(mapInstance);
+      warningRectangle.addTo(mapInstance);
     }
 
-    newLayers.push(boundsRectangle);
+    let errorMessage = "Could not process GeoTIFF image. The file may be corrupted or in an unsupported format.";
 
-    // Force a redraw of the map to ensure the image is displayed
-    setTimeout(() => {
-      if (mapInstance) {
-        mapInstance.invalidateSize();
-        // Ensure the image is within view
-        mapInstance.fitBounds(imageBounds, { padding: [50, 50] });
-      }
-    }, 100);
+    // Add a warning tooltip with error message
+    warningRectangle.bindTooltip(errorMessage, {
+      permanent: true,
+      direction: 'center',
+      className: 'image-error-tooltip'
+    }).openTooltip();
 
-    return layer;
+    // Add to layers for cleanup
+    newLayers.push(warningRectangle);
+    return warningRectangle;
   };
 
   // Add satellite images to the map
@@ -784,18 +704,10 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
             try {
               console.log('Trying to parse arrayBuffer to create georaster');
 
-              // Create a URL from the ArrayBuffer for consistent handling with COG
-              // This approach allows us to use the same rendering path for both GeoTIFF and COG
-              if (!image.url) {
-                const blob = new Blob([image.arrayBuffer], { type: 'image/tiff' });
-                image.url = URL.createObjectURL(blob);
-                console.log('Created URL from ArrayBuffer for GeoTIFF:', image.url);
-              }
-
-              // Try to use parseGeoRaster with URL first (like COG)
+              // Try to parse the arrayBuffer directly
               try {
-                console.log('Attempting to load GeoTIFF using COG approach from URL:', image.url);
-                const georaster = await parseGeoRaster(image.url);
+                console.log('Attempting to parse GeoTIFF from arrayBuffer');
+                const georasterResult = await parseGeoraster(image.arrayBuffer);
 
                 // Calculate appropriate resolution based on image size and current zoom
                 // Make sure mapInstance is not null
@@ -847,7 +759,7 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
 
                 // Create the GeoRasterLayer with advanced settings optimized for performance
                 const geoRasterLayer = new GeoRasterLayer({
-                  georaster: georaster,
+                  georaster: georasterResult,
                   opacity: 0.9,
                   // Use a moderate resolution that balances quality and performance
                   resolution: 256, // Reduced from 512 for better performance during zooming
@@ -943,8 +855,8 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
 
                 // Get bounds from the georaster
                 const georasterBounds = L.latLngBounds([
-                  [georaster.ymin, georaster.xmin],
-                  [georaster.ymax, georaster.xmax]
+                  [georasterResult.ymin, georasterResult.xmin],
+                  [georasterResult.ymax, georasterResult.xmax]
                 ]);
 
                 bounds.extend(georasterBounds);
@@ -1033,102 +945,9 @@ const GeoRasterLeafletMap: React.FC<GeoRasterLeafletMapProps> = ({
                 }
 
                 return;
-              } catch (cogError) {
-                console.warn('Failed to load GeoTIFF using COG approach, falling back to traditional parse:', cogError);
-
-                // Fall back to traditional parse method
-                const georaster = await parse(image.arrayBuffer);
-
-                // Use a consistent approach for all GeoRasterLayers
-                // with a fixed high-quality resolution
-                // Using a higher resolution of 512 for better quality
-
-                const geoRasterLayer = new GeoRasterLayer({
-                  georaster: georaster,
-                  opacity: 0.9,
-                  // Use a moderate resolution that balances quality and performance
-                  resolution: 256, // Reduced from 512 for better performance during zooming
-                  // Enable caching for better performance during zoom/pan
-                  debugLevel: 0,
-                  // Set a shorter render timeout for faster response
-                  renderTimeout: 2000,
-                  // Optimize buffer and update settings for better zooming performance
-                  keepBuffer: 4, // Reduced buffer size for better performance
-                  updateWhenIdle: true, // Only update when idle for better performance
-                  updateWhenZooming: false, // Don't update during zoom for better performance
-                  resampleMethod: 'nearest', // Faster than bilinear for most cases
-                  pixelValuesToColorFn: values => {
-                    // Reduce logging frequency
-                    if (Math.random() < 0.01) {
-                      console.log('Pixel values for parsed GeoTIFF:', values);
-                    }
-
-                    // For false color images or multi-band images
-                    if (values.length >= 3) {
-                      // Get the first three bands for RGB visualization
-                      let r = values[0];
-                      let g = values[1];
-                      let b = values[2];
-
-                      // Check if values are very small (near zero) or very large
-                      const maxVal = Math.max(...[r, g, b].filter(v => isFinite(v)));
-
-                      // If values are very large (likely 16-bit data)
-                      if (maxVal > 255) {
-                        // Scale down to 8-bit range
-                        const scaleFactor = 255 / maxVal;
-                        r = Math.round(r * scaleFactor);
-                        g = Math.round(g * scaleFactor);
-                        b = Math.round(b * scaleFactor);
-                      }
-                      // If values are very small (likely normalized data)
-                      else if (maxVal <= 1 && maxVal > 0) {
-                        // Scale up to 0-255 range
-                        r = Math.round(r * 255);
-                        g = Math.round(g * 255);
-                        b = Math.round(b * 255);
-                      }
-
-                      // Ensure values are in valid range
-                      r = Math.min(255, Math.max(0, r || 0));
-                      g = Math.min(255, Math.max(0, g || 0));
-                      b = Math.min(255, Math.max(0, b || 0));
-
-                      return `rgb(${r}, ${g}, ${b})`;
-                    }
-                    // For single-band data (grayscale)
-                    else if (values.length === 1) {
-                      let val = values[0];
-
-                      // Check if value is very small or very large
-                      if (val > 255) {
-                        // Scale down to 8-bit
-                        val = Math.round(val * (255 / Math.max(val, 1)));
-                      } else if (val <= 1 && val > 0) {
-                        // Scale up from 0-1 to 0-255
-                        val = Math.round(val * 255);
-                      }
-
-                      val = Math.min(255, Math.max(0, val || 0));
-                      return `rgb(${val}, ${val}, ${val})`;
-                    }
-
-                    // Default fallback
-                    return 'rgb(128, 128, 128)'; // Gray as fallback
-                  }
-                });
-
-                geoRasterLayer.addTo(mapInstance);
-                layer = geoRasterLayer;
-
-                // Get bounds from the georaster
-                const georasterBounds = L.latLngBounds([
-                  [georaster.ymin, georaster.xmin],
-                  [georaster.ymax, georaster.xmax]
-                ]);
-
-                bounds.extend(georasterBounds);
-                console.log('Created and added georaster layer with bounds using traditional parse:', georasterBounds);
+              } catch (parseError) {
+                console.warn('Failed to parse GeoTIFF from arrayBuffer:', parseError);
+                throw parseError;
               }
             } catch (error) {
               console.error('Error creating georaster from arrayBuffer:', error);

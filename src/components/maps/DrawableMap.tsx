@@ -230,9 +230,15 @@ const DrawableMap: React.FC<DrawableMapProps> = ({
                 layer = [warningRectangle];
               }
             };
-            img.src = image.url;
+            if (image.url) {
+              img.src = image.url;
+            }
 
-            // Create the image overlay
+            // Create the image overlay only if we have a URL
+            if (!image.url) {
+              console.warn('No URL available for image overlay, skipping');
+              return;
+            }
             const imageOverlay = L.imageOverlay(image.url, imageBounds as L.LatLngBoundsExpression, {
               opacity: isJP2 ? 0.9 : 0.7, // Higher opacity for JP2 files to make them more visible
               interactive: true
@@ -303,7 +309,11 @@ const DrawableMap: React.FC<DrawableMapProps> = ({
               // Fallback to simple image overlay if GeoRasterLayer fails
               console.log('Falling back to simple ImageOverlay');
 
-              // Create a regular image overlay
+              // Create a regular image overlay only if we have a URL
+              if (!image.url) {
+                console.warn('No URL available for fallback image overlay, skipping');
+                return;
+              }
               layer = L.imageOverlay(image.url, [
                 [image.bounds[1], image.bounds[0]], // Southwest corner [lat, lng]
                 [image.bounds[3], image.bounds[2]]  // Northeast corner [lat, lng]
@@ -326,7 +336,11 @@ const DrawableMap: React.FC<DrawableMapProps> = ({
           } else {
             console.log(`Using ImageOverlay for image ${image.id} with bounds:`, image.bounds);
 
-            // Create a regular image overlay
+            // Create a regular image overlay only if we have a URL
+            if (!image.url) {
+              console.warn('No URL available for image overlay, skipping');
+              return;
+            }
             layer = L.imageOverlay(image.url, [
               [image.bounds[1], image.bounds[0]], // Southwest corner [lat, lng]
               [image.bounds[3], image.bounds[2]]  // Northeast corner [lat, lng]

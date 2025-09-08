@@ -1,6 +1,6 @@
 import { fromArrayBuffer } from 'geotiff';
-// Import the named exports for direct access
-import { fromArrays } from 'georaster';
+// Import georaster as default export
+import parseGeoraster from 'georaster';
 
 // Define TypedArray type for better type checking
 type TypedArray = Int8Array | Uint8Array | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array | Uint8ClampedArray;
@@ -144,7 +144,7 @@ const SENTINEL_UTM_ZONES: Record<string, [number, number, number, number]> = {
 export interface ProcessedImage {
   id: string;
   name: string;
-  url: string;
+  url: string | null;
   bounds: [number, number, number, number]; // [west, south, east, north]
   timestamp: number;
   metadata?: {
@@ -546,24 +546,24 @@ async function createGeoRaster(arrayBuffer: ArrayBuffer, filename?: string): Pro
       throw new Error('Invalid or empty arrays provided to fromArrays');
     }
 
-    // Check if fromArrays is available
-    let fromArraysFunction = fromArrays;
-
-    if (typeof fromArraysFunction !== 'function') {
-      console.error('Local fromArrays is not a function!', typeof fromArraysFunction);
-
-      // Try to get it from the window object
-      if (typeof window !== 'undefined' && typeof (window as any).fromArrays === 'function') {
-        console.log('Using window.fromArrays instead');
-        fromArraysFunction = (window as any).fromArrays;
-      } else {
-        console.error('Failed to get fromArrays function');
-        throw new Error('GeoRaster library not properly loaded. fromArrays is not a function.');
+    // Convert processedArrays to the format expected by georaster
+    // georaster expects values as [band][row][col] format
+    const values = processedArrays.map(band => {
+      const bandArray = Array.from(band as ArrayLike<number>);
+      const rows = [];
+      for (let row = 0; row < height; row++) {
+        const rowData = [];
+        for (let col = 0; col < width; col++) {
+          const index = row * width + col;
+          rowData.push(bandArray[index]);
+        }
+        rows.push(rowData);
       }
-    }
+      return rows;
+    });
 
-    // Create the GeoRaster with the available function
-    const georaster = await fromArraysFunction({
+    // Use parseGeoraster with values and metadata
+    const georasterResult = await parseGeoraster(values, {
       noDataValue: noDataValue,
       projection: 4326, // WGS84
       xmin: xMin,
@@ -571,24 +571,21 @@ async function createGeoRaster(arrayBuffer: ArrayBuffer, filename?: string): Pro
       xmax: xMax,
       ymax: yMax,
       pixelWidth: (xMax - xMin) / width,
-      pixelHeight: (yMax - yMin) / height,
-      arrays: processedArrays,
-      mins: mins.length > 0 ? mins : undefined,
-      maxs: maxs.length > 0 ? maxs : undefined,
+      pixelHeight: (yMax - yMin) / height
     });
 
     // Log the created georaster for debugging
     console.log('GeoRaster created with properties:', {
-      dimensions: georaster.dimensions,
-      pixelWidth: georaster.pixelWidth,
-      pixelHeight: georaster.pixelHeight,
-      noDataValue: georaster.noDataValue,
-      projection: georaster.projection,
-      numberOfRasters: georaster.numberOfRasters,
-      bounds: [georaster.xmin, georaster.ymin, georaster.xmax, georaster.ymax]
+      dimensions: georasterResult.dimensions,
+      pixelWidth: georasterResult.pixelWidth,
+      pixelHeight: georasterResult.pixelHeight,
+      noDataValue: georasterResult.noDataValue,
+      projection: georasterResult.projection,
+      numberOfRasters: georasterResult.numberOfRasters,
+      bounds: [georasterResult.xmin, georasterResult.ymin, georasterResult.xmax, georasterResult.ymax]
     });
 
-    return georaster;
+    return georasterResult;
   } catch (error) {
     console.error('Error creating GeoRaster:', error);
 
@@ -677,23 +674,8 @@ export async function processSatelliteImage(file: File): Promise<ProcessedImage>
                 window: [0, 0, width, height]
               });
 
-              // Get the appropriate fromArrays function
-              let fromArraysFunction = fromArrays;
-              if (typeof fromArraysFunction !== 'function') {
-                console.error('Local fromArrays is not a function in Copernicus handling!', typeof fromArraysFunction);
-
-                // Try to get it from the window object
-                if (typeof window !== 'undefined' && typeof (window as any).fromArrays === 'function') {
-                  console.log('Using window.fromArrays instead for Copernicus image');
-                  fromArraysFunction = (window as any).fromArrays;
-                } else {
-                  console.error('Failed to get fromArrays function for Copernicus image');
-                  throw new Error('GeoRaster library not properly loaded for Copernicus image. fromArrays is not a function.');
-                }
-              }
-
-              // Create a GeoRaster object using the available function
-              georaster = await fromArraysFunction({
+              // Create a GeoRaster object using georaster.fromArrays
+              georaster = await georaster.fromArrays({
                 noDataValue: 0,
                 projection: 4326, // WGS84
                 xmin: xMin,
@@ -764,23 +746,8 @@ export async function processSatelliteImage(file: File): Promise<ProcessedImage>
 
               console.log('Alternative min/max values for bands:', altMins, altMaxs);
 
-              // Get the appropriate fromArrays function for alternative approach
-              let fromArraysFunction = fromArrays;
-              if (typeof fromArraysFunction !== 'function') {
-                console.error('Local fromArrays is not a function in alternative approach!', typeof fromArraysFunction);
-
-                // Try to get it from the window object
-                if (typeof window !== 'undefined' && typeof (window as any).fromArrays === 'function') {
-                  console.log('Using window.fromArrays instead for alternative approach');
-                  fromArraysFunction = (window as any).fromArrays;
-                } else {
-                  console.error('Failed to get fromArrays function for alternative approach');
-                  throw new Error('GeoRaster library not properly loaded for alternative approach. fromArrays is not a function.');
-                }
-              }
-
-              // Create a GeoRaster object with improved configuration using the available function
-              const alternativeGeoraster = await fromArraysFunction({
+              // Create a GeoRaster object with improved configuration using georaster.fromArrays
+              const alternativeGeoraster = await georaster.fromArrays({
                 noDataValue: 0,
                 projection: 4326, // WGS84
                 xmin: xMin,
@@ -823,8 +790,12 @@ export async function processSatelliteImage(file: File): Promise<ProcessedImage>
     // Create a unique ID for the image
     const id = `image-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
-    // Create a URL for the image
-    const url = URL.createObjectURL(file);
+    // Create a URL for the image only if we don't have a georaster
+    // If we have a georaster, we don't need the blob URL for rendering
+    let url: string | null = null;
+    if (!georaster) {
+      url = URL.createObjectURL(file);
+    }
 
     return {
       id,
@@ -854,5 +825,7 @@ export async function processSatelliteImage(file: File): Promise<ProcessedImage>
  */
 export function releaseProcessedImage(image: ProcessedImage): void {
   // Revoke the object URL to free up memory
-  URL.revokeObjectURL(image.url);
+  if (image.url) {
+    URL.revokeObjectURL(image.url);
+  }
 }

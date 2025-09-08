@@ -4,22 +4,24 @@
  * This module exports all map-related libraries for use in the application.
  */
 
-// Import libraries
-import georaster, { parse, fromArrays } from 'georaster';
+// Import libraries with proper destructuring
+import parseGeoraster from 'georaster';
 import GeoRasterLayer from 'georaster-layer-for-leaflet';
 
 // Make libraries available globally for compatibility
 if (typeof window !== 'undefined') {
   console.log('Map libraries initialized:', {
-    georaster: typeof georaster,
+    parseGeoraster: typeof parseGeoraster,
     GeoRasterLayer: typeof GeoRasterLayer
   });
+
+  // Make georaster functions available globally for fallback
+  (window as any).parseGeoraster = parseGeoraster;
+  (window as any).GeoRasterLayer = GeoRasterLayer;
 }
 
 // Export everything for use in the application
 export {
-  georaster,
-  fromArrays,
-  parse,
+  parseGeoraster,
   GeoRasterLayer
 };

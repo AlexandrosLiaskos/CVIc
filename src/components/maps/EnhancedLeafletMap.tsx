@@ -180,9 +180,15 @@ const EnhancedLeafletMap: React.FC<EnhancedLeafletMapProps> = ({
                 // Add to layers for cleanup
                 newImageLayers.push(warningRectangle);
               };
-              img.src = image.url;
+              if (image.url) {
+                img.src = image.url;
+              }
 
-              // Create a regular image overlay
+              // Create a regular image overlay only if we have a URL
+              if (!image.url) {
+                console.warn('No URL available for image overlay, skipping');
+                return;
+              }
               layer = L.imageOverlay(image.url, [
                 [image.bounds[1], image.bounds[0]], // Southwest corner [lat, lng]
                 [image.bounds[3], image.bounds[2]]  // Northeast corner [lat, lng]
@@ -241,9 +247,15 @@ const EnhancedLeafletMap: React.FC<EnhancedLeafletMapProps> = ({
               // Add to layers for cleanup
               newImageLayers.push(warningRectangle);
             };
-            img.src = image.url;
+            if (image.url) {
+              img.src = image.url;
+            }
 
-            // Create the image overlay
+            // Create the image overlay only if we have a URL
+            if (!image.url) {
+              console.warn('No URL available for image overlay, skipping');
+              return;
+            }
             layer = L.imageOverlay(image.url, imageBounds as L.LatLngBoundsExpression, {
               opacity: 0.8,
               interactive: true
