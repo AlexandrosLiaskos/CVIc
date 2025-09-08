@@ -11,7 +11,7 @@
 
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "deploy:github": "npm run build && gh-pages -d dist",
+
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist node_modules/.vite",
     "serve": "npx http-server ./dist -o -p 8080"
