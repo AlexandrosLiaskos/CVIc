@@ -34,7 +34,9 @@ export default defineConfig({
       output: {
         manualChunks: {
           'proj4': ['proj4'],
-          'geospatial': ['georaster', 'georaster-layer-for-leaflet', 'geotiff'],
+          'georaster': ['georaster'],
+          'georaster-layer': ['georaster-layer-for-leaflet'],
+          'geotiff': ['geotiff'],
           'leaflet': ['leaflet', 'leaflet-draw', 'react-leaflet'],
           'turf': ['@turf/turf']
         }
@@ -47,6 +49,7 @@ alias: {}
   },
   optimizeDeps: {
     include: [
+      'proj4',
       'react',
       'react-dom',
       'react-router-dom',
@@ -54,7 +57,6 @@ alias: {}
       'leaflet-draw',
       'georaster',
       'georaster-layer-for-leaflet',
-      'proj4',
       'idb',
       'shpjs',
       'geotiff',
