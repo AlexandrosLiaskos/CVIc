@@ -38,7 +38,9 @@ manualChunks: {}
   },
   resolve: {
     dedupe: ['react', 'react-dom'],
-alias: {}
+    alias: {
+      'proj4': 'proj4/dist/proj4.js'
+    }
   },
   optimizeDeps: {
     include: [
@@ -49,7 +51,8 @@ alias: {}
       'leaflet-draw',
       'georaster',
       'georaster-layer-for-leaflet',
-
+      'proj4',
+      'proj4-fully-loaded',
       'idb',
       'shpjs',
       'geotiff',
