@@ -123,17 +123,18 @@ npm run deploy
 
 ### Frontend
 - **Framework**: React 18 with TypeScript
-- **Build Tool**: Vite with HMR
+- **Build Tool**: Vite with SWC
 - **Styling**: Tailwind CSS + PostCSS
 
 ### Mapping & Geospatial
 - **Mapping**: Leaflet + React-Leaflet
 - **Geospatial Processing**: Turf.js
 - **Raster Processing**: GeoTIFF.js, GeoRaster
+- **Shapefile Processing**: Shapefile.js for Shapefiles
 
 ### Data & Storage
 - **Client Storage**: IndexedDB (via idb)
-- **File Processing**: Shapefile.js for Shapefiles
+
 
 ### Development & Build
 ```json
