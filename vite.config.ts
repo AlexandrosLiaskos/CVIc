@@ -32,7 +32,12 @@ export default defineConfig({
     rollupOptions: {
       external: [],
       output: {
-manualChunks: {}
+        manualChunks: {
+          'proj4': ['proj4'],
+          'geospatial': ['georaster', 'georaster-layer-for-leaflet', 'geotiff'],
+          'leaflet': ['leaflet', 'leaflet-draw', 'react-leaflet'],
+          'turf': ['@turf/turf']
+        }
       }
     }
   },
@@ -49,7 +54,7 @@ alias: {}
       'leaflet-draw',
       'georaster',
       'georaster-layer-for-leaflet',
-
+      'proj4',
       'idb',
       'shpjs',
       'geotiff',
