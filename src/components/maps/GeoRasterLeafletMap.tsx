@@ -3,9 +3,13 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw';
 import 'leaflet-draw/dist/leaflet.draw.css';
+import proj4 from 'proj4';
 import GeoRasterLayer from 'georaster-layer-for-leaflet';
 // Import georaster as default export
 import parseGeoraster from 'georaster';
+
+// Make proj4 globally available for georaster-layer-for-leaflet
+(window as any).proj4 = proj4;
 import type { FeatureCollection, LineString, GeoJsonObject } from 'geojson';
 import type { ProcessedImage } from '../../services/imageProcessor';
 
