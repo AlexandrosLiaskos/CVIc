@@ -63,9 +63,6 @@ npm run build
 
 # Preview production build locally
 npm run preview
-
-# Deploy to Firebase Hosting
-npm run deploy
 ```
 
 ## 📖 Usage
