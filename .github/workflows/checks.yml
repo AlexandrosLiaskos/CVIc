@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       # The same Node.js version as in deploy.yml, so that a build that passes here also passes there.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: lts/*
           cache: npm
