@@ -119,7 +119,9 @@ export default function SegmentTablePage() {
 
   const sortedSegments = useMemo(() => {
     return [...filteredSegments].sort((a, b) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let aValue: any = a;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let bValue: any = b;
       const fields = sortField.split('.');
       for (const field of fields) {

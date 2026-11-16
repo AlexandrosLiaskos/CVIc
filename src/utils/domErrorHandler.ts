@@ -43,6 +43,7 @@ export function safeGetElementById(
 export function safeAccess<T>(obj: unknown, propPath: string, fallback: T): T {
   try {
     const props = propPath.split('.');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any = obj;
 
     for (const prop of props) {

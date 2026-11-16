@@ -259,6 +259,7 @@ export default function ResultsPage() {
       console.log("Preparing map for capture...");
 
       // Get the Leaflet map instance if available
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mapInstance = (window as any).L?.Maps?.[0] as any;
       if (mapInstance) {
         try {
@@ -295,6 +296,7 @@ export default function ResultsPage() {
 
           // Ensure GeoJSON layer is fully rendered
           const geoJSONLayer = mapInstance._layers && Object.values(mapInstance._layers).find(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (layer: any) => layer.feature || (layer.getLayers && typeof layer.getLayers === 'function')
           );
 
@@ -302,6 +304,7 @@ export default function ResultsPage() {
             // If it's a feature group or layer group, make sure all sublayers are visible
             if (geoJSONLayer.getLayers && typeof geoJSONLayer.getLayers === 'function') {
               const subLayers = geoJSONLayer.getLayers();
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               subLayers.forEach((layer: any) => {
                 if (layer.bringToFront && typeof layer.bringToFront === 'function') {
                   layer.bringToFront();
