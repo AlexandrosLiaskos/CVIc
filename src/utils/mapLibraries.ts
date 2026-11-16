@@ -15,7 +15,9 @@ const parse = (georaster as { parse?: unknown }).parse;
 
 // Make libraries available globally for compatibility
 if (typeof window !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).fromArrays = fromArrays;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).proj4 = proj4;
 
   console.log('Map libraries initialized:', {

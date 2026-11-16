@@ -65,6 +65,7 @@ export default function EnhancedShorelineDigitizationPage() {
   const handleLineStringDelete = useCallback((id: string) => {
     setLineStrings(prevLineStrings =>
       prevLineStrings.filter((ls, index) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (ls as any).properties?.id !== id && `line-${index + 1}` !== id
       )
     );
@@ -79,6 +80,7 @@ export default function EnhancedShorelineDigitizationPage() {
           type: 'Feature',
           geometry: lineString,
           properties: {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             id: (lineString as any).properties?.id || `line-${index + 1}`
           }
         }))

@@ -52,6 +52,7 @@ export const ParameterValuePanel: React.FC<ParameterValuePanelProps> = ({
       const rangesToUse = activeParameter.indexSpecificRankingTable || activeParameter.vulnerabilityRanges;
       const optionsFromRanges: ParameterOption[] = [];
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       rangesToUse.forEach((range: any) => {
         // For index-specific ranking tables, use the exact criteria
         let rangeLabel = `${range.label}`;

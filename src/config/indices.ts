@@ -14,5 +14,6 @@ export const ALL_PARAMETERS = IndexRegistry.getAllParameters();
 // Helper functions
 export const getStandardizedIndexById = (id: string) => IndexRegistry.getIndexById(id);
 export const getParametersForIndex = (indexId: string) => IndexRegistry.getParametersForIndex(indexId);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const validateIndexParameters = (indexId: string, parameters: any[], weights?: Record<string, number>) =>
   IndexRegistry.validateIndexParameters(indexId, parameters, weights);
