@@ -1,0 +1,40 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the article given as the preferred citation."
+title: "CVIc: Coastal Vulnerability Index Compiler"
+type: software
+abstract: "A web application for coastal vulnerability assessment. It divides a shoreline into segments, takes a vulnerability class for each parameter of each segment, and computes the Coastal Vulnerability Index (CVI) or the Integrated Coastal Vulnerability Index (ICVI) in the browser."
+authors:
+  - family-names: Liaskos
+    given-names: Alexandros
+repository-code: "https://github.com/AlexandrosLiaskos/CVIc"
+url: "https://alexandrosliaskos.github.io/CVIc/"
+license: MIT
+version: 0.1.0
+keywords:
+  - coastal vulnerability
+  - Coastal Vulnerability Index
+  - CVI
+  - ICVI
+  - WebGIS
+preferred-citation:
+  type: article
+  title: "CVIc: A web platform for automated Coastal Vulnerability Index-based assessment"
+  authors:
+    - family-names: Liaskos
+      given-names: Alexandros
+    - family-names: Petropoulos
+      given-names: "George P."
+      orcid: "https://orcid.org/0000-0003-1442-1423"
+    - family-names: Evelpidou
+      given-names: Niki
+    - family-names: Detsikas
+      given-names: "Spyridon E."
+  journal: "Environmental Modelling & Software"
+  volume: 194
+  start: 106705
+  year: 2025
+  month: 10
+  issn: "1364-8152"
+  publisher:
+    name: "Elsevier BV"
+  doi: "10.1016/j.envsoft.2025.106705"
